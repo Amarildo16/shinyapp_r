@@ -74,7 +74,9 @@ ui <- fluidPage(
           type = "button",
           class = "hamburger-btn",
           `aria-label` = "Open menu",
-          HTML("&#9776;")
+          tags$span(),
+          tags$span(),
+          tags$span()
         ),
         
         tabsetPanel(
