@@ -1,0 +1,506 @@
+/* =========================
+   TOKENS
+========================= */
+:root {
+    --text: rgba(255, 255, 255, 0.95);
+    --text-soft: rgba(255, 255, 255, 0.85);
+    --text-muted: rgba(255, 255, 255, 0.65);
+
+    /* Liquid glass */
+    --glass-bg: rgba(255, 255, 255, 0.12);
+    --glass-border: rgba(255, 255, 255, 0.35);
+
+    /* Shadows */
+    --shadow-glass:
+        0 18px 40px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+
+    --shadow-sidebar:
+        14px 0 34px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+
+    --radius: 18px;
+    --pad: 18px;
+
+    --overlay: rgba(0, 0, 0, 0.35);
+
+    --sidebarMin: 260px;
+    --sidebarMax: 380px;
+    --sidebarW: 25vw;
+
+    --ease: 240ms ease;
+}
+
+/* =========================
+   RESET
+========================= */
+html,
+body {
+    height: 100%;
+    margin: 0 !important;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: none !important;
+    color: var(--text);
+}
+
+body>.container-fluid {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+}
+
+/* =========================
+   BACKGROUND (UNCHANGED)
+========================= */
+#bg-wrapper {
+    position: fixed;
+    inset: 0;
+    z-index: -3;
+    overflow: hidden;
+}
+
+.bg-layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(9px) brightness(0.85);
+    transform: scale(1.1);
+}
+
+#bg-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--overlay);
+    z-index: -2;
+}
+
+/* =========================
+   APP SHELL
+========================= */
+.app-shell {
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+/* =========================
+   HAMBURGER (NON-STICKY)
+========================= */
+.hamburger-btn {
+    position: static;
+    margin: 14px 0 18px 14px;
+
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: white;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    box-shadow: var(--shadow-glass);
+    cursor: pointer;
+
+    transition:
+        opacity 260ms ease,
+        transform 260ms ease;
+}
+
+.hamburger-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.hamburger-btn:focus {
+    outline: none;
+}
+
+/* =========================
+   HAMBURGER — SIDEBAR OPEN
+========================= */
+html.sidebar-open .hamburger-btn {
+    opacity: 0;
+    transform: scale(0.85);
+    pointer-events: none;
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+.sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    opacity: 0;
+    pointer-events: none;
+
+    transition:
+        opacity 280ms ease-out,
+        backdrop-filter 280ms ease-out;
+
+    z-index: 1050;
+}
+
+.app-sidebar {
+    position: fixed;
+    inset: 12px auto 12px 12px;
+
+    width: clamp(var(--sidebarMin), var(--sidebarW), var(--sidebarMax));
+    padding: 18px 16px;
+
+    /* === PURE CLEAR GLASS (NO BLUR) === */
+    background: linear-gradient(180deg,
+            rgba(255, 255, 255, 0.04),
+            rgba(255, 255, 255, 0.01));
+
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 22px;
+
+    box-shadow:
+        0 30px 70px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.20);
+
+    /* slide-in animation */
+    transform: translateX(calc(-100% - 24px));
+    transition:
+        transform 520ms cubic-bezier(.22, 1, .36, 1);
+
+    z-index: 1100;
+}
+
+html.sidebar-open .app-sidebar {
+    transform: translateX(0);
+}
+
+html.sidebar-open .sidebar-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* =========================
+   SIDEBAR CONTENT
+========================= */
+.menu-title {
+    font-weight: 700;
+    font-size: 18px;
+    margin: 8px 8px 18px;
+}
+
+.nav-btn {
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 11px 14px;
+
+    border-radius: var(--radius);
+
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: var(--text);
+
+    box-shadow:
+        0 14px 32px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+
+    cursor: pointer;
+    transition:
+        background 180ms ease,
+        transform 180ms ease,
+        box-shadow 180ms ease;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.26);
+    transform: translateY(-1px);
+    box-shadow:
+        0 18px 38px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.nav-btn.is-active {
+    background: rgba(255, 255, 255, 0.32);
+    box-shadow:
+        0 20px 44px rgba(0, 0, 0, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+/* =========================
+   CONTENT
+========================= */
+.app-content {
+    height: 100vh;
+    overflow-y: auto;
+
+    transition:
+        filter 420ms ease,
+        opacity 420ms ease;
+}
+
+.app-content-inner {
+    padding: calc(var(--pad) + 12px) var(--pad) var(--pad);
+}
+
+/* hide bootstrap tabs (we control navigation) */
+.app-content .nav-tabs {
+    display: none !important;
+}
+
+/* =========================
+   CONTENT — SIDEBAR OPEN STATE
+========================= */
+html.sidebar-open .app-content {
+    filter: blur(5px) brightness(0.78);
+    opacity: 0.65;
+    pointer-events: none;
+}
+
+/* =========================
+   LIQUID GLASS CARDS (CORE)
+========================= */
+/* MAIN LIQUID GLASS CARD */
+.section-box,
+.app-content .well {
+    background: var(--glass-bg) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--radius) !important;
+
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+
+    box-shadow: var(--shadow-glass) !important;
+}
+
+.section-box {
+    padding: 18px 22px;
+    margin: 18px 0 24px;
+}
+
+.plot-container {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 12px;
+}
+
+.plot-wrap {
+    margin-top: 8px;
+    padding: 14px 16px 18px;
+    border-radius: 14px;
+
+    /* liquid glass feel */
+    background: rgba(255, 255, 255, .06);
+}
+
+.glass-divider {
+    height: 1px;
+    margin: 26px 0 18px;
+    background: linear-gradient(to right,
+            transparent,
+            rgba(255, 255, 255, .45),
+            transparent);
+}
+
+/* =========================
+   TEXT INSIDE CARDS
+========================= */
+.section-box h1,
+.section-box h2,
+.section-box h3,
+.section-box h4 {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.section-box p,
+.section-box li {
+    color: var(--text-soft);
+}
+
+.caption {
+    color: var(--text-muted);
+}
+
+/* =========================
+   TABLES – LIQUID GLASS
+========================= */
+.app-content table {
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid var(--glass-border);
+
+    box-shadow: var(--shadow-glass);
+}
+
+.app-content table thead th {
+    background: rgba(255, 255, 255, 0.18);
+    color: var(--text);
+    font-weight: 600;
+}
+
+.app-content table td {
+    color: var(--text-soft);
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.app-content table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+/* =========================================================
+   LIQUID GLASS INPUTS (Shiny controls)
+========================================================= */
+
+/* Base input look */
+.form-control,
+select,
+.selectize-input,
+.selectize-control.single .selectize-input {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    color: #fff !important;
+
+    border-radius: 14px !important;
+    box-shadow:
+        0 12px 28px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+
+    padding: 10px 12px !important;
+}
+
+/* Arrow */
+.selectize-input::after {
+    border-top-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Focus */
+.form-control:focus,
+.selectize-input.focus {
+    background: rgba(255, 255, 255, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.55) !important;
+    box-shadow:
+        0 14px 32px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+/* Dropdown list */
+.selectize-dropdown {
+    background: rgba(20, 20, 20, 0.65) !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+}
+
+.selectize-dropdown .option {
+    color: #fff !important;
+}
+
+.selectize-dropdown .option:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Slider track */
+.irs--shiny .irs-line {
+    background: rgba(255, 255, 255, 0.18) !important;
+    border-radius: 10px;
+}
+
+/* Slider bar */
+.irs--shiny .irs-bar {
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.65),
+            rgba(255, 255, 255, 0.95)) !important;
+}
+
+/* Slider knob */
+.irs--shiny .irs-handle {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-radius: 50%;
+    border: none !important;
+    box-shadow:
+        0 6px 14px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* =========================
+   LIQUID GLASS – METRICS
+========================= */
+
+.metrics-glass {
+    background: rgba(255, 255, 255, 0.16) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    border-radius: 16px;
+    padding: 16px 18px;
+
+    box-shadow:
+        0 12px 30px rgba(0, 0, 0, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* title */
+.metrics-glass h4 {
+    color: white;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+/* table */
+.metrics-glass table {
+    background: transparent !important;
+    color: white;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* header */
+.metrics-glass thead th {
+    background: rgba(255, 255, 255, 0.18) !important;
+    color: white !important;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+/* rows */
+.metrics-glass td {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: white !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.18) !important;
+}
+
+/* hover */
+.metrics-glass tbody tr:hover {
+    background: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* =========================
+   PLOTLY SAFE
+========================= */
+.js-plotly-plot .plotly .modebar {
+    z-index: 100;
+}
+
+/* =========================
+   MOBILE
+========================= */
+@media (max-width: 980px) {
+    .app-sidebar {
+        width: min(86vw, 360px);
+    }
+}
