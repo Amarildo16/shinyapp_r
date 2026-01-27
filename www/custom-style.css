@@ -92,7 +92,8 @@ body>.container-fluid {
    HAMBURGER — GLASS LINES
 ========================= */
 .hamburger-btn {
-    position: static;
+    position: relative;
+    z-index: 1200;
     margin: 14px 0 18px 14px;
 
     width: 40px;
@@ -112,6 +113,16 @@ body>.container-fluid {
         opacity 260ms ease,
         transform 260ms ease;
 }
+
+/* invisible click area */
+.hamburger-btn::before {
+    content: "";
+    position: absolute;
+    inset: -12px;
+    /* rrit zonen e klikimit */
+    border-radius: 16px;
+}
+
 
 /* 3 glass lines */
 .hamburger-btn span {
