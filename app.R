@@ -71,7 +71,7 @@ ui <- fluidPage(
           "By ",
           tags$a(
             "Amarildo Alla",
-            href = "https://github.com/USERNAME_YT",
+            href = "https://github.com/Amarildo16",
             target = "_blank",
             rel = "noopener noreferrer",
             class = "github-link"
@@ -107,13 +107,6 @@ ui <- fluidPage(
             title = "Overview",
             value = "tab_overview",
 
-            # Header box
-            div(
-              class = "section-box",
-              h3("Hyrje & Të dhënat (1998–2024)"),
-              p("Ky është versioni MVP i app-it Shiny, i ndërtum mbi analizën Rmd. Qëllimi është me e bo analizën më interaktive dhe më të lehtë për me u navigu.")
-            ),
-
             fluidRow(
               column(
                 6,
@@ -133,7 +126,7 @@ ui <- fluidPage(
                 tags$details(
                   class = "section-box",
                   open = FALSE,
-                  tags$summary(tags$strong("Abstrakt (hap / mbyll)")),
+                  tags$summary(tags$strong("Abstrakt")),
                   p("Ky studim analizon dinamikën afatgjatë të prodhimit bujqësor në Shqipëri (1998–2024) me metoda të serive kohore, duke synuar identifikimin e prirjeve dhe vlerësimin e mundësisë së parashikimit."),
                   p("Metodat kryesore: analiza eksploruese, teste stacionariteti (ADF), sheshim eksponencial dhe ARIMA; si shtesë ilustrim teorik me simulime ARMA.")
                 ),
@@ -141,7 +134,7 @@ ui <- fluidPage(
                 tags$details(
                   class = "section-box",
                   open = FALSE,
-                  tags$summary(tags$strong("Metodologjia (hap / mbyll)")),
+                  tags$summary(tags$strong("Metodologjia")),
                   tags$ul(
                     tags$li("EDA: prirje, variabilitet, marrëdhënie mes variablave"),
                     tags$li("Stacionaritet: ADF + diferencim nëse duhet"),
@@ -199,7 +192,7 @@ ui <- fluidPage(
             div(
               class = "section-box",
               h3("Exploratory Data Analysis – Time Series"),
-              p("Ky seksion analizon formen, trendin dhe shperndarjen e serive kohore.")
+              p("Ketu analizojme formen, trendin dhe shperndarjen e serive kohore.")
             ),
 
             sidebarLayout(
@@ -260,7 +253,7 @@ ui <- fluidPage(
             div(
               class = "section-box",
               h3("Exploratory Data Analysis – Relationships"),
-              p("Ky seksion analizon marredheniet mes variablave kryesore bujqesore.")
+              p("Ketu analizojme marredheniet mes variablave kryesore bujqesore.")
             ),
 
             sidebarLayout(
@@ -323,7 +316,7 @@ ui <- fluidPage(
             div(
               class = "section-box",
               h3("Stationarity & Transformations"),
-              p("Ky seksion analizon stacionaritetin e serive kohore dhe transformimet e nevojshme per modelim.")
+              p("Ketu analizojme stacionaritetin e serive kohore dhe transformimet e nevojshme per modelim.")
             ),
 
             sidebarLayout(
@@ -382,7 +375,7 @@ ui <- fluidPage(
             div(
               class = "section-box",
               h3("Time Series Modeling"),
-              p("Ky seksion krahason modele ETS dhe ARIMA per parashikim.")
+              p("Ketu krahasojme modelet ETS dhe ARIMA per parashikim.")
             ),
 
             sidebarLayout(
@@ -495,10 +488,6 @@ ui <- fluidPage(
           tabPanel(
             title = "Wrap-up",
             value = "tab_wrapup",
-
-            # =========================
-            # Conclusion
-            # =========================
             div(
               class = "section-box",
               h3("Conclusion"),
@@ -510,10 +499,6 @@ ui <- fluidPage(
                 tags$li("Aplikacioni Shiny shërben si mjet eksplorues, ndërsa analiza e plotë dokumentohet në raportin Rmd.")
               )
             ),
-
-            # =========================
-            # Decomposition – Methodological note
-            # =========================
             div(
               class = "section-box",
               tags$details(
@@ -538,19 +523,6 @@ ui <- fluidPage(
                 )
               )
             ),
-
-            # =========================
-            # References
-            # =========================
-            div(
-              class = "section-box",
-              h3("References"),
-              tags$ul(
-                tags$li("INSTAT Albania – Agricultural Statistics"),
-                tags$li("Our World in Data – Agriculture & Climate"),
-                tags$li("Hyndman & Athanasopoulos (2018). Forecasting: Principles and Practice.")
-              )
-            )
           )
         )
       )
