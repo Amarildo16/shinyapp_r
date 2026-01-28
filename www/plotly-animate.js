@@ -20,6 +20,27 @@
         "h"
     ]);
 
+    const AFFECTS = {
+        eda_series: ["eda_ts_raw", "eda_ts_roll", "eda_ts_dist"],
+        roll_k: ["eda_ts_roll"],
+        rel_x: ["eda_rel_scatter"],
+        rel_y: ["eda_rel_scatter"],
+        stat_series: ["stat_diff_plot", "stat_acf_pacf"],
+        model_series: ["model_plot"],
+        model_h: ["model_plot"],
+        forecast_series: ["forecast_plot"],
+        method: ["forecast_plot"],
+        h: ["forecast_plot"]
+    };
+
+    function uniq(arr) {
+        return Array.from(new Set(arr || []));
+    }
+
+    function getTargetsForInput(name) {
+        return uniq(AFFECTS[name] || []);
+    }
+
     const INPUT_DELAY_MS = 120;
     const TAB_DELAY_MS = 160;
     const POLL_EVERY_MS = 140;
@@ -214,18 +235,23 @@
         log("stop polling", { reason, tries, epoch: ep });
     }
 
-    function pollUntilDone(reason, ep) {
+
+    function pollUntilDone(reason, ep, targets) {
         if (state.pollTimer) {
             clearInterval(state.pollTimer);
             state.pollTimer = null;
         }
 
         let tries = 0;
+        const isTargeted = Array.isArray(targets) && targets.length > 0;
 
         state.pollTimer = setInterval(() => {
             tries += 1;
 
-            const plots = findPlotContainers(document);
+            const plots = isTargeted
+                ? targets.map((id) => document.getElementById(id)).filter(Boolean)
+                : findPlotContainers(document);
+
             if (!plots.length) {
                 if (tries >= POLL_MAX) stopPolling(reason, ep, tries);
                 return;
@@ -252,18 +278,51 @@
     }
 
     function triggerTab(reason) {
+
         if (debounced(reason)) return;
         const ep = ++state.epoch;
         setTimeout(() => pollUntilDone(reason, ep), TAB_DELAY_MS);
     }
 
-    function triggerInput(reason) {
-        if (debounced(reason)) return;
-        const ep = ++state.epoch;
-        setTimeout(() => pollUntilDone(reason, ep), INPUT_DELAY_MS);
+
+    function destroyPlots(targets) {
+        const ids = Array.isArray(targets) ? targets : [];
+        if (!ids.length) return;
+
+        ids.forEach((id) => {
+            const gd = document.getElementById(id);
+            if (!gd) return;
+
+            if (typeof Plotly !== "undefined" && Plotly.purge) {
+                try {
+                    Plotly.purge(gd);
+                } catch (e) {
+                    log("error purging plot", id, e);
+                }
+            }
+
+            gd.__animHooked = false;
+            gd.__pendingEpoch = null;
+            gd.__animatedEpoch = null;
+        });
+
+        log("destroyed plots", ids);
     }
 
-    function getEventName(e) {
+
+    function triggerInput(name) {
+        const reason = "input_" + name;
+        if (debounced(reason)) return;
+
+        const targets = getTargetsForInput(name);
+        destroyPlots(targets);
+
+        const ep = ++state.epoch;
+        setTimeout(() => pollUntilDone(reason, ep, targets), INPUT_DELAY_MS);
+    }
+
+    function getEventName
+        (e) {
         if (!e) return null;
         if (typeof e.name === "string") return e.name;
         if (e.detail && typeof e.detail.name === "string") return e.detail.name;
@@ -290,7 +349,7 @@
                     return;
                 }
                 if (WATCH.has(name)) {
-                    triggerInput("input_" + name);
+                    triggerInput(name);
                 }
             });
         }
