@@ -93,39 +93,28 @@
        6) INIT
     ====================================================== */
     document.addEventListener("DOMContentLoaded", function () {
-        /* default CLOSED */
         closeSidebar();
 
-        /* default active tab */
         setActiveByTab("tab_overview");
 
-        /* --------------------------------------------------
-           CLICK HANDLERS (vanilla)
-        -------------------------------------------------- */
         document.addEventListener("click", function (e) {
             const t = e.target;
 
-            // hamburger
             if (t?.id === "toggle_sidebar") {
                 toggleSidebar();
                 return;
             }
 
-            // backdrop
             if (t?.id === "sidebar_backdrop") {
                 closeSidebar();
                 return;
             }
         });
 
-        // ESC
         document.addEventListener("keydown", function (e) {
             if (e.key === "Escape") closeSidebar();
         });
 
-        /* --------------------------------------------------
-           MENU BUTTON CLICK
-        -------------------------------------------------- */
         if (window.jQuery) {
             const selectors = Object.values(MAP).join(",");
 
@@ -152,7 +141,6 @@
             });
         }
 
-        /* one last resize (Plotly likes it) */
         setTimeout(resizePlotlyVisible, 400);
     });
 })();

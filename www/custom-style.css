@@ -5,12 +5,8 @@
     --text: rgba(255, 255, 255, 0.95);
     --text-soft: rgba(255, 255, 255, 0.85);
     --text-muted: rgba(255, 255, 255, 0.65);
-
-    /* Liquid glass */
     --glass-bg: rgba(255, 255, 255, 0.12);
     --glass-border: rgba(255, 255, 255, 0.35);
-
-    /* Shadows */
     --shadow-glass:
         0 18px 40px rgba(0, 0, 0, 0.22),
         inset 0 1px 0 rgba(255, 255, 255, 0.65);
@@ -21,9 +17,7 @@
 
     --radius: 18px;
     --pad: 18px;
-
     --overlay: rgba(0, 0, 0, 0.35);
-
     --sidebarMin: 260px;
     --sidebarMax: 380px;
     --sidebarW: 25vw;
@@ -114,45 +108,31 @@ body>.container-fluid {
         transform 260ms ease;
 }
 
-/* invisible click area */
 .hamburger-btn::before {
     content: "";
     position: absolute;
     inset: -12px;
-    /* rrit zonen e klikimit */
     border-radius: 16px;
 }
 
-
-/* 3 glass lines */
 .hamburger-btn span {
     display: block;
     width: 100%;
     height: 5px;
-
-    /* clear glass body */
     background: rgba(255, 255, 255, 0.10);
-
     border-radius: 6px;
-
-    /* glass reflection & depth */
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.95),
-        /* top light */
         inset 0 -1px 0 rgba(255, 255, 255, 0.18),
-        /* bottom shade */
         0 4px 10px rgba(0, 0, 0, 0.38);
-    /* drop shadow */
 
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-
     transition:
         opacity 200ms ease,
         transform 200ms ease;
 }
 
-/* hover effect */
 .hamburger-btn:hover span {
     opacity: 0.85;
 }
@@ -190,11 +170,11 @@ html.sidebar-open .hamburger-btn {
 .app-sidebar {
     position: fixed;
     inset: 12px auto 12px 12px;
-
     width: clamp(var(--sidebarMin), var(--sidebarW), var(--sidebarMax));
     padding: 18px 16px;
-
-    /* === PURE CLEAR GLASS (NO BLUR) === */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     background: linear-gradient(180deg,
             rgba(255, 255, 255, 0.04),
             rgba(255, 255, 255, 0.01));
@@ -210,10 +190,8 @@ html.sidebar-open .hamburger-btn {
         inset 0 1px 0 rgba(255, 255, 255, 0.95),
         inset 0 -1px 0 rgba(255, 255, 255, 0.20);
 
-    /* slide-in animation */
     transform: translateX(calc(-100% - 24px));
-    transition:
-        transform 520ms cubic-bezier(.22, 1, .36, 1);
+    transition: transform 520ms cubic-bezier(.22, 1, .36, 1);
 
     z-index: 1100;
 }
@@ -228,7 +206,32 @@ html.sidebar-open .sidebar-backdrop {
 }
 
 /* =========================
-   SIDEBAR CONTENT
+   SIDEBAR CONTENT (WRAPPERS)
+========================= */
+.app-sidebar .sidebar-main {
+    flex: 1 1 auto;
+    overflow: auto;
+    padding-right: 4px;
+    padding-bottom: 10px;
+}
+
+.app-sidebar .sidebar-main::-webkit-scrollbar {
+    width: 8px;
+}
+
+.app-sidebar .sidebar-main::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
+}
+
+.app-sidebar .sidebar-footer-wrap {
+    flex: 0 0 auto;
+    margin-top: auto;
+    padding-top: 10px;
+}
+
+/* =========================
+   TITULLI + BUTONAT
 ========================= */
 .menu-title {
     font-weight: 700;
@@ -240,9 +243,7 @@ html.sidebar-open .sidebar-backdrop {
     width: 100%;
     margin-bottom: 12px;
     padding: 11px 14px;
-
     border-radius: var(--radius);
-
     background: rgba(255, 255, 255, 0.18);
     border: 1px solid rgba(255, 255, 255, 0.35);
     color: var(--text);
@@ -274,6 +275,24 @@ html.sidebar-open .sidebar-backdrop {
 }
 
 /* =========================
+   SIDEBAR FOOTER
+========================= */
+.app-sidebar .sidebar-footer {
+    text-align: center;
+    opacity: 0.9;
+    padding: 10px 12px 6px;
+}
+
+.app-sidebar .sidebar-footer .github-link {
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.app-sidebar .sidebar-footer .github-link:hover {
+    text-decoration: underline;
+}
+
+/* =========================
    CONTENT
 ========================= */
 .app-content {
@@ -289,7 +308,6 @@ html.sidebar-open .sidebar-backdrop {
     padding: calc(var(--pad) + 12px) var(--pad) var(--pad);
 }
 
-/* hide bootstrap tabs (we control navigation) */
 .app-content .nav-tabs {
     display: none !important;
 }
@@ -306,7 +324,6 @@ html.sidebar-open .app-content {
 /* =========================
    LIQUID GLASS CARDS (CORE)
 ========================= */
-/* MAIN LIQUID GLASS CARD */
 .section-box,
 .app-content .well {
     background: var(--glass-bg) !important;
@@ -335,8 +352,6 @@ html.sidebar-open .app-content {
     margin-top: 8px;
     padding: 14px 16px 18px;
     border-radius: 14px;
-
-    /* liquid glass feel */
     background: rgba(255, 255, 255, .06);
 }
 
@@ -376,10 +391,8 @@ html.sidebar-open .app-content {
     width: 100%;
     border-radius: 16px;
     overflow: hidden;
-
     background: rgba(255, 255, 255, 0.10);
     border: 1px solid var(--glass-border);
-
     box-shadow: var(--shadow-glass);
 }
 
@@ -401,8 +414,6 @@ html.sidebar-open .app-content {
 /* =========================================================
    LIQUID GLASS INPUTS (Shiny controls)
 ========================================================= */
-
-/* Base input look */
 .form-control,
 select,
 .selectize-input,
@@ -419,12 +430,10 @@ select,
     padding: 10px 12px !important;
 }
 
-/* Arrow */
 .selectize-input::after {
     border-top-color: rgba(255, 255, 255, 0.8) !important;
 }
 
-/* Focus */
 .form-control:focus,
 .selectize-input.focus {
     background: rgba(255, 255, 255, 0.18) !important;
@@ -434,7 +443,6 @@ select,
         inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
-/* Dropdown list */
 .selectize-dropdown {
     background: rgba(20, 20, 20, 0.65) !important;
     border-radius: 14px !important;
@@ -450,20 +458,17 @@ select,
     background: rgba(255, 255, 255, 0.18) !important;
 }
 
-/* Slider track */
 .irs--shiny .irs-line {
     background: rgba(255, 255, 255, 0.18) !important;
     border-radius: 10px;
 }
 
-/* Slider bar */
 .irs--shiny .irs-bar {
     background: linear-gradient(90deg,
             rgba(255, 255, 255, 0.65),
             rgba(255, 255, 255, 0.95)) !important;
 }
 
-/* Slider knob */
 .irs--shiny .irs-handle {
     background: rgba(255, 255, 255, 0.95) !important;
     border-radius: 50%;
@@ -488,14 +493,12 @@ select,
         inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
-/* title */
 .metrics-glass h4 {
     color: white;
     font-weight: 600;
     margin-bottom: 12px;
 }
 
-/* table */
 .metrics-glass table {
     background: transparent !important;
     color: white;
@@ -503,7 +506,6 @@ select,
     overflow: hidden;
 }
 
-/* header */
 .metrics-glass thead th {
     background: rgba(255, 255, 255, 0.18) !important;
     color: white !important;
@@ -511,14 +513,12 @@ select,
     border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
 }
 
-/* rows */
 .metrics-glass td {
     background: rgba(255, 255, 255, 0.08) !important;
     color: white !important;
     border-top: 1px solid rgba(255, 255, 255, 0.18) !important;
 }
 
-/* hover */
 .metrics-glass tbody tr:hover {
     background: rgba(255, 255, 255, 0.14) !important;
 }

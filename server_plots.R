@@ -114,7 +114,7 @@ server_plots <- function(input, output, session, df) {
     ) +
     geom_line(
       aes(y = roll_mean),
-      color = "#ff3b30",   # Apple red
+      color = "#ff3b30",
       linewidth = 1.6
     ) +
     labs(
@@ -152,7 +152,7 @@ server_plots <- function(input, output, session, df) {
     geom_histogram(
       aes(y = after_stat(density)),
       bins = 18,
-      fill = "rgba(0,122,255,0.35)",   # Apple blue
+      fill = "rgba(0,122,255,0.35)",
       color = "rgba(0,0,0,0.15)"
     ) +
     geom_density(
@@ -188,7 +188,6 @@ server_plots <- function(input, output, session, df) {
   # EDA – Relationships
   # =========================
 
-  # Scatter plot with regression line
   output$eda_rel_scatter <- renderPlotly({
   req(df(), input$rel_x, input$rel_y)
 
@@ -204,13 +203,13 @@ server_plots <- function(input, output, session, df) {
     geom_point(
       size = 2.6,
       alpha = 0.55,
-      color = "rgba(0,122,255,0.55)"   # Apple blue
+      color = "rgba(0,122,255,0.55)"
     ) +
     geom_smooth(
       method = "lm",
       se = FALSE,
       linewidth = 1.4,
-      color = "#ff3b30"               # Apple red
+      color = "#ff3b30"
     ) +
     labs(
       title = "Relationship",
@@ -259,7 +258,6 @@ server_plots <- function(input, output, session, df) {
     )
   })
 
-    # Correlation matrix heatmap
     output$eda_rel_corr <- renderPlotly({
   req(df())
 
@@ -338,7 +336,7 @@ server_plots <- function(input, output, session, df) {
     y <- ts(
         df()[[input$decomp_series]],
         start = min(df()$Year),
-        frequency = 1   # annual data
+        frequency = 1
     )
 
     # =========================
@@ -432,7 +430,6 @@ server_plots <- function(input, output, session, df) {
     # Stationarity & Transformations
     # =========================
 
-    # Differenced series
     output$stat_diff_plot <- renderPlotly({
   req(df(), input$stat_series)
 
@@ -452,7 +449,7 @@ server_plots <- function(input, output, session, df) {
   p <- ggplot(d, aes(x = Year, y = Differenced)) +
     geom_line(
       linewidth = 1.2,
-      color = "#0a84ff"   # Apple blue
+      color = "#0a84ff"
     ) +
     labs(
       title = paste0("First Difference – ", input$stat_series),
@@ -466,7 +463,6 @@ server_plots <- function(input, output, session, df) {
       panel.grid.major = element_line(color = "rgba(255,255,255,0.15)"),
       panel.grid.minor = element_blank(),
 
-      # 🔥 AXIS WHITE (siç e doje)
       axis.text.x = element_text(
         color = "rgba(255,255,255,0.92)",
         size = 12
@@ -503,7 +499,6 @@ server_plots <- function(input, output, session, df) {
     )
   })
 
-    # ACF & PACF
     output$stat_acf_pacf <- renderPlotly({
   req(df(), input$stat_series)
 
@@ -536,7 +531,7 @@ server_plots <- function(input, output, session, df) {
 
   p <- ggplot(df_plot, aes(x = Lag, y = Value)) +
     geom_col(
-      fill = "rgba(10,132,255,0.75)",   # Apple blue (liquid)
+      fill = "rgba(10,132,255,0.75)",
       width = 0.7
     ) +
     geom_hline(
@@ -603,7 +598,6 @@ server_plots <- function(input, output, session, df) {
     )
   })
 
-    # ADF test
     output$stat_adf_tbl <- renderTable({
     req(df(), input$stat_series)
 
@@ -678,13 +672,11 @@ server_plots <- function(input, output, session, df) {
     ) +
     theme_minimal(base_size = 13) +
     theme(
-      # === TRANSPARENCY (kritike për glass) ===
       plot.background   = element_rect(fill = "transparent", color = NA),
       panel.background  = element_rect(fill = "transparent", color = NA),
       panel.grid.major  = element_line(color = "rgba(255,255,255,0.18)"),
       panel.grid.minor  = element_blank(),
 
-      # === TEXT (Apple / glass) ===
       text              = element_text(color = "white"),
       plot.title        = element_text(color = "white", face = "bold"),
       axis.title        = element_text(color = "white"),
@@ -692,7 +684,6 @@ server_plots <- function(input, output, session, df) {
       legend.title      = element_blank(),
       legend.text       = element_text(color = "white"),
 
-      # === LEGEND ===
       legend.background = element_rect(fill = "transparent", color = NA),
       legend.key        = element_rect(fill = "transparent", color = NA)
     )
@@ -753,18 +744,16 @@ server_plots <- function(input, output, session, df) {
   # Forecasting – Shared reactive objects
   # =========================================================
 
-  # Build time series object based on selected variable
   series_ts <- reactive({
     req(df(), input$forecast_series)
 
     ts(
       df()[[input$forecast_series]],
       start = min(df()$Year),
-      frequency = 1   # annual data
+      frequency = 1
     )
   })
 
-  # Fit forecasting model (SES / Holt / ARIMA)
   fitted_model <- reactive({
     req(series_ts(), input$method, input$h)
 
@@ -817,7 +806,6 @@ server_plots <- function(input, output, session, df) {
 
   p <- ggplot() +
 
-    ## Observed
     geom_line(
       data = obs_df,
       aes(x = Year, y = Value),
@@ -825,7 +813,6 @@ server_plots <- function(input, output, session, df) {
       size = 1
     ) +
 
-    ## Confidence band (liquid glass)
     geom_ribbon(
       data = fc_df,
       aes(x = Year, ymin = Lo80, ymax = Hi80),
@@ -833,7 +820,6 @@ server_plots <- function(input, output, session, df) {
       alpha = 0.12
     ) +
 
-    ## Forecast mean
     geom_line(
       data = fc_df,
       aes(x = Year, y = Mean),
@@ -913,7 +899,6 @@ server_plots <- function(input, output, session, df) {
   output$acc_tbl <- renderTable({
     acc <- forecast::accuracy(fitted_model())
 
-    # Prefer training set if available
     if ("Training set" %in% rownames(acc)) {
       a <- acc["Training set", c("ME", "MAE", "RMSE", "MAPE")]
     } else {

@@ -44,22 +44,41 @@ ui <- fluidPage(
   ),
   
     # Sidebar
-  div(
+    div(
     id = "app_sidebar",
     class = "app-sidebar",
 
     div(
-      class = "menu-title",
-      "Serite Kohore - Bujqesia Shqiperi (1998–2024)"
+      class = "sidebar-main",
+
+      div(class = "menu-title", "Serite Kohore - Bujqesia Shqiperi (1998–2024)"),
+
+      actionButton("go_overview",   "Overview",            class = "btn btn-light nav-btn"),
+      actionButton("go_eda_ts",     "EDA – Time Series",   class = "btn btn-light nav-btn"),
+      actionButton("go_eda_rel",    "EDA – Relationships", class = "btn btn-light nav-btn"),
+      actionButton("go_stationary", "Stationarity",        class = "btn btn-light nav-btn"),
+      actionButton("go_modeling",   "Modeling",            class = "btn btn-light nav-btn"),
+      actionButton("go_forecast",   "Forecasting",         class = "btn btn-light nav-btn"),
+      actionButton("go_wrapup",     "Wrap-up",             class = "btn btn-light nav-btn")
     ),
 
-    actionButton("go_overview",     "Overview",             class = "btn btn-light nav-btn"),
-    actionButton("go_eda_ts",       "EDA – Time Series",    class = "btn btn-light nav-btn"),
-    actionButton("go_eda_rel",      "EDA – Relationships",  class = "btn btn-light nav-btn"),
-    actionButton("go_stationary",   "Stationarity",         class = "btn btn-light nav-btn"),
-    actionButton("go_modeling",     "Modeling",             class = "btn btn-light nav-btn"),
-    actionButton("go_forecast",     "Forecasting",          class = "btn btn-light nav-btn"),
-    actionButton("go_wrapup",       "Wrap-up",              class = "btn btn-light nav-btn")
+    div(
+      class = "sidebar-footer-wrap",
+      div(class = "glass-divider"),
+      div(
+        class = "sidebar-footer",
+        tags$small(
+          "By ",
+          tags$a(
+            "Amarildo Alla",
+            href = "https://github.com/USERNAME_YT",
+            target = "_blank",
+            rel = "noopener noreferrer",
+            class = "github-link"
+          )
+        )
+      )
+    )
   ),
     
     # Content
@@ -132,7 +151,6 @@ ui <- fluidPage(
                 )
               ),
 
-              # RIGHT: Dataset info + Variables
               column(
                 6,
 
@@ -162,7 +180,6 @@ ui <- fluidPage(
 
             br(),
 
-            # Bottom: summary stats (full width)
             fluidRow(
               column(
                 12,

@@ -1,6 +1,5 @@
 (function () {
     const tabBackgrounds = {
-        // ✅ mapping i ri (tab values te app.R)
         tab_overview: "images/image0.jpeg",
         tab_eda_ts: "images/image1.jpeg",
         tab_eda_rel: "images/image2.jpeg",
@@ -36,7 +35,6 @@
             swapTimer = null;
         }
 
-        // nëse current s’ka background fare (p.sh. load i parë), vendose direkt
         const currentHasBg = !!bgCurrent.style.backgroundImage;
         if (!currentHasBg) {
             bgCurrent.style.backgroundImage = "url('" + src + "')";
@@ -44,15 +42,12 @@
             return;
         }
 
-        // prepare next
         bgNext.style.transition = "none";
         bgNext.style.opacity = 0;
         bgNext.style.backgroundImage = "url('" + src + "')";
 
-        // force reflow
         void bgNext.offsetHeight;
 
-        // animate next
         bgNext.style.transition = `opacity ${TRANSITION_MS}ms ease`;
         bgNext.style.opacity = 1;
 
@@ -91,10 +86,8 @@
     document.addEventListener("DOMContentLoaded", function () {
         preloadImages(tabBackgrounds);
 
-        // initial background (default)
         setBg(tabBackgrounds.tab_overview);
 
-        // Kap event-in si DOM CustomEvent
         document.addEventListener(
             "shiny:inputchanged",
             function (e) {
@@ -104,7 +97,6 @@
             true
         );
 
-        // Kap event-in edhe me jQuery (nqs është)
         if (window.jQuery) {
             jQuery(document).on("shiny:inputchanged", function (e) {
                 const name = getName(e);
