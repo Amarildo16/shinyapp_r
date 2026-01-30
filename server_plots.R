@@ -10,7 +10,6 @@ server_plots <- function(input, output, session, df) {
     p %>% plotly::config(displayModeBar = FALSE, responsive = TRUE)
   }
 
-  # Vendos tekstin e hover-it në trace specifike (pa aes(text=...) në ggplot)
   set_trace_text <- function(pl, idx, text_vec) {
     if (length(idx) != 1) return(pl)
     pl$x$data[[idx]]$text <- text_vec
@@ -27,84 +26,6 @@ server_plots <- function(input, output, session, df) {
   find_traces <- function(pl, predicate) {
     which(vapply(pl$x$data, predicate, logical(1)))
   }
-
-  # =========================================================
-  # Captions (tekste shpjeguese poshtë grafikëve)
-  # =========================================================
-
-  output$cap_eda_ts_raw <- renderText({
-    req(input$eda_series)
-    m <- var_meta(input$eda_series)
-    paste0(
-      "Grafiku paraqet evolucionin vjetor të serisë “", m$label,
-      "” gjatë periudhës 1998–2024."
-    )
-  })
-
-  output$cap_eda_ts_roll <- renderText({
-    req(input$eda_series, input$roll_k)
-    m <- var_meta(input$eda_series)
-    paste0(
-      "Vija e zbutur (mesatare lëvizëse me dritare k = ", input$roll_k,
-      ") thekson prirjen afatmesme duke reduktuar luhatjet afatshkurtra të serisë “",
-      m$label, "”."
-    )
-  })
-
-  output$cap_eda_ts_dist <- renderText({
-    req(input$eda_series)
-    m <- var_meta(input$eda_series)
-    paste0(
-      "Histogrami dhe densiteti i vlerësuar ilustrojnë formën e shpërndarjes për serinë “",
-      m$label, "” dhe ndihmojnë në vlerësimin e asimetrisë dhe vlerave ekstreme."
-    )
-  })
-
-  output$cap_eda_rel_scatter <- renderText({
-    req(input$rel_x, input$rel_y)
-    mx <- var_meta(input$rel_x)
-    my <- var_meta(input$rel_y)
-    paste0(
-      "Pikat përfaqësojnë vrojtimet vjetore; vija e regresionit linear sugjeron drejtimin e lidhjes së mundshme ndërmjet “",
-      mx$label, "” dhe “", my$label, "”."
-    )
-  })
-
-  output$cap_eda_rel_corr <- renderText({
-    "Matrica e korrelacionit (Pearson) përmbledh lidhjet lineare ndërmjet variablave; vlerat afër ±1 tregojnë lidhje më të fortë."
-  })
-
-  output$cap_stat_diff_plot <- renderText({
-    req(input$stat_series)
-    m <- var_meta(input$stat_series)
-    paste0(
-      "Diferencimi i parë aplikohet për të reduktuar trendin dhe për të mbështetur arritjen e stacionaritetit në serinë “",
-      m$label, "”."
-    )
-  })
-
-  output$cap_stat_acf_pacf <- renderText({
-    req(input$stat_series)
-    "Grafikët ACF dhe PACF përdoren për të orientuar përzgjedhjen e rendit të komponentëve autoregresivë (AR) dhe mesatares lëvizëse (MA) në modelet ARIMA."
-  })
-
-  output$cap_model_plot <- renderText({
-    req(input$model_series, input$model_h)
-    m <- var_meta(input$model_series)
-    paste0(
-      "Grafiku krahason parashikimet e modeleve ETS dhe ARIMA për serinë “",
-      m$label, "” në horizontin h = ", input$model_h, " vite."
-    )
-  })
-
-  output$cap_forecast_plot <- renderText({
-    req(input$forecast_series, input$method)
-    m <- var_meta(input$forecast_series)
-    paste0(
-      "Parashikimi për serinë “", m$label,
-      "” shoqërohet me interval besimi 80%, i cili reflekton pasigurinë e parashikimit."
-    )
-  })
 
   # =========================
   # Tabela – Përmbledhje (Overview)
@@ -666,10 +587,7 @@ server_plots <- function(input, output, session, df) {
     y <- df()[[input$stat_series]]
     y <- as.numeric(y)
 
-    # ADF on original
     adf_lvl <- try(tseries::adf.test(y), silent = TRUE)
-
-    # ADF on first difference
     dy <- diff(y)
     adf_diff <- try(tseries::adf.test(dy), silent = TRUE)
 
@@ -700,7 +618,6 @@ server_plots <- function(input, output, session, df) {
       extract_adf(adf_diff, "First difference (Δ)")
     )
 
-    # Format nice
     out$Statistic <- round(out$Statistic, 4)
     out$`p-value` <- formatC(out$`p-value`, format = "f", digits = 4)
 
@@ -726,7 +643,6 @@ server_plots <- function(input, output, session, df) {
     meta <- var_meta(input$stat_series)
     alpha <- 0.05
 
-    # Tekst interpretues (hipoteza zero: seri jo-stacionare / me rrënjë njësi)
     concl_lvl <- if (!is.na(p_lvl) && p_lvl < alpha) {
       "refuzohet hipoteza zero dhe seria në nivel vlerësohet stacionare"
     } else if (!is.na(p_lvl)) {
@@ -839,7 +755,6 @@ server_plots <- function(input, output, session, df) {
         plot_bgcolor  = "rgba(0,0,0,0)"
       )
 
-    # vendos hover për secilën seri sipas emrit të traces
     by_type <- split(plot_df$hover, plot_df$Tipi)
 
     for (i in seq_along(pl$x$data)) {
@@ -1001,7 +916,6 @@ server_plots <- function(input, output, session, df) {
         font = list(color = "white")
       )
 
-    # Linjat (pa ribbon) -> vendos hover tekstin shqip
     line_idx <- find_traces(pl, function(tr) {
       (tr$type %||% "") == "scatter" &&
         grepl("lines", tr$mode %||% "") &&
@@ -1009,7 +923,6 @@ server_plots <- function(input, output, session, df) {
     })
 
     if (length(line_idx) >= 1) {
-      # e dallojmë sipas gjatësisë së serisë
       for (i in line_idx) {
         nx <- length(pl$x$data[[i]]$x %||% numeric(0))
         if (nx == nrow(obs_df)) {
