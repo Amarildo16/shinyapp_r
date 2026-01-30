@@ -12,6 +12,7 @@ server_plots <- function(input, output, session, df) {
       "Production_ton"      = list(label = "Prodhimi bujqësor", unit = "ton"),
       "Yield_ton_per_ha"    = list(label = "Rendimenti bujqësor", unit = "ton/ha"),
       "Rainfall_mm"         = list(label = "Reshjet vjetore", unit = "mm"),
+      "Area_ha" = list(label = "Sipërfaqja bujqësore", unit = "ha"),
       list(label = var, unit = "")
     )
   }
@@ -71,6 +72,10 @@ server_plots <- function(input, output, session, df) {
     }
     if (var == "Rainfall_mm") {
       return(fmt_fixed(x, digits = 1))
+    }
+    if (var == "Area_ha") {
+      if (for_axis) return(fmt_compact(x, digits = 1))
+      return(fmt_fixed(x, digits = 0))
     }
     if (for_axis) fmt_compact(x, digits = 1) else fmt_fixed(x, digits = 2)
   }
@@ -204,12 +209,14 @@ server_plots <- function(input, output, session, df) {
       Variabla = c(
         "Prodhimi bujqësor (ton)",
         "Rendimenti bujqësor (ton/ha)",
-        "Reshjet vjetore (mm)"
+        "Reshjet vjetore (mm)",
+        "Sipërfaqja bujqësore (ha)"
       ),
       Përshkrimi = c(
         "Sasia totale e prodhimit bujqësor në nivel vjetor.",
         "Sasia e prodhimit për njësi sipërfaqeje (ton për hektar).",
-        "Sasia totale e reshjeve në nivel vjetor (milimetra)."
+        "Sasia totale e reshjeve në nivel vjetor (milimetra).",
+        "Sipërfaqja e kultivuar/raportuar në nivel vjetor (hektar)."
       ),
       check.names = FALSE
     )
@@ -498,6 +505,7 @@ server_plots <- function(input, output, session, df) {
 
     name_map <- c(
       Production_ton   = "Prodhimi",
+      Area_ha          = "Sipërfaqja",
       Yield_ton_per_ha = "Rendimenti",
       Rainfall_mm      = "Reshjet"
     )
@@ -681,24 +689,98 @@ server_plots <- function(input, output, session, df) {
   output$stat_adf_tbl <- renderTable({
     req(df(), input$stat_series)
 
-    y <- ts(
-      df()[[input$stat_series]],
-      start = min(df()$Year),
-      frequency = 1
-    )
+    y <- df()[[input$stat_series]]
+    y <- as.numeric(y)
 
+    # ADF on original
+    adf_lvl <- try(tseries::adf.test(y), silent = TRUE)
+
+    # ADF on first difference
     dy <- diff(y)
+    adf_diff <- try(tseries::adf.test(dy), silent = TRUE)
 
-    adf <- tseries::adf.test(dy)
+    extract_adf <- function(obj, label) {
+      if (inherits(obj, "try-error")) {
+        return(data.frame(
+          Serie = label,
+          Statistic = NA_real_,
+          `p-value` = NA_real_,
+          Method = "ADF (tseries::adf.test)",
+          stringsAsFactors = FALSE,
+          check.names = FALSE
+        ))
+      }
+      data.frame(
+        Serie = label,
+        Statistic = as.numeric(obj$statistic),
+        `p-value` = as.numeric(obj$p.value),
+        Method = obj$method,
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      )
+    }
 
-    data.frame(
-      Element = c("Statistika ADF", "Vlera p"),
-      Vlera   = c(
-        fmt_fixed(as.numeric(adf$statistic), digits = 4),
-        fmt_fixed(as.numeric(adf$p.value), digits = 4)
-      ),
-      check.names = FALSE
+
+    out <- rbind(
+      extract_adf(adf_lvl,  "Original (niveli)"),
+      extract_adf(adf_diff, "First difference (Δ)")
     )
+
+    # Format nice
+    out$Statistic <- round(out$Statistic, 4)
+    out$`p-value` <- formatC(out$`p-value`, format = "f", digits = 4)
+
+    out
+  }, striped = FALSE, bordered = TRUE, spacing = "s")
+
+  output$stat_adf_note <- renderUI({
+    req(df(), input$stat_series)
+
+    y <- as.numeric(df()[[input$stat_series]])
+
+    adf_lvl  <- try(tseries::adf.test(y), silent = TRUE)
+    adf_diff <- try(tseries::adf.test(diff(y)), silent = TRUE)
+
+    get_p <- function(obj) {
+      if (inherits(obj, "try-error")) return(NA_real_)
+      as.numeric(obj$p.value)
+    }
+
+    p_lvl  <- get_p(adf_lvl)
+    p_diff <- get_p(adf_diff)
+
+    meta <- var_meta(input$stat_series)
+    alpha <- 0.05
+
+    # Tekst interpretues (hipoteza zero: seri jo-stacionare / me rrënjë njësi)
+    concl_lvl <- if (!is.na(p_lvl) && p_lvl < alpha) {
+      "refuzohet hipoteza zero dhe seria në nivel vlerësohet stacionare"
+    } else if (!is.na(p_lvl)) {
+      "nuk refuzohet hipoteza zero dhe seria në nivel sugjeron jo-stacionaritet"
+    } else {
+      "testi për serinë në nivel nuk u llogarit (gabim gjatë ekzekutimit)"
+    }
+
+    concl_diff <- if (!is.na(p_diff) && p_diff < alpha) {
+      "pas diferencës së parë refuzohet hipoteza zero dhe seria e diferencuar vlerësohet stacionare"
+    } else if (!is.na(p_diff)) {
+      "edhe pas diferencës së parë nuk refuzohet hipoteza zero"
+    } else {
+      "testi për serinë e diferencuar nuk u llogarit (gabim gjatë ekzekutimit)"
+    }
+
+    p_txt_lvl  <- ifelse(is.na(p_lvl),  "NA", formatC(p_lvl,  format = "f", digits = 4))
+    p_txt_diff <- ifelse(is.na(p_diff), "NA", formatC(p_diff, format = "f", digits = 4))
+
+    HTML(paste0(
+      "<p style='margin-top:10px; font-size: 13px; line-height: 1.45;'>",
+      "<b>Interpretim (ADF):</b> Për serinë <i>", meta$label, "</i> (", meta$unit, "), ",
+      "hipoteza zero e testit ADF është se seria ka rrënjë njësi (pra është jo-stacionare). ",
+      "Me nivel rëndësie &alpha; = 0.05: ",
+      "<br>• <b>Niveli</b> (p = ", p_txt_lvl, "): ", concl_lvl, ".",
+      "<br>• <b>Diferenca e parë</b> (p = ", p_txt_diff, "): ", concl_diff, ".",
+      "</p>"
+    ))
   })
 
   # =========================

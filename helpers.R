@@ -8,6 +8,7 @@ suppressPackageStartupMessages({
   library(scales)
   library(shinyjs)
   library(tidyr)
+  library(tseries)
 })
 options(scipen = 999)
 
@@ -51,6 +52,7 @@ var_meta <- function(var) {
     "Production_ton"   = list(label = "Prodhimi bujqësor", unit = "ton"),
     "Yield_ton_per_ha" = list(label = "Rendimenti bujqësor", unit = "ton/ha"),
     "Rainfall_mm"      = list(label = "Reshjet vjetore", unit = "mm"),
+    "Area_ha"          = list(label = "Sipërfaqja bujqësore", unit = "ha"),
     list(label = var, unit = "")
   )
 }
@@ -113,6 +115,9 @@ fmt_by_var <- function(x, var, for_axis = TRUE) {
   }
   if (var == "Rainfall_mm") {
     return(fmt_fixed(x, digits = 1))
+  }
+  if (var == "Area_ha") {
+    return(fmt_compact(x, digits = 1))
   }
 
   if (for_axis) fmt_compact(x, digits = 1) else fmt_fixed(x, digits = 2)

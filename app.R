@@ -206,6 +206,7 @@ ui <- fluidPage(
                   "Përzgjidhni serinë",
                   choices = c(
                     "Prodhimi (ton)"     = "Production_ton",
+                    "Sipërfaqja (ha)"     = "Area_ha",
                     "Rendimenti (ton/ha)"= "Yield_ton_per_ha",
                     "Reshjet (mm)"       = "Rainfall_mm"
                   ),
@@ -276,6 +277,7 @@ ui <- fluidPage(
                   "Përzgjidhni variablën X",
                   choices = c(
                     "Prodhimi (ton)"      = "Production_ton",
+                    "Sipërfaqja (ha)"     = "Area_ha",
                     "Rendimenti (ton/ha)" = "Yield_ton_per_ha",
                     "Reshjet (mm)"        = "Rainfall_mm"
                   ),
@@ -287,6 +289,7 @@ ui <- fluidPage(
                   "Përzgjidhni variablën Y",
                   choices = c(
                     "Prodhimi (ton)"      = "Production_ton",
+                    "Sipërfaqja (ha)"     = "Area_ha",
                     "Rendimenti (ton/ha)" = "Yield_ton_per_ha",
                     "Reshjet (mm)"        = "Rainfall_mm"
                   ),
@@ -339,6 +342,7 @@ ui <- fluidPage(
                   "Përzgjidhni serinë",
                   choices = c(
                     "Prodhimi (ton)"      = "Production_ton",
+                    "Sipërfaqja (ha)"     = "Area_ha",
                     "Rendimenti (ton/ha)" = "Yield_ton_per_ha",
                     "Reshjet (mm)"        = "Rainfall_mm"
                   ),
@@ -376,7 +380,8 @@ ui <- fluidPage(
                   h4("Testi ADF"),
                   div(
                     class = "table-wrap",
-                    tableOutput("stat_adf_tbl")
+                    tableOutput("stat_adf_tbl"),
+                    uiOutput("stat_adf_note")
                   )
                 )
               )
@@ -402,6 +407,7 @@ ui <- fluidPage(
                   "Përzgjidhni serinë",
                   choices = c(
                     "Prodhimi (ton)"      = "Production_ton",
+                    "Sipërfaqja (ha)"     = "Area_ha",
                     "Rendimenti (ton/ha)" = "Yield_ton_per_ha",
                     "Reshjet (mm)"        = "Rainfall_mm"
                   ),
@@ -458,6 +464,7 @@ ui <- fluidPage(
                   "Seria",
                   choices = c(
                     "Prodhimi (ton)"      = "Production_ton",
+                    "Sipërfaqja (ha)"     = "Area_ha",
                     "Rendimenti (ton/ha)" = "Yield_ton_per_ha",
                     "Reshjet (mm)"        = "Rainfall_mm"
                   )
