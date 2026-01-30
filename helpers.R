@@ -9,6 +9,7 @@ suppressPackageStartupMessages({
   library(shinyjs)
   library(tidyr)
   library(tseries)
+  library(DT)
 })
 options(scipen = 999)
 
@@ -117,9 +118,9 @@ fmt_by_var <- function(x, var, for_axis = TRUE) {
     return(fmt_fixed(x, digits = 1))
   }
   if (var == "Area_ha") {
-    return(fmt_compact(x, digits = 1))
+    if (for_axis) return(fmt_compact(x, digits = 1))
+    return(fmt_fixed(x, digits = 0))
   }
-
   if (for_axis) fmt_compact(x, digits = 1) else fmt_fixed(x, digits = 2)
 }
 

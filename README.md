@@ -14,6 +14,7 @@ core_pkgs <- c(
   "zoo",
   "vars",
   "rugarch"
+  "DT"
 )
 
 safe_install <- function(pkgs) {
@@ -21,11 +22,11 @@ safe_install <- function(pkgs) {
   to_install <- setdiff(pkgs, installed)
 
   if (length(to_install) == 0) {
-    message("✅ Të gjitha paketat janë të instaluara.")
+    message("Të gjitha paketat janë të instaluara.")
     return(invisible(TRUE))
   }
 
-  message("📦 Po instalohen paketat që mungojnë: ", paste(to_install, collapse = ", "))
+  message("Po instalohen paketat që mungojnë: ", paste(to_install, collapse = ", "))
   install.packages(to_install, dependencies = TRUE)
   invisible(TRUE)
 }

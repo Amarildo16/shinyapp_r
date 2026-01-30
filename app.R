@@ -109,6 +109,62 @@ ui <- fluidPage(
             title = "Përmbledhje",
             value = "tab_overview",
 
+            div(
+              class = "section-box",
+
+              h3("Seritë kohore – Bujqësia në Shqipëri (1998–2024)"),
+
+              p(
+                "Ky aplikacion interaktiv (Shiny) paraqet një analizë të strukturuar të serive kohore për treguesit kryesorë të bujqësisë në Shqipëri gjatë periudhës 1998–2024, "
+              ),
+              p(
+                "Qëllimi kryesor është të vlerësohet dinamika afatgjatë e prodhimit dhe treguesve të lidhur me të (p.sh. rendimenti, sipërfaqja e kultivuar, reshjet), "
+                ,"të identifikohen prirjet dhe variabiliteti, si dhe të ndërtohen parashikime të argumentuara statistikisht."
+              ),
+
+              tags$ul(
+                tags$li(tags$strong("Së pari"), " do të shihni përmbledhjen e të dhënave, përshkrimin e variablave dhe statistikat përmbledhëse (min, max, mesatare, kuartile)."),
+                tags$li(tags$strong("Më pas"), " do të kaloni te analiza eksploruese (vizualizime interaktive) për të kuptuar prirjet, luhatjet dhe shpërndarjet e serive."),
+                tags$li(tags$strong("Në vijim"), " vlerësohet stacionariteti përmes testit ADF dhe, kur është e nevojshme, aplikohen transformime/diferencime për stabilizimin e serisë."),
+                tags$li(tags$strong("Në fund"), " ndërtohen modele parashikuese (SES/Holt dhe ARIMA) dhe paraqiten parashikimet për horizontin e zgjedhur, së bashku me interpretimin e rezultateve.")
+              ),
+            ),
+
+            div(class = "glass-divider"),
+
+              h4("Ekstrakt i të dhënave (2000–2010)"),
+              p("Më poshtë paraqiten vëzhgime të renditura kronologjikisht nga seria e të dhënave, për qëllime ilustrimi dhe verifikimi të strukturës së dataset-it."),
+
+              fluidRow(
+                column(
+                  8,
+                  div(
+                    class = "table-wrap",
+                    style="padding-top: 20px;",
+                    DT::DTOutput("data_sample_dt")
+                  )
+                ),
+                column(
+                  4,
+                  div(
+                    class = "section-box",
+                    p("Tabela përmbledh treguesit kryesorë bujqësorë dhe klimatikë për çdo vit të vrojtimit."),
+                    tags$ul(
+                      tags$li(tags$strong("Production_ton:"), " prodhimi total bujqësor (në ton)."),
+                      div(class = "glass-divider"),
+                      tags$li(tags$strong("Area_ha:"), " sipërfaqja e kultivuar (në hektar)."),
+                      div(class = "glass-divider"),
+                      tags$li(tags$strong("Rainfall_mm:"), " reshjet vjetore (në milimetra)."),
+                      div(class = "glass-divider"),
+                      tags$li(tags$strong("Yield_ton_per_ha:"), " rendimenti mesatar (ton/ha), tregues i produktivitetit në raport me sipërfaqen e kultivuar.")
+                    ),
+                    p("Ky ekstrakt shërben për të verifikuar renditjen kohore, magnitudat e treguesve dhe koherencën e njësive matëse përpara analizës eksploruese dhe modelimit.")
+                  )
+                )
+              ),
+
+            div(class = "glass-divider"),
+
             fluidRow(
               column(
                 6,
@@ -131,6 +187,16 @@ ui <- fluidPage(
                   tags$summary(tags$strong("Abstrakti")),
                   p("Ky studim analizon dinamikën afatgjatë të prodhimit bujqësor në Shqipëri (1998–2024) përmes metodave të serive kohore, me synim identifikimin e prirjeve dhe vlerësimin e aftësisë parashikuese të modeleve."),
                   p("Metodat kryesore përfshijnë analizën eksploruese, testet e stacionaritetit (ADF), sheshimin eksponencial dhe modelet ARIMA; si shtesë, paraqiten elemente teorike përmes simulimeve ARMA.")
+                )
+              ),
+
+              column(
+                6,
+
+                div(
+                  class = "section-box",
+                  h4("Informacion mbi të dhënat"),
+                  tableOutput("data_info_tbl")
                 ),
 
                 tags$details(
@@ -144,32 +210,6 @@ ui <- fluidPage(
                     tags$li("Opsionale: simulime ARMA, VAR/IRF dhe GARCH")
                   )
                 )
-              ),
-
-              column(
-                6,
-
-                fluidRow(
-                  column(
-                    12,
-                    div(
-                      class = "section-box",
-                      h4("Informacion mbi të dhënat"),
-                      tableOutput("data_info_tbl")
-                    )
-                  )
-                ),
-
-                fluidRow(
-                  column(
-                    12,
-                    div(
-                      class = "section-box",
-                      h4("Përshkrimi i variablave"),
-                      tableOutput("variables_tbl")
-                    )
-                  )
-                )
               )
             ),
 
@@ -177,14 +217,22 @@ ui <- fluidPage(
 
             fluidRow(
               column(
-                12,
+                6,
+                div(
+                  class = "section-box",
+                  h4("Përshkrimi i variablave"),
+                  tableOutput("variables_tbl")
+                )
+              ),
+              column(
+                6,
                 div(
                   class = "section-box",
                   h4("Statistika përmbledhëse"),
                   tableOutput("summary_tbl")
                 )
               )
-            )
+            ),
           ),
 
           tabPanel(

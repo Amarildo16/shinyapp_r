@@ -6,85 +6,6 @@ server_plots <- function(input, output, session, df) {
 
   `%||%` <- function(a, b) if (is.null(a)) b else a
 
-  var_meta <- function(var) {
-    switch(
-      var,
-      "Production_ton"      = list(label = "Prodhimi bujqësor", unit = "ton"),
-      "Yield_ton_per_ha"    = list(label = "Rendimenti bujqësor", unit = "ton/ha"),
-      "Rainfall_mm"         = list(label = "Reshjet vjetore", unit = "mm"),
-      "Area_ha" = list(label = "Sipërfaqja bujqësore", unit = "ha"),
-      list(label = var, unit = "")
-    )
-  }
-
-  fmt_fixed <- function(x, digits = 2) {
-    ifelse(
-      is.na(x),
-      NA_character_,
-      format(
-        round(x, digits),
-        nsmall = digits,
-        big.mark = " ",
-        decimal.mark = ",",
-        scientific = FALSE,
-        trim = TRUE
-      )
-    )
-  }
-
-  fmt_compact <- function(x, digits = 1) {
-    out <- vapply(x, function(v) {
-      if (is.na(v)) return(NA_character_)
-      av <- abs(v)
-
-      if (av >= 1e9) {
-        val <- v / 1e9; suf <- " mld"
-      } else if (av >= 1e6) {
-        val <- v / 1e6; suf <- " mln"
-      } else if (av >= 1e3) {
-        val <- v / 1e3; suf <- " mijë"
-      } else {
-        val <- v; suf <- ""
-      }
-
-      s <- format(
-        round(val, digits),
-        nsmall = digits,
-        big.mark = " ",
-        decimal.mark = ",",
-        scientific = FALSE,
-        trim = TRUE
-      )
-
-      s <- sub(",0+$", "", s)
-      paste0(s, suf)
-    }, character(1))
-
-    out
-  }
-
-  fmt_by_var <- function(x, var, for_axis = TRUE) {
-    if (var == "Production_ton") {
-      return(fmt_compact(x, digits = 1))
-    }
-    if (var == "Yield_ton_per_ha") {
-      return(fmt_fixed(x, digits = 2))
-    }
-    if (var == "Rainfall_mm") {
-      return(fmt_fixed(x, digits = 1))
-    }
-    if (var == "Area_ha") {
-      if (for_axis) return(fmt_compact(x, digits = 1))
-      return(fmt_fixed(x, digits = 0))
-    }
-    if (for_axis) fmt_compact(x, digits = 1) else fmt_fixed(x, digits = 2)
-  }
-
-  fmt_unit <- function(x, var) {
-    m <- var_meta(var)
-    paste0(fmt_by_var(x, var, for_axis = FALSE), " ", m$unit)
-  }
-
   plotly_cfg <- function(p) {
     p %>% plotly::config(displayModeBar = FALSE, responsive = TRUE)
   }
@@ -253,6 +174,33 @@ server_plots <- function(input, output, session, df) {
     out
   })
 
+  output$data_sample_dt <- DT::renderDT({
+    req(df())
+
+    d <- df() %>%
+      dplyr::filter(Year >= 2001, Year <= 2010) %>%
+      dplyr::arrange(Year) %>%
+      dplyr::slice_head(n = 15)
+
+    DT::datatable(
+      d,
+      rownames = FALSE,
+      options = list(
+        paging = FALSE,
+        searching = FALSE,
+        info = FALSE,
+        autoWidth = TRUE
+      )
+    )
+  })
+
+  fmt_pct <- function(x) {
+    if (is.na(x)) return("N/A")
+    if (x > 0)  return(paste0("+", sprintf("%.2f", x), "% / vit"))
+    if (x < 0)  return(paste0(sprintf("%.2f", x), "% / vit"))
+    "0.00% / vit"
+  }
+
   # =========================
   # EDA – Seri kohore
   # =========================
@@ -322,14 +270,14 @@ server_plots <- function(input, output, session, df) {
         )
       ) %>%
       dplyr::mutate(
-        hover_raw = paste0("Viti: ", Year, "<br>", m$label, ": ", fmt_unit(.data[[input$eda_series]], input$eda_series)),
+        hover_raw  = paste0("Viti: ", Year, "<br>", m$label, ": ", fmt_unit(.data[[input$eda_series]], input$eda_series)),
         hover_roll = paste0("Viti: ", Year, "<br>Mesatare lëvizëse: ", fmt_unit(roll_mean, input$eda_series))
       )
 
     p <- ggplot(d, aes(x = Year)) +
       geom_line(
         aes(y = .data[[input$eda_series]]),
-        color = scales::alpha("black", 0.35),
+        color = scales::alpha("white", 0.35),
         linewidth = 0.9
       ) +
       geom_line(
@@ -348,11 +296,13 @@ server_plots <- function(input, output, session, df) {
       theme(
         panel.background = element_rect(fill = "transparent", color = NA),
         plot.background  = element_rect(fill = "transparent", color = NA),
-        panel.grid.major = element_line(color = scales::alpha("black", 0.08), linewidth = 0.3),
+
+        panel.grid.major = element_line(color = scales::alpha("white", 0.12), linewidth = 0.3),
         panel.grid.minor = element_blank(),
-        axis.text        = element_text(color = scales::alpha("black", 0.65)),
-        plot.title       = element_text(face = "bold"),
-        plot.subtitle    = element_text(color = scales::alpha("black", 0.55))
+
+        axis.text     = element_text(color = scales::alpha("white", 0.92)),
+        plot.title    = element_text(face = "bold", color = scales::alpha("white", 0.95)),
+        plot.subtitle = element_text(color = scales::alpha("white", 0.75))
       )
 
     pl <- ggplotly(p, tooltip = NULL) %>%
@@ -360,14 +310,25 @@ server_plots <- function(input, output, session, df) {
         paper_bgcolor = "rgba(0,0,0,0)",
         plot_bgcolor  = "rgba(0,0,0,0)",
         margin = list(t = 60, l = 40, r = 20, b = 40),
-        hovermode = "x unified"
+        hovermode = "x unified",
+
+        font  = list(color = "white"),
+        xaxis = list(
+          gridcolor     = "rgba(255,255,255,0.15)",
+          zerolinecolor = "rgba(255,255,255,0.15)",
+          tickfont      = list(color = "white")
+        ),
+        yaxis = list(
+          gridcolor     = "rgba(255,255,255,0.15)",
+          zerolinecolor = "rgba(255,255,255,0.15)",
+          tickfont      = list(color = "white")
+        )
       )
 
     line_idx <- find_traces(pl, function(tr) {
       (tr$type %||% "") == "scatter" && grepl("lines", tr$mode %||% "")
     })
 
-    # Layer 1 = seria origjinale; Layer 2 = mesatarja lëvizëse
     if (length(line_idx) >= 1) {
       pl <- set_trace_text(pl, line_idx[1], d$hover_raw)
     }
@@ -391,8 +352,8 @@ server_plots <- function(input, output, session, df) {
       geom_histogram(
         aes(y = after_stat(density)),
         bins = 18,
-        fill = scales::alpha("#0a84ff", 0.35),
-        color = scales::alpha("black", 0.15)
+        fill  = scales::alpha("#0a84ff", 0.35),
+        color = scales::alpha("white", 0.18)
       ) +
       geom_density(
         color = "#ff3b30",
@@ -409,21 +370,34 @@ server_plots <- function(input, output, session, df) {
       theme(
         panel.background = element_rect(fill = "transparent", color = NA),
         plot.background  = element_rect(fill = "transparent", color = NA),
-        panel.grid.major = element_line(color = scales::alpha("black", 0.08), linewidth = 0.3),
+
+        panel.grid.major = element_line(color = scales::alpha("white", 0.12), linewidth = 0.3),
         panel.grid.minor = element_blank(),
-        axis.text        = element_text(color = scales::alpha("black", 0.65)),
-        plot.title       = element_text(face = "bold"),
-        plot.subtitle    = element_text(color = scales::alpha("black", 0.55))
+
+        axis.text     = element_text(color = scales::alpha("white", 0.92)),
+        plot.title    = element_text(face = "bold", color = scales::alpha("white", 0.95)),
+        plot.subtitle = element_text(color = scales::alpha("white", 0.75))
       )
 
     pl <- ggplotly(p, tooltip = NULL) %>%
       layout(
         paper_bgcolor = "rgba(0,0,0,0)",
         plot_bgcolor  = "rgba(0,0,0,0)",
-        margin = list(t = 60, l = 40, r = 20, b = 40)
+        margin = list(t = 60, l = 40, r = 20, b = 40),
+
+        font  = list(color = "white"),
+        xaxis = list(
+          gridcolor     = "rgba(255,255,255,0.15)",
+          zerolinecolor = "rgba(255,255,255,0.15)",
+          tickfont      = list(color = "white")
+        ),
+        yaxis = list(
+          gridcolor     = "rgba(255,255,255,0.15)",
+          zerolinecolor = "rgba(255,255,255,0.15)",
+          tickfont      = list(color = "white")
+        )
       )
 
-    # Për të shmangur etiketa të panevojshme në hover, e çaktivizojmë hover-in këtu
     pl <- skip_trace_hover(pl, seq_along(pl$x$data))
 
     plotly_cfg(pl)
