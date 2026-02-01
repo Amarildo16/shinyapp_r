@@ -7,7 +7,7 @@ ui <- fluidPage(
   tags$head(
     tags$meta(name = "viewport", content = "width=device-width, initial-scale=1"),
 
-    tags$link(rel = "stylesheet", type = "text/css", href = "custom-style.css"),
+    tags$link(rel = "stylesheet", type = "text/css", href = "css/custom-style.css"),
 
     tags$style(HTML("
       html, body { height: 100%; margin: 0 !important; }
@@ -19,9 +19,26 @@ ui <- fluidPage(
       }
       ")),
 
-    tags$script(src = "bg.js"),
-    tags$script(src = "sidebar.js"),
-    tags$script(src = "plotly-animate.js")
+    tags$script(src = "js/bg.js"),
+    tags$script(src = "js/sidebar.js"),
+    tags$script(src = "js/plotly-animate.js"),
+    tags$link(rel = "stylesheet", href = "vendor/filepond/filepond.min.css"),
+    tags$script(src = "vendor/filepond/filepond.min.js"),
+    tags$script(src = "vendor/filepond/filepond-plugin-file-validate-type.min.js"),
+    tags$script(src = "vendor/filepond/filepond-plugin-file-validate-size.min.js"),
+    tags$link(rel = "stylesheet", href = "https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css"),
+    tags$script(src = "js/custom.js")
+  ),
+
+  tags$div(
+    id = "preloader",
+    tags$div(
+      id = "status",
+      tags$div(
+        class = "loading",
+        tags$span(), tags$span(), tags$span(), tags$span(), tags$span()
+      )
+    )
   ),
 
   # Background
@@ -53,15 +70,25 @@ ui <- fluidPage(
       div(
         class = "sidebar-main",
 
-        div(class = "menu-title", "Seritë kohore – Bujqësia në Shqipëri (1998–2024)"),
+        div(
+          class = "menu-title-row",
+          div(class = "menu-title", "Time Series Analysis"),
 
-        actionButton("go_overview",   "Përmbledhje",                         class = "btn btn-light nav-btn"),
-        actionButton("go_eda_ts",     "Analiza eksploruese – Seri kohore",   class = "btn btn-light nav-btn"),
-        actionButton("go_eda_rel",    "Analiza eksploruese – Marrëdhënie",   class = "btn btn-light nav-btn"),
-        actionButton("go_stationary", "Stacionariteti",                     class = "btn btn-light nav-btn"),
-        actionButton("go_modeling",   "Modelimi",                           class = "btn btn-light nav-btn"),
-        actionButton("go_forecast",   "Parashikimi",                        class = "btn btn-light nav-btn"),
-        actionButton("go_wrapup",     "Përfundime",                         class = "btn btn-light nav-btn")
+          actionButton(
+            "go_settings",
+            label = NULL,
+            icon = tags$i(class = "ri-settings-5-line"),
+            class = "settings-icon-btn",
+            `aria-label` = "Settings"
+          )
+        ),
+        actionButton("go_overview",       "Përmbledhje",                         class = "btn btn-light nav-btn"),
+        actionButton("go_eda_ts",         "Analiza eksploruese – Seri kohore",   class = "btn btn-light nav-btn"),
+        actionButton("go_eda_rel",        "Analiza eksploruese – Marrëdhënie",   class = "btn btn-light nav-btn"),
+        actionButton("go_stationary",     "Stacionariteti",                      class = "btn btn-light nav-btn"),
+        actionButton("go_modeling",       "Modelimi",                            class = "btn btn-light nav-btn"),
+        actionButton("go_forecast",       "Parashikimi",                         class = "btn btn-light nav-btn"),
+        actionButton("go_wrapup",         "Përfundime",                          class = "btn btn-light nav-btn")
       ),
 
       div(
@@ -104,100 +131,82 @@ ui <- fluidPage(
           id = "main_tabs",
           type = "hidden",
           selected = "tab_overview",
+          
+          tabPanel(
+            title = "Settings",
+            value = "tab_settings",
+
+            div(
+              class = "section-box",
+              h3("Settings"),
+              p("Këtu konfiguron dataset-in dhe background-in.")
+            ),
+
+            div(class="glass-divider"),
+
+            # ===== Dataset section =====
+            div(
+              class = "section-box",
+              h4("Dataset"),
+              actionButton(
+                "btn_open_upload_settings",
+                "Ngarko CSV",
+                class = "glass-btn ajax-modal-sm",
+                `data-modal` = "upload",
+                `data-title` = "Ngarko CSV"
+              ),
+              tags$small("Hap modali i upload-it, pastaj del preview/config si fullscreen.", style="opacity:.8;display:block;margin-top:8px;")
+            ),
+
+            div(class="glass-divider"),
+
+            # ===== Background section =====
+            div(
+              class = "section-box",
+              h4("Background"),
+
+              radioButtons(
+                "bg_mode",
+                "Zgjidh mënyrën",
+                choices = c("Foto" = "image", "Vetëm ngjyrë" = "color", "Pa background" = "none"),
+                selected = "image",
+                inline = TRUE
+              ),
+
+              conditionalPanel(
+                condition = "input.bg_mode == 'image'",
+                fileInput("bg_image", "Ngarko foto background", accept = c("image/png", "image/jpeg", "image/jpg")),
+                checkboxInput("bg_blur_on", "Blur", value = TRUE),
+                sliderInput("bg_blur", "Blur strength", min = 0, max = 20, value = 10, step = 1)
+              ),
+
+              conditionalPanel(
+                condition = "input.bg_mode != 'image'",
+                tags$label("Ngjyra e background-it"),
+                tags$input(id="bg_color", type="color", value="#0b1c24",
+                          style="width:120px;height:42px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:transparent;")
+              ),
+
+              tags$small("Ndryshimet aplikohen menjëherë (live).", style="opacity:.8;display:block;margin-top:10px;")
+            )
+          ),
+
 
           tabPanel(
             title = "Përmbledhje",
             value = "tab_overview",
 
             div(
-              class = "section-box",
-
-              h3("Seritë kohore – Bujqësia në Shqipëri (1998–2024)"),
-
-              p(
-                "Ky aplikacion interaktiv (Shiny) paraqet një analizë të strukturuar të serive kohore për treguesit kryesorë të bujqësisë në Shqipëri gjatë periudhës 1998–2024, "
-              ),
-              p(
-                "Qëllimi kryesor është të vlerësohet dinamika afatgjatë e prodhimit dhe treguesve të lidhur me të (p.sh. rendimenti, sipërfaqja e kultivuar, reshjet), "
-                ,"të identifikohen prirjet dhe variabiliteti, si dhe të ndërtohen parashikime të argumentuara statistikisht."
-              ),
-
-              tags$ul(
-                tags$li(tags$strong("Së pari"), " do të shihni përmbledhjen e të dhënave, përshkrimin e variablave dhe statistikat përmbledhëse (min, max, mesatare, kuartile)."),
-                tags$li(tags$strong("Më pas"), " do të kaloni te analiza eksploruese (vizualizime interaktive) për të kuptuar prirjet, luhatjet dhe shpërndarjet e serive."),
-                tags$li(tags$strong("Në vijim"), " vlerësohet stacionariteti përmes testit ADF dhe, kur është e nevojshme, aplikohen transformime/diferencime për stabilizimin e serisë."),
-                tags$li(tags$strong("Në fund"), " ndërtohen modele parashikuese (SES/Holt dhe ARIMA) dhe paraqiten parashikimet për horizontin e zgjedhur, së bashku me interpretimin e rezultateve.")
-              ),
+              class = "overview-top",
+              h3("Time Series Analysis", class = "overview-title"),
+              actionButton(
+                "btn_open_upload",
+                "Ngarko CSV",
+                class = "glass-btn ajax-modal-sm",
+                `data-modal` = "upload",
+                `data-title` = "Ngarko CSV"
+              )
             ),
-
-            
-              div(
-                class = "section-box",
-                h4("Ngarko dataset-in (CSV)"),
-                fileInput(
-                  "data_file",
-                  label = "Zgjidh një skedar .csv",
-                  accept = c(".csv")
-                ),
-                tags$small(
-                  "Nëse nuk ngarkon skedar, aplikacioni përdor dataset-in default të projektit (demo).",
-                  style = "opacity:0.8;"
-                ),
-                div(class = "glass-divider"),
-                textInput(
-                  "data_source",
-                  label = "Burimi i të dhënave (opsionale)",
-                  placeholder = "p.sh. INSTAT / Meteo / etj."
-                ),
-                selectInput(
-                  "data_time_col",
-                  label = "Kolona e kohës (opsionale)",
-                  choices = character(0)
-                ),
-                selectizeInput(
-                  "data_value_cols",
-                  label = "Seritë numerike (opsionale)",
-                  choices = character(0),
-                  multiple = TRUE,
-                  options = list(placeholder = "Zgjidh kolonat numerike…")
-                ),
-                tags$small(
-                  "Nëse këto fusha lihen bosh, aplikacioni bën auto-detect për kolonën e kohës dhe seritë numerike.",
-                  style = "opacity:0.8;"
-                )
-              ),
-div(class = "glass-divider"),
-
-              h4("Preview i dataset-it (15 rreshta)"),
-              p("Më poshtë paraqiten vëzhgime të renditura kronologjikisht nga seria e të dhënave, për qëllime ilustrimi dhe verifikimi të strukturës së dataset-it."),
-
-              fluidRow(
-                column(
-                  8,
-                  div(
-                    class = "table-wrap",
-                    style="padding-top: 20px;",
-                    DT::DTOutput("data_sample_dt")
-                  )
-                ),
-                column(
-                  4,
-                  div(
-                    class = "section-box",
-                    p("Tabela përmbledh treguesit kryesorë bujqësorë dhe klimatikë për çdo vit të vrojtimit."),
-                    tags$ul(
-                      tags$li(tags$strong("Production_ton:"), " prodhimi total bujqësor (në ton)."),
-                      div(class = "glass-divider"),
-                      tags$li(tags$strong("Area_ha:"), " sipërfaqja e kultivuar (në hektar)."),
-                      div(class = "glass-divider"),
-                      tags$li(tags$strong("Rainfall_mm:"), " reshjet vjetore (në milimetra)."),
-                      div(class = "glass-divider"),
-                      tags$li(tags$strong("Yield_ton_per_ha:"), " rendimenti mesatar (ton/ha), tregues i produktivitetit në raport me sipërfaqen e kultivuar.")
-                    ),
-                    p("Ky ekstrakt shërben për të verifikuar renditjen kohore, magnitudat e treguesve dhe koherencën e njësive matëse përpara analizës eksploruese dhe modelimit.")
-                  )
-                )
-              ),
 
             div(class = "glass-divider"),
 
@@ -207,32 +216,8 @@ div(class = "glass-divider"),
 
                 div(
                   class = "section-box",
-                  h4("Konteksti"),
-                  p("Bujqësia në Shqipëri ndikohet ndjeshëm nga faktorë klimatikë dhe ndryshime strukturore. Analiza e serive kohore mundëson vlerësimin e prirjeve afatgjata, identifikimin e variabilitetit dhe ndërtimin e parashikimeve të argumentuara statistikisht."),
-                  tags$ul(
-                    tags$li("Analizë eksploruese interaktive (Plotly)"),
-                    tags$li("Vlerësimi i stacionaritetit dhe transformimet përkatëse"),
-                    tags$li("Parashikim me sheshim eksponencial (SES/Holt) dhe ARIMA"),
-                    tags$li("Opsione të avancuara (p.sh. VAR, GARCH) – në varësi të disponueshmërisë së paketave")
-                  )
-                ),
-
-                tags$details(
-                  class = "section-box",
-                  open = FALSE,
-                  tags$summary(tags$strong("Abstrakti")),
-                  p("Ky studim analizon dinamikën afatgjatë të prodhimit bujqësor në Shqipëri (1998–2024) përmes metodave të serive kohore, me synim identifikimin e prirjeve dhe vlerësimin e aftësisë parashikuese të modeleve."),
-                  p("Metodat kryesore përfshijnë analizën eksploruese, testet e stacionaritetit (ADF), sheshimin eksponencial dhe modelet ARIMA; si shtesë, paraqiten elemente teorike përmes simulimeve ARMA.")
-                )
-              ),
-
-              column(
-                6,
-
-                div(
-                  class = "section-box",
-                  h4("Informacion mbi të dhënat"),
-                  tableOutput("data_info_tbl")
+                  h4("Përshkrimi i variablave"),
+                  tableOutput("variables_tbl")
                 ),
 
                 tags$details(
@@ -246,29 +231,24 @@ div(class = "glass-divider"),
                     tags$li("Opsionale: simulime ARMA, VAR/IRF dhe GARCH")
                   )
                 )
-              )
-            ),
+              ),
 
-            br(),
-
-            fluidRow(
               column(
                 6,
+
                 div(
                   class = "section-box",
-                  h4("Përshkrimi i variablave"),
-                  tableOutput("variables_tbl")
-                )
-              ),
-              column(
-                6,
+                  h4("Informacion mbi të dhënat"),
+                  tableOutput("data_info_tbl")
+                ),
+
                 div(
                   class = "section-box",
                   h4("Statistika përmbledhëse"),
                   tableOutput("summary_tbl")
                 )
               )
-            ),
+            )
           ),
 
           tabPanel(
@@ -569,33 +549,83 @@ div(class = "glass-divider"),
         )
       )
     )
+  ),
+  # ========= MODAL SMALL (Upload) =========
+  tags$div(
+    class = "modal fade",
+    id = "main_modal_sm",
+    tabindex = "-1",
+    `aria-hidden` = "true",
+    tags$div(
+      class = "modal-dialog modal-dialog-centered",
+      tags$div(
+        class = "modal-content",
+        tags$div(
+          class = "modal-header",
+          uiOutput("modal_sm_title"),
+          tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+        ),
+        tags$div(class = "modal-body", uiOutput("modal_sm_body"))
+      )
+    )
+  ),
+
+  # ========= MODAL FULLSCREEN (Config) =========
+  tags$div(
+    class = "modal fade",
+    id = "main_modal_fs",
+    tabindex = "-1",
+    `aria-hidden` = "true",
+    tags$div(
+      class = "modal-dialog modal-fullscreen modal-dialog-scrollable",
+      tags$div(
+        class = "modal-content",
+        tags$div(
+          class = "modal-header",
+          uiOutput("modal_fs_title"),
+          tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+        ),
+        tags$div(class = "modal-body", uiOutput("modal_fs_body")),
+        tags$div(
+          class = "modal-footer",
+          actionButton("btn_save_config", "Save", class = "btn btn-success")
+        )
+      )
+    )
   )
 )
 
+
 server <- function(input, output, session) {
-  observeEvent(input$go_overview,   { updateTabsetPanel(session, "main_tabs", "tab_overview") })
-  observeEvent(input$go_eda_ts,     { updateTabsetPanel(session, "main_tabs", "tab_eda_ts") })
-  observeEvent(input$go_eda_rel,    { updateTabsetPanel(session, "main_tabs", "tab_eda_rel") })
-  observeEvent(input$go_stationary, { updateTabsetPanel(session, "main_tabs", "tab_stationary") })
-  observeEvent(input$go_modeling,   { updateTabsetPanel(session, "main_tabs", "tab_modeling") })
-  observeEvent(input$go_forecast,   { updateTabsetPanel(session, "main_tabs", "tab_forecast") })
-  observeEvent(input$go_wrapup,     { updateTabsetPanel(session, "main_tabs", "tab_wrapup") })
+  observeEvent(input$go_settings_click, { updateTabsetPanel(session, "main_tabs", "tab_settings") })
+  observeEvent(input$go_overview,       { updateTabsetPanel(session, "main_tabs", "tab_overview") })
+  observeEvent(input$go_eda_ts,         { updateTabsetPanel(session, "main_tabs", "tab_eda_ts") })
+  observeEvent(input$go_eda_rel,        { updateTabsetPanel(session, "main_tabs", "tab_eda_rel") })
+  observeEvent(input$go_stationary,     { updateTabsetPanel(session, "main_tabs", "tab_stationary") })
+  observeEvent(input$go_modeling,       { updateTabsetPanel(session, "main_tabs", "tab_modeling") })
+  observeEvent(input$go_forecast,       { updateTabsetPanel(session, "main_tabs", "tab_forecast") })
+  observeEvent(input$go_wrapup,         { updateTabsetPanel(session, "main_tabs", "tab_wrapup") })
 
-  df <- reactive({
-    in_file <- input$data_file
+  # =========================
+  # DATA SOURCE (demo + upload)
+  # =========================
+  df_raw <- reactiveVal(NULL)
 
-    # Nëse nuk ka upload → përdor dataset-in default (demo)
-    if (is.null(in_file) || is.null(in_file$datapath) || !nzchar(in_file$datapath)) {
-      return(read_data_safe(DATA_PATH))
+  observe({
+    if (is.null(df_raw())) {
+      df_raw(read_data_safe(DATA_PATH))
     }
+  })
 
-    # Lexo CSV-n e upload-uar
+  observeEvent(input$data_file, {
+    in_file <- input$data_file
+    if (is.null(in_file) || is.null(in_file$datapath) || !nzchar(in_file$datapath)) return()
+
     out <- tryCatch(
       read_data_safe(in_file$datapath, in_file$name),
       error = function(e) {
         showNotification(
-          paste0("Gabim gjatë leximit të skedarit: ", e$message,
-                 ". U përdor dataset-i default (demo)."),
+          paste0("Gabim gjatë leximit të skedarit: ", e$message, ". U përdor dataset-i demo."),
           type = "error",
           duration = 8
         )
@@ -603,12 +633,22 @@ server <- function(input, output, session) {
       }
     )
 
-    out
-  })
+    df_raw(out)
 
-  # =========================================================
-  # 0.1) Mbush dropdown-at dinamikë sapo lexohen të dhënat
-  # =========================================================
+    # burimi i të dhënave (opsionale)
+    if (!is.null(in_file$name) && nzchar(in_file$name)) {
+      if (is.null(isolate(input$data_source)) || !nzchar(isolate(input$data_source))) {
+        updateTextInput(session, "data_source", value = in_file$name)
+      }
+    }
+  }, ignoreInit = TRUE)
+
+  # Dataset aktiv për gjithë app-in
+  df <- reactive(df_raw())
+
+  # =========================
+  # 0.1) Mbush dropdown-at dinamikë sapo ndryshon dataset-i
+  # =========================
   observeEvent(df(), {
     d <- df()
     if (is.null(d) || nrow(d) == 0) return()
@@ -633,14 +673,13 @@ server <- function(input, output, session) {
 
     updateSelectInput(session, "data_time_col", choices = time_choices, selected = tc_sel)
 
-    # (B) Kandidatë numerikë (pas konvertimit të butë)
+    # (B) Kandidatë numerikë
     cols <- setdiff(nm, tc_sel)
     num_cols <- cols[vapply(d[cols], function(x) {
       xn <- to_numeric_safe(x)
       mean(!is.na(xn)) >= 0.70
     }, logical(1))]
 
-    # fallback: nëse s'ka numeric të fortë, lejo çdo kolonë (përzgjedhje manuale)
     if (length(num_cols) == 0) num_cols <- cols
 
     vc_cur <- isolate(input$data_value_cols)
@@ -687,17 +726,188 @@ server <- function(input, output, session) {
                       choices = choices,
                       selected = pick(isolate(input$rel_y), choices, s2))
 
-    # (D) Burimi i të dhënave: nëse s'është plotësuar, vendose nga emri i file-it
-    if (!is.null(input$data_file) &&
-        !is.null(input$data_file$name) &&
-        nzchar(input$data_file$name)) {
-
-      if (is.null(isolate(input$data_source)) || !nzchar(isolate(input$data_source))) {
-        updateTextInput(session, "data_source", value = input$data_file$name)
-      }
-    }
   }, ignoreInit = FALSE)
 
+  # =========================
+  # MODAL FLOW (sm -> fs)
+  # =========================
+  observeEvent(input$ajax_modal_open, {
+    req(input$ajax_modal_open$modal)
+
+    modal <- input$ajax_modal_open$modal
+    title <- input$ajax_modal_open$title
+
+    if (modal == "sm") {
+      output$modal_sm_title <- renderUI(tags$h5(class = "modal-title", title))
+
+      output$modal_sm_body <- renderUI(tagList(
+        fileInput("csv_file_modal", label = NULL, accept = ".csv"),
+        tags$small("Hidh CSV këtu (drag & drop) ose Browse.", style = "opacity:.8;")
+      ))
+
+      session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "show"))
+    }
+
+    if (modal == "fs") {
+      output$modal_fs_title <- renderUI(tags$h5(class = "modal-title", title))
+      output$modal_fs_body  <- renderUI(div("..."))
+      session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "show"))
+    }
+  })
+
+  observeEvent(input$csv_file_modal, {
+    req(input$csv_file_modal$datapath)
+
+    # 1) Lexo datasetin dhe bëje aktiv për gjithë app-in
+    d <- read_data_safe(input$csv_file_modal$datapath, input$csv_file_modal$name)
+    df_raw(d)
+
+    # 2) Mbyll modalin e vogël
+    session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "hide"))
+
+    nm <- names(d)
+
+    # Sugjero time col (nga detect_time_candidates)
+    cand <- tryCatch(detect_time_candidates(d), error = function(e) {
+      data.frame(col = nm, score = 0)
+    })
+    time_choices <- unique(cand$col)
+    if (length(time_choices) == 0) time_choices <- nm
+    time_default <- time_choices[1]
+
+    # Sugjero numeric cols (jo time)
+    cols <- setdiff(nm, time_default)
+    num_cols <- cols[vapply(d[cols], function(x) {
+      xn <- to_numeric_safe(x)
+      mean(!is.na(xn)) >= 0.70
+    }, logical(1))]
+    if (length(num_cols) == 0) num_cols <- cols
+    value_default <- head(num_cols, min(3, length(num_cols)))
+
+    # 3) Mbush modalin e madh (preview + konfigurime)
+    output$modal_fs_title <- renderUI(tags$h5(class = "modal-title", "Konfigurimi i dataset-it"))
+
+    output$modal_fs_body <- renderUI(tagList(
+      fluidRow(
+        column(8, DT::DTOutput("csv_preview_big")),
+        column(4,
+          selectInput("modal_time_col", "Kolona e kohës",
+                      choices = time_choices, selected = time_default),
+
+          selectizeInput("modal_value_cols", "Seritë numerike",
+                         choices = setdiff(nm, time_default),
+                         selected = value_default,
+                         multiple = TRUE),
+
+          selectInput("modal_dup", "Duplikate në kohë", c("mean","sum","last"), "mean"),
+          selectInput("modal_freq", "Frekuenca", c("auto","yearly","quarterly","monthly","daily"), "auto")
+        )
+      )
+    ))
+
+    output$csv_preview_big <- DT::renderDT({
+      DT::datatable(head(d, 200), options = list(scrollX = TRUE, pageLength = 15))
+    })
+
+    # 4) Hape modalin fullscreen
+    session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "show"))
+
+    # 5) Përditëso burimin e të dhënave (opsionale)
+    if (!is.null(input$csv_file_modal$name) && nzchar(input$csv_file_modal$name)) {
+      if (is.null(isolate(input$data_source)) || !nzchar(isolate(input$data_source))) {
+        updateTextInput(session, "data_source", value = input$csv_file_modal$name)
+      }
+    }
+  })
+
+  # Kur useri ndryshon time col në modal fs → rifresko choices për value cols (live)
+  observeEvent(input$modal_time_col, {
+    req(df())
+    d <- df()
+    nm <- names(d)
+
+    updateSelectizeInput(
+      session, "modal_value_cols",
+      choices = setdiff(nm, input$modal_time_col),
+      selected = isolate(input$modal_value_cols),
+      server = TRUE
+    )
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$btn_save_config, {
+    req(input$modal_time_col)
+    req(input$modal_value_cols)
+
+    # Mbyll modalin
+    session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "hide"))
+
+    # Përditëso input-et kryesore me choices + selected
+    d <- df()
+    nm <- names(d)
+
+    # time
+    updateSelectInput(session, "data_time_col",
+                      choices = nm,
+                      selected = input$modal_time_col)
+
+    # values (jo time)
+    updateSelectizeInput(session, "data_value_cols",
+                         choices = setdiff(nm, input$modal_time_col),
+                         selected = input$modal_value_cols,
+                         server = TRUE)
+
+    showNotification("Konfigurimi i dataset-it u ruajt me sukses.", type = "message", duration = 5)
+  })
+
+  # =========================
+  # MAIN MODULES
+  # =========================
+
+  observeEvent(input$data_time_col, {
+    d <- df()
+    if (is.null(d) || nrow(d) == 0) return()
+
+    nm <- names(d)
+    tc_sel <- input$data_time_col
+    if (is.null(tc_sel) || !nzchar(tc_sel) || !(tc_sel %in% nm)) return()
+
+    cols <- setdiff(nm, tc_sel)
+
+    num_cols <- cols[vapply(d[cols], function(x) {
+      xn <- to_numeric_safe(x)
+      mean(!is.na(xn)) >= 0.70
+    }, logical(1))]
+
+    if (length(num_cols) == 0) num_cols <- cols
+
+    # ruaj sa të mundesh selections aktuale
+    vc_cur <- isolate(input$data_value_cols)
+    vc_sel <- vc_cur[vc_cur %in% num_cols]
+    if (length(vc_sel) == 0) vc_sel <- head(num_cols, min(3, length(num_cols)))
+
+    updateSelectizeInput(session, "data_value_cols",
+                        choices = num_cols,
+                        selected = vc_sel,
+                        server = TRUE)
+
+    # rifresko edhe selector-at e analizës (që mos mbeten me vlera që s’janë më valid)
+    choices <- num_cols
+    if (length(choices) == 0) return()
+
+    s1 <- choices[1]
+    s2 <- if (length(choices) >= 2) choices[2] else choices[1]
+
+    pick <- function(cur, choices, fallback) {
+      if (!is.null(cur) && length(cur) == 1 && cur %in% choices) cur else fallback
+    }
+
+    updateSelectInput(session, "eda_series",      choices = choices, selected = pick(isolate(input$eda_series), choices, s1))
+    updateSelectInput(session, "stat_series",     choices = choices, selected = pick(isolate(input$stat_series), choices, s1))
+    updateSelectInput(session, "model_series",    choices = choices, selected = pick(isolate(input$model_series), choices, s1))
+    updateSelectInput(session, "forecast_series", choices = choices, selected = pick(isolate(input$forecast_series), choices, s1))
+    updateSelectInput(session, "rel_x",           choices = choices, selected = pick(isolate(input$rel_x), choices, s1))
+    updateSelectInput(session, "rel_y",           choices = choices, selected = pick(isolate(input$rel_y), choices, s2))
+  })
 
   server_plots(input, output, session, df)
 }

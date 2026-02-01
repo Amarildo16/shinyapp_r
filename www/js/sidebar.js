@@ -6,6 +6,7 @@
        tab value (Shiny)  <->  button selector
     ====================================================== */
     const MAP = {
+        tab_settings: "#go_settings",
         tab_overview: "#go_overview",
         tab_eda_ts: "#go_eda_ts",
         tab_eda_rel: "#go_eda_rel",
@@ -98,18 +99,17 @@
         setActiveByTab("tab_overview");
 
         document.addEventListener("click", function (e) {
-            const t = e.target;
-
-            if (t?.id === "toggle_sidebar") {
+            if (e.target.closest("#toggle_sidebar")) {
                 toggleSidebar();
                 return;
             }
 
-            if (t?.id === "sidebar_backdrop") {
+            if (e.target.closest("#sidebar_backdrop")) {
                 closeSidebar();
                 return;
             }
         });
+
 
         document.addEventListener("keydown", function (e) {
             if (e.key === "Escape") closeSidebar();
@@ -120,11 +120,18 @@
 
             jQuery(document).on("click", selectors, function () {
                 const sel = "#" + this.id;
+
+                // Settings button (tags$button) -> dërgo event në Shiny
+                if (this.id === "go_settings" && window.Shiny) {
+                    Shiny.setInputValue("go_settings_click", Date.now(), { priority: "event" });
+                }
+
                 if (BTN_TO_TAB[sel]) {
                     setActiveByButton(sel);
                     closeSidebar();
                 }
             });
+
 
             /* --------------------------------------------------
                SHINY TAB CHANGE

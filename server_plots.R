@@ -136,36 +136,60 @@ server_plots <- function(input, output, session, df) {
     d  <- df_dyn()
     vc <- value_cols()
 
-    # vetëm kolonat e serive
-    X <- d[, vc, drop = FALSE]
+    if (is.null(vc) || length(vc) == 0) {
+      return(data.frame(Mesazh = "Zgjidh të paktën 1 seri numerike.", check.names = FALSE))
+    }
 
-    # statistika
+    # --- 1) Konverto seritë në numeric safely ---
+    X <- setNames(lapply(vc, function(v) to_numeric_safe(d[[v]])), vc)
+
+    # --- 2) Statistika "safe" ---
+    safe_stat <- function(x, fun) {
+      x <- x[!is.na(x)]
+      if (length(x) == 0) return(NA_real_)
+      fun(x)
+    }
+
+    safe_sd <- function(x) {
+      x <- x[!is.na(x)]
+      if (length(x) < 2) return(NA_real_)
+      stats::sd(x)
+    }
+
     out <- data.frame(
       Variabla = vc,
-      Mesatarja = vapply(vc, function(v) mean(X[[v]], na.rm = TRUE), numeric(1)),
-      `Devijimi standard` = vapply(vc, function(v) sd(X[[v]], na.rm = TRUE), numeric(1)),
-      Minimumi = vapply(vc, function(v) min(X[[v]], na.rm = TRUE), numeric(1)),
-      Maksimumi = vapply(vc, function(v) max(X[[v]], na.rm = TRUE), numeric(1)),
+      Mesatarja = vapply(vc, function(v) safe_stat(X[[v]], base::mean), numeric(1)),
+      `Devijimi standard` = vapply(vc, function(v) safe_sd(X[[v]]), numeric(1)),
+      Minimumi = vapply(vc, function(v) safe_stat(X[[v]], base::min), numeric(1)),
+      Maksimumi = vapply(vc, function(v) safe_stat(X[[v]], base::max), numeric(1)),
       `N (jo-NA)` = vapply(vc, function(v) sum(!is.na(X[[v]])), integer(1)),
       `Missing %` = vapply(vc, function(v) round(100 * mean(is.na(X[[v]])), 2), numeric(1)),
       check.names = FALSE
     )
 
-    # labels për variablat + formatim akademik i numrave (dinamik)
+    # --- 3) Labels për variablat (dinamik) ---
     out$Variabla <- vapply(vc, function(v) {
       m <- var_meta(v, meta())
-      if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")")
+      if (!is.null(m$unit) && nzchar(m$unit)) paste0(m$label, " (", m$unit, ")")
       else m$label
     }, character(1))
 
-    # formatim
-    for (i in seq_along(vc)) {
-      v <- vc[i]
-      out$Mesatarja[i] <- fmt_by_series(out$Mesatarja[i], for_axis = FALSE)
-      out$`Devijimi standard`[i] <- fmt_by_series(out$`Devijimi standard`[i], for_axis = FALSE)
-      out$Minimumi[i] <- fmt_by_series(out$Minimumi[i], for_axis = FALSE)
-      out$Maksimumi[i] <- fmt_by_series(out$Maksimumi[i], for_axis = FALSE)
+    # --- 4) Formatim: pa e prishur tipin gjatë iterimit ---
+    mean_num <- out$Mesatarja
+    sd_num   <- out$`Devijimi standard`
+    min_num  <- out$Minimumi
+    max_num  <- out$Maksimumi
+
+    fmt_safe <- function(x) {
+      # fmt_by_series duhet të marrë NUMERIC, jo text
+      if (is.na(x)) return(NA_character_)
+      fmt_by_series(as.numeric(x), for_axis = FALSE)
     }
+
+    out$Mesatarja <- vapply(mean_num, fmt_safe, character(1))
+    out$`Devijimi standard` <- vapply(sd_num, fmt_safe, character(1))
+    out$Minimumi  <- vapply(min_num, fmt_safe, character(1))
+    out$Maksimumi <- vapply(max_num, fmt_safe, character(1))
 
     out
   })
