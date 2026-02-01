@@ -1,106 +1,184 @@
 server_plots <- function(input, output, session, df) {
-
   # =========================================================
-  # Ndihmëse: emërtim dhe formatim
+  # 0) Dynamic selectors (time_col / value_cols / meta / df_dyn)
   # =========================================================
 
-  `%||%` <- function(a, b) if (is.null(a)) b else a
+  # time column: nga UI nëse ekziston, përndryshe auto-detect
+  time_col <- reactive({
+    req(df())
+    nm <- names(df())
 
-  plotly_cfg <- function(p) {
-    p %>% plotly::config(displayModeBar = FALSE, responsive = TRUE)
-  }
+    # lexo nga input nëse e ke futur më vonë në UI
+    tc <- input$data_time_col %||% input$time_col %||% NULL
+    if (!is.null(tc) && tc %in% nm) return(tc)
 
-  set_trace_text <- function(pl, idx, text_vec) {
-    if (length(idx) != 1) return(pl)
-    pl$x$data[[idx]]$text <- text_vec
-    pl$x$data[[idx]]$hoverinfo <- "text"
-    pl
-  }
+    # fallback i vjetër
+    if ("Year" %in% nm) return("Year")
 
-  skip_trace_hover <- function(pl, idx) {
-    if (length(idx) == 0) return(pl)
-    for (i in idx) pl$x$data[[i]]$hoverinfo <- "skip"
-    pl
-  }
+    # auto detect me scoring
+    cand <- detect_time_candidates(df())
+    best <- cand$col[1]
+    best
+  })
 
-  find_traces <- function(pl, predicate) {
-    which(vapply(pl$x$data, predicate, logical(1)))
-  }
+  # value columns: nga UI ose auto = numeric columns pa time
+  value_cols <- reactive({
+    req(df())
+    nm <- names(df())
 
-  # =========================
-  # Tabela – Përmbledhje (Overview)
-  # =========================
+    vc <- input$data_value_cols %||% input$value_cols %||% NULL
+    if (!is.null(vc)) {
+      vc <- vc[vc %in% nm]
+      if (length(vc) > 0) return(vc)
+    }
 
-  output$data_info_tbl <- renderTable({
+    # fallback: merr vetëm numeric columns (pas konvertimit)
+    d <- df()
+    tc <- time_col()
+
+    # provoj konvertim të butë në numeric (nuk prish origjinalin)
+    cols <- setdiff(names(d), tc)
+
+    num_candidates <- cols[vapply(d[cols], function(x) {
+      xn <- to_numeric_safe(x)
+      mean(!is.na(xn)) >= 0.70
+    }, logical(1))]
+
+    num_candidates
+  })
+
+  # meta default për kolonat e zgjedhura (label nga emri, unit bosh)
+  meta <- reactive({
+    build_meta(value_cols())
+  })
+
+  # dataframe standard me kolonën Time (sorted)
+  df_dyn <- reactive({
+    req(df(), time_col())
     d <- df()
 
+    # konverto kolonat value në numeric (safe)
+    vc <- value_cols()
+    for (v in vc) d[[v]] <- to_numeric_safe(d[[v]])
+
+    make_df_dyn(d, time_col())
+  })
+
+  # helper: start/end tekst
+  time_range_txt <- reactive({
+    req(df_dyn())
+    tt <- df_dyn()$Time
+    rng <- range(tt, na.rm = TRUE)
+    paste0(fmt_time(rng[1]), " – ", fmt_time(rng[2]))
+  })
+
+  # helper: number of series
+  n_series_txt <- reactive({
+    paste0(length(value_cols()))
+  })
+
+  # =========================================================
+  # 1) Tabela – Përmbledhje (Overview) DINAMIKE
+  # =========================================================
+
+  output$data_info_tbl <- renderTable({
+    req(df_dyn())
+
+    d  <- df_dyn()
+    tt <- d$Time
+
     data.frame(
-      Element = c("Viti fillestar", "Viti përfundimtar", "Numri i vrojtimeve", "Burimi i të dhënave"),
-      Vlera   = c(
-        as.character(min(d$Year)),
-        as.character(max(d$Year)),
+      Element = c(
+        paste0(time_axis_label(tt), " fillestare"),
+        paste0(time_axis_label(tt), " përfundimtare"),
+        "Numri i vrojtimeve",
+        "Numri i serive numerike",
+        "Burimi i të dhënave"
+      ),
+      Vlera = c(
+        fmt_time(min(tt, na.rm = TRUE)),
+        fmt_time(max(tt, na.rm = TRUE)),
         as.character(nrow(d)),
-        "INSTAT / Our World in Data"
+        n_series_txt(),
+        input$data_source %||% "Përdoruesi (dataset i ngarkuar)"
       ),
       check.names = FALSE
     )
   })
+
+  # =========================================================
+  # 2) Lista e variablave (DINAMIKE)
+  # =========================================================
 
   output$variables_tbl <- renderTable({
+    req(value_cols())
+
+    vc <- value_cols()
+
     data.frame(
-      Variabla = c(
-        "Prodhimi bujqësor (ton)",
-        "Rendimenti bujqësor (ton/ha)",
-        "Reshjet vjetore (mm)",
-        "Sipërfaqja bujqësore (ha)"
-      ),
-      Përshkrimi = c(
-        "Sasia totale e prodhimit bujqësor në nivel vjetor.",
-        "Sasia e prodhimit për njësi sipërfaqeje (ton për hektar).",
-        "Sasia totale e reshjeve në nivel vjetor (milimetra).",
-        "Sipërfaqja e kultivuar/raportuar në nivel vjetor (hektar)."
-      ),
+      Variabla = vapply(vc, function(v) {
+        m <- var_meta(v, meta())
+        if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")")
+        else m$label
+      }, character(1)),
+      Përshkrimi = rep("Seri numerike e ngarkuar nga përdoruesi.", length(vc)),
       check.names = FALSE
     )
   })
 
+  # =========================================================
+  # 3) Tabela statistikore (DINAMIKE)
+  # =========================================================
+
   output$summary_tbl <- renderTable({
-    d <- df() %>% dplyr::select(-Year)
+    req(df_dyn(), value_cols())
 
-    vars <- names(d)
+    d  <- df_dyn()
+    vc <- value_cols()
 
-    stats_num <- data.frame(
-      Variabla = vars,
-      Mesatarja = sapply(d, mean, na.rm = TRUE),
-      `Devijimi standard` = sapply(d, sd, na.rm = TRUE),
-      Minimumi = sapply(d, min, na.rm = TRUE),
-      Maksimumi = sapply(d, max, na.rm = TRUE),
+    # vetëm kolonat e serive
+    X <- d[, vc, drop = FALSE]
+
+    # statistika
+    out <- data.frame(
+      Variabla = vc,
+      Mesatarja = vapply(vc, function(v) mean(X[[v]], na.rm = TRUE), numeric(1)),
+      `Devijimi standard` = vapply(vc, function(v) sd(X[[v]], na.rm = TRUE), numeric(1)),
+      Minimumi = vapply(vc, function(v) min(X[[v]], na.rm = TRUE), numeric(1)),
+      Maksimumi = vapply(vc, function(v) max(X[[v]], na.rm = TRUE), numeric(1)),
+      `N (jo-NA)` = vapply(vc, function(v) sum(!is.na(X[[v]])), integer(1)),
+      `Missing %` = vapply(vc, function(v) round(100 * mean(is.na(X[[v]])), 2), numeric(1)),
       check.names = FALSE
     )
 
-    stats_num$Variabla <- vapply(vars, function(v) {
-      m <- var_meta(v)
-      paste0(m$label, " (", m$unit, ")")
+    # labels për variablat + formatim akademik i numrave (dinamik)
+    out$Variabla <- vapply(vc, function(v) {
+      m <- var_meta(v, meta())
+      if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")")
+      else m$label
     }, character(1))
 
-    out <- stats_num
-    for (i in seq_along(vars)) {
-      v <- vars[i]
-      out$Mesatarja[i] <- fmt_by_var(stats_num$Mesatarja[i], v, for_axis = FALSE)
-      out$`Devijimi standard`[i] <- fmt_by_var(stats_num$`Devijimi standard`[i], v, for_axis = FALSE)
-      out$Minimumi[i] <- fmt_by_var(stats_num$Minimumi[i], v, for_axis = FALSE)
-      out$Maksimumi[i] <- fmt_by_var(stats_num$Maksimumi[i], v, for_axis = FALSE)
+    # formatim
+    for (i in seq_along(vc)) {
+      v <- vc[i]
+      out$Mesatarja[i] <- fmt_by_series(out$Mesatarja[i], for_axis = FALSE)
+      out$`Devijimi standard`[i] <- fmt_by_series(out$`Devijimi standard`[i], for_axis = FALSE)
+      out$Minimumi[i] <- fmt_by_series(out$Minimumi[i], for_axis = FALSE)
+      out$Maksimumi[i] <- fmt_by_series(out$Maksimumi[i], for_axis = FALSE)
     }
 
     out
   })
 
-  output$data_sample_dt <- DT::renderDT({
-    req(df())
+  # =========================================================
+  # 4) Sample table (DINAMIKE, pa Year filter)
+  # =========================================================
 
-    d <- df() %>%
-      dplyr::filter(Year >= 2001, Year <= 2010) %>%
-      dplyr::arrange(Year) %>%
+  output$data_sample_dt <- DT::renderDT({
+    req(df_dyn())
+
+    d <- df_dyn() %>%
+      dplyr::arrange(Time) %>%
       dplyr::slice_head(n = 15)
 
     DT::datatable(
@@ -110,44 +188,51 @@ server_plots <- function(input, output, session, df) {
         paging = FALSE,
         searching = FALSE,
         info = FALSE,
-        autoWidth = TRUE
+        autoWidth = TRUE,
+        scrollX = TRUE
       )
     )
   })
 
+  # =========================================================
+  # 5) fmt_pct (e lëmë siç e ke)
+  # =========================================================
   fmt_pct <- function(x) {
     if (is.na(x)) return("N/A")
     if (x > 0)  return(paste0("+", sprintf("%.2f", x), "% / vit"))
     if (x < 0)  return(paste0(sprintf("%.2f", x), "% / vit"))
     "0.00% / vit"
   }
-
-  # =========================
-  # EDA – Seri kohore
+  
+  # ========================= 
+  # EDA – Seri kohore 
   # =========================
 
   output$eda_ts_raw <- renderPlotly({
-    req(df(), input$eda_series)
+    req(df_dyn(), input$eda_series)
 
-    m <- var_meta(input$eda_series)
+    m <- var_meta(input$eda_series, meta())
+    d0 <- df_dyn()
 
-    d <- df() %>%
-      dplyr::select(Year, value = dplyr::all_of(input$eda_series)) %>%
+    xlab <- time_axis_label(d0$Time)
+
+    d <- d0 %>%
+      dplyr::select(Time, value = dplyr::all_of(input$eda_series)) %>%
       dplyr::mutate(
         hover = paste0(
-          "Viti: ", Year,
-          "<br>", m$label, ": ", fmt_unit(value, input$eda_series)
+          xlab, ": ", fmt_time(Time),
+          "<br>", m$label, ": ", fmt_unit(value, input$eda_series, meta())
         )
       )
 
-    p <- ggplot(d, aes(x = Year, y = value)) +
+    p <- ggplot(d, aes(x = Time, y = value)) +
       geom_line(linewidth = 1, color = "white") +
       labs(
         title = paste0("Seria kohore e vëzhguar – ", m$label),
-        x = "Viti",
-        y = paste0(m$label, " (", m$unit, ")")
+        x = xlab,
+        y = if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")") else m$label
       ) +
-      scale_y_continuous(labels = function(x) fmt_by_var(x, input$eda_series)) +
+      scale_y_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
       theme_minimal() +
       theme(
         plot.background  = element_blank(),
@@ -176,26 +261,77 @@ server_plots <- function(input, output, session, df) {
   })
 
   output$eda_ts_roll <- renderPlotly({
-    req(df(), input$eda_series, input$roll_k)
+    req(df_dyn(), input$eda_series, input$roll_k)
 
-    m <- var_meta(input$eda_series)
+    if (!requireNamespace("zoo", quietly = TRUE)) {
+      showNotification("Paketa 'zoo' mungon. Instalo: install.packages('zoo')", type = "error")
+      return(NULL)
+    }
 
-    d <- df() %>%
-      dplyr::arrange(Year) %>%
+    m <- var_meta(input$eda_series, meta())
+    d0 <- df_dyn()
+    xlab <- time_axis_label(d0$Time)
+
+    # -------------------------
+    # roll_k SAFE
+    # -------------------------
+    y <- d0[[input$eda_series]]
+    n_non_na <- sum(!is.na(y))
+
+    k <- input$roll_k
+    if (is.null(k) || is.na(k)) k <- 5
+    k <- as.integer(k)
+    k <- max(2L, k)
+
+    if (n_non_na < 3) {
+      showNotification("Seria ka shumë pak vlera reale (jo-NA) për rolling mean.", type = "warning")
+      return(NULL)
+    }
+
+    k_max <- max(2L, n_non_na - 1L)
+    if (k > k_max) {
+      k <- k_max
+      showNotification(
+        paste0("roll_k u përshtat automatikisht në k=", k,
+              " (seri ka ", n_non_na, " vlera jo-NA)."),
+        type = "message"
+      )
+    }
+
+    # -------------------------
+    # Rolling mean NA-friendly (rollapply)
+    # -------------------------
+    d <- d0 %>%
+      dplyr::arrange(Time) %>%
       dplyr::mutate(
-        roll_mean = zoo::rollmean(
+        roll_mean = zoo::rollapply(
           .data[[input$eda_series]],
-          k = input$roll_k,
+          width = k,
+          FUN = function(z) {
+            if (all(is.na(z))) NA_real_
+            else mean(z, na.rm = TRUE)
+          },
           fill = NA,
-          align = "right"
+          align = "right",
+          partial = FALSE
         )
       ) %>%
       dplyr::mutate(
-        hover_raw  = paste0("Viti: ", Year, "<br>", m$label, ": ", fmt_unit(.data[[input$eda_series]], input$eda_series)),
-        hover_roll = paste0("Viti: ", Year, "<br>Mesatare lëvizëse: ", fmt_unit(roll_mean, input$eda_series))
+        hover_raw = paste0(
+          xlab, ": ", fmt_time(Time),
+          "<br>", m$label, ": ", fmt_unit(.data[[input$eda_series]], input$eda_series, meta())
+        ),
+        hover_roll = ifelse(
+          is.na(roll_mean),
+          NA_character_,
+          paste0(
+            xlab, ": ", fmt_time(Time),
+            "<br>Mesatare lëvizëse: ", fmt_unit(roll_mean, input$eda_series, meta())
+          )
+        )
       )
 
-    p <- ggplot(d, aes(x = Year)) +
+    p <- ggplot(d, aes(x = Time)) +
       geom_line(
         aes(y = .data[[input$eda_series]]),
         color = scales::alpha("white", 0.35),
@@ -203,24 +339,22 @@ server_plots <- function(input, output, session, df) {
       ) +
       geom_line(
         aes(y = roll_mean),
-        color = "#ff3b30",
+        color = "#ff3b30",      # ✅ ruajta kuqen
         linewidth = 1.6
       ) +
       labs(
-        title = paste0("Mesatarja lëvizëse (k = ", input$roll_k, ")"),
-        subtitle = paste0(m$label, " (", m$unit, ")"),
+        title = paste0("Mesatarja lëvizëse (k = ", k, ")"),
+        subtitle = if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")") else m$label,
         x = NULL,
         y = NULL
       ) +
-      scale_y_continuous(labels = function(x) fmt_by_var(x, input$eda_series)) +
+      scale_y_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
       theme_minimal(base_size = 13) +
       theme(
         panel.background = element_rect(fill = "transparent", color = NA),
         plot.background  = element_rect(fill = "transparent", color = NA),
-
         panel.grid.major = element_line(color = scales::alpha("white", 0.12), linewidth = 0.3),
         panel.grid.minor = element_blank(),
-
         axis.text     = element_text(color = scales::alpha("white", 0.92)),
         plot.title    = element_text(face = "bold", color = scales::alpha("white", 0.95)),
         plot.subtitle = element_text(color = scales::alpha("white", 0.75))
@@ -232,7 +366,6 @@ server_plots <- function(input, output, session, df) {
         plot_bgcolor  = "rgba(0,0,0,0)",
         margin = list(t = 60, l = 40, r = 20, b = 40),
         hovermode = "x unified",
-
         font  = list(color = "white"),
         xaxis = list(
           gridcolor     = "rgba(255,255,255,0.15)",
@@ -250,43 +383,38 @@ server_plots <- function(input, output, session, df) {
       (tr$type %||% "") == "scatter" && grepl("lines", tr$mode %||% "")
     })
 
-    if (length(line_idx) >= 1) {
-      pl <- set_trace_text(pl, line_idx[1], d$hover_raw)
-    }
-    if (length(line_idx) >= 2) {
-      roll_hover_full <- ifelse(is.na(d$roll_mean), NA_character_, d$hover_roll)
-      pl <- set_trace_text(pl, line_idx[2], roll_hover_full)
-    }
+    if (length(line_idx) >= 1) pl <- set_trace_text(pl, line_idx[1], d$hover_raw)
+    if (length(line_idx) >= 2) pl <- set_trace_text(pl, line_idx[2], d$hover_roll)
 
     plotly_cfg(pl)
   })
 
   output$eda_ts_dist <- renderPlotly({
-    req(df(), input$eda_series)
+    req(df_dyn(), input$eda_series)
 
-    m <- var_meta(input$eda_series)
+    m <- var_meta(input$eda_series, meta())
 
-    d <- df() %>%
+    d <- df_dyn() %>%
       dplyr::mutate(val = .data[[input$eda_series]])
 
     p <- ggplot(d, aes(x = val)) +
       geom_histogram(
         aes(y = after_stat(density)),
         bins = 18,
-        fill  = scales::alpha("#0a84ff", 0.35),
+        fill  = scales::alpha("#0a84ff", 0.35),  # ✅ ruajta blun
         color = scales::alpha("white", 0.18)
       ) +
       geom_density(
-        color = "#ff3b30",
+        color = "#ff3b30",        # ✅ ruajta kuqen
         linewidth = 1.4
       ) +
       labs(
         title = "Shpërndarja",
-        subtitle = paste0(m$label, " (", m$unit, ")"),
+        subtitle = if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")") else m$label,
         x = NULL,
         y = NULL
       ) +
-      scale_x_continuous(labels = function(x) fmt_by_var(x, input$eda_series)) +
+      scale_x_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
       theme_minimal(base_size = 13) +
       theme(
         panel.background = element_rect(fill = "transparent", color = NA),
@@ -329,19 +457,22 @@ server_plots <- function(input, output, session, df) {
   # =========================
 
   output$eda_rel_scatter <- renderPlotly({
-    req(df(), input$rel_x, input$rel_y)
+    req(df_dyn(), input$rel_x, input$rel_y)
 
-    mx <- var_meta(input$rel_x)
-    my <- var_meta(input$rel_y)
+    mx <- var_meta(input$rel_x, meta())
+    my <- var_meta(input$rel_y, meta())
 
-    d <- df() %>%
+    d0 <- df_dyn()
+    xlab_time <- time_axis_label(d0$Time)
+
+    d <- d0 %>%
       dplyr::mutate(
         xval = .data[[input$rel_x]],
         yval = .data[[input$rel_y]],
         hover = paste0(
-          "Viti: ", Year,
-          "<br>", mx$label, ": ", fmt_unit(xval, input$rel_x),
-          "<br>", my$label, ": ", fmt_unit(yval, input$rel_y)
+          xlab_time, ": ", fmt_time(Time),
+          "<br>", mx$label, ": ", fmt_unit(xval, input$rel_x, meta()),
+          "<br>", my$label, ": ", fmt_unit(yval, input$rel_y, meta())
         )
       )
 
@@ -349,22 +480,22 @@ server_plots <- function(input, output, session, df) {
       geom_point(
         size = 2.6,
         alpha = 0.55,
-        color = scales::alpha("#0a84ff", 0.55)
+        color = scales::alpha("#0a84ff", 0.55)  # ✅ blu
       ) +
       geom_smooth(
         method = "lm",
         se = FALSE,
         linewidth = 1.4,
-        color = "#ff3b30"
+        color = "#ff3b30"  # ✅ kuqe
       ) +
       labs(
         title = "Marrëdhënia ndërmjet variablave",
         subtitle = paste0(mx$label, " kundrejt ", my$label),
-        x = paste0(mx$label, " (", mx$unit, ")"),
-        y = paste0(my$label, " (", my$unit, ")")
+        x = if (nzchar(mx$unit)) paste0(mx$label, " (", mx$unit, ")") else mx$label,
+        y = if (nzchar(my$unit)) paste0(my$label, " (", my$unit, ")") else my$label
       ) +
-      scale_x_continuous(labels = function(x) fmt_by_var(x, input$rel_x)) +
-      scale_y_continuous(labels = function(x) fmt_by_var(x, input$rel_y)) +
+      scale_x_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
+      scale_y_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
       theme_minimal(base_size = 13) +
       theme(
         panel.background = element_rect(fill = "transparent", color = NA),
@@ -392,33 +523,46 @@ server_plots <- function(input, output, session, df) {
 
     plotly_cfg(pl)
   })
-
   output$eda_rel_corr <- renderPlotly({
-    req(df())
+    req(df_dyn())
 
-    d <- df() %>% dplyr::select(-Year)
+    d0 <- df_dyn()
 
-    name_map <- c(
-      Production_ton   = "Prodhimi",
-      Area_ha          = "Sipërfaqja",
-      Yield_ton_per_ha = "Rendimenti",
-      Rainfall_mm      = "Reshjet"
-    )
+    # hiq edhe kolonën origjinale të kohës (p.sh. Year) nëse është numerike
+    tc <- NULL
+    if (exists("time_col")) {
+      tc <- tryCatch(time_col(), error = function(e) NULL)
+    }
 
-    corr_mat <- cor(d, use = "complete.obs")
+    num_df <- d0 %>%
+      dplyr::select(where(is.numeric)) %>%
+      dplyr::select(-dplyr::any_of(c("Time", tc)))
+
+    if (ncol(num_df) < 2) {
+      showNotification("Duhet të paktën 2 kolona numerike për korrelacion.", type = "warning")
+      return(NULL)
+    }
+
+    if (ncol(num_df) > 20) {
+      num_df <- num_df[, 1:20, drop = FALSE]
+      showNotification("U përdorën vetëm 20 kolonat e para numerike për heatmap.", type = "message")
+    }
+
+    corr_mat <- cor(num_df, use = "complete.obs")
 
     corr_df <- as.data.frame(as.table(corr_mat))
     colnames(corr_df) <- c("Var1", "Var2", "Korrelacioni")
 
-    corr_df$Var1 <- factor(name_map[as.character(corr_df$Var1)], levels = name_map)
-    corr_df$Var2 <- factor(name_map[as.character(corr_df$Var2)], levels = name_map)
+    vars <- colnames(num_df)
+    corr_df$Var1 <- factor(as.character(corr_df$Var1), levels = vars)
+    corr_df$Var2 <- factor(as.character(corr_df$Var2), levels = vars)
 
     p <- ggplot(corr_df, aes(x = Var1, y = Var2, fill = Korrelacioni)) +
       geom_tile(color = scales::alpha("white", 0.35), linewidth = 0.4) +
       scale_fill_gradient2(
-        low = "#0a84ff",
+        low = "#0a84ff",   # ✅ blu
         mid = "white",
-        high = "#ff3b30",
+        high = "#ff3b30",  # ✅ kuqe
         midpoint = 0
       ) +
       geom_text(
@@ -451,41 +595,50 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================
-  # Stacionariteti
+  # Stacionariteti (DINAMIK)
   # =========================
 
   output$stat_diff_plot <- renderPlotly({
-    req(df(), input$stat_series)
+    req(df_dyn(), input$stat_series)
 
-    m <- var_meta(input$stat_series)
+    m  <- var_meta(input$stat_series, meta())
+    d0 <- df_dyn()
+    xlab <- time_axis_label(d0$Time)
 
-    y <- ts(
-      df()[[input$stat_series]],
-      start = min(df()$Year),
-      frequency = 1
-    )
+    # mbaj Time + seri, hiq NA dhe sort
+    dd <- d0 %>%
+      dplyr::select(Time, y = dplyr::all_of(input$stat_series)) %>%
+      dplyr::arrange(Time) %>%
+      dplyr::filter(!is.na(y))
 
-    dy <- diff(y)
+    if (nrow(dd) < 3) {
+      showNotification("Seria ka shumë pak vlera reale (jo-NA) për diferencë të parë.", type = "warning")
+      return(NULL)
+    }
+
+    dy <- diff(dd$y)
+    tt <- dd$Time[-1]
 
     d <- data.frame(
-      Viti = as.numeric(time(dy)),
-      Diferenca = as.numeric(dy)
+      Time = tt,
+      Diferenca = as.numeric(dy),
+      stringsAsFactors = FALSE
     ) %>%
       dplyr::mutate(
         hover = paste0(
-          "Viti: ", Viti,
-          "<br>Diferenca: ", fmt_by_var(Diferenca, input$stat_series, for_axis = FALSE), " ", m$unit
+          xlab, ": ", fmt_time(Time),
+          "<br>Diferenca: ", fmt_unit(Diferenca, input$stat_series, meta())
         )
       )
 
-    p <- ggplot(d, aes(x = Viti, y = Diferenca)) +
+    p <- ggplot(d, aes(x = Time, y = Diferenca)) +
       geom_line(linewidth = 1.2, color = "#0a84ff") +
       labs(
         title = paste0("Diferenca e parë – ", m$label),
-        x = "Viti",
+        x = xlab,
         y = "Vlera e diferencuar"
       ) +
-      scale_y_continuous(labels = function(x) fmt_by_var(x, input$stat_series)) +
+      scale_y_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
       theme_minimal(base_size = 13) +
       theme(
         panel.background = element_rect(fill = "transparent", color = NA),
@@ -503,7 +656,10 @@ server_plots <- function(input, output, session, df) {
       layout(
         paper_bgcolor = "rgba(0,0,0,0)",
         plot_bgcolor  = "rgba(0,0,0,0)",
-        margin = list(t = 60, l = 70, r = 20, b = 60)
+        margin = list(t = 60, l = 70, r = 20, b = 60),
+        font  = list(color = "white"),
+        xaxis = list(gridcolor = "rgba(255,255,255,0.15)"),
+        yaxis = list(gridcolor = "rgba(255,255,255,0.15)")
       )
 
     line_idx <- find_traces(pl, function(tr) grepl("lines", tr$mode %||% ""))[1]
@@ -511,19 +667,29 @@ server_plots <- function(input, output, session, df) {
 
     plotly_cfg(pl)
   })
-
   output$stat_acf_pacf <- renderPlotly({
-    req(df(), input$stat_series)
+    req(df_dyn(), input$stat_series)
 
-    m <- var_meta(input$stat_series)
+    m  <- var_meta(input$stat_series, meta())
+    d0 <- df_dyn()
 
-    y <- ts(
-      df()[[input$stat_series]],
-      start = min(df()$Year),
-      frequency = 1
-    )
+    dd <- d0 %>%
+      dplyr::select(Time, y = dplyr::all_of(input$stat_series)) %>%
+      dplyr::arrange(Time) %>%
+      dplyr::filter(!is.na(y))
 
-    dy <- diff(y)
+    if (nrow(dd) < 6) {
+      showNotification("Duhet të paktën ~6 vlera reale për ACF/PACF (pas diferencës humbet 1).", type="warning")
+      return(NULL)
+    }
+
+    dy <- diff(dd$y)
+    n  <- length(dy)
+
+    if (n < 5) {
+      showNotification("Seria e diferencuar ka shumë pak pika për ACF/PACF.", type="warning")
+      return(NULL)
+    }
 
     acf_obj  <- acf(dy, plot = FALSE)
     pacf_obj <- pacf(dy, plot = FALSE)
@@ -531,18 +697,19 @@ server_plots <- function(input, output, session, df) {
     acf_df <- data.frame(
       Vonesa = as.numeric(acf_obj$lag[-1]),
       Vlera  = as.numeric(acf_obj$acf[-1]),
-      Tipi   = "ACF"
+      Tipi   = "ACF",
+      stringsAsFactors = FALSE
     )
 
     pacf_df <- data.frame(
       Vonesa = as.numeric(pacf_obj$lag),
       Vlera  = as.numeric(pacf_obj$acf),
-      Tipi   = "PACF"
+      Tipi   = "PACF",
+      stringsAsFactors = FALSE
     )
 
     df_plot <- rbind(acf_df, pacf_df)
-
-    conf <- 1.96 / sqrt(length(dy))
+    conf <- 1.96 / sqrt(n)
 
     p <- ggplot(df_plot, aes(x = Vonesa, y = Vlera)) +
       geom_col(fill = scales::alpha("#0a84ff", 0.75), width = 0.7) +
@@ -580,16 +747,27 @@ server_plots <- function(input, output, session, df) {
       ) %>%
       plotly_cfg()
   })
-
   output$stat_adf_tbl <- renderTable({
-    req(df(), input$stat_series)
+    req(df_dyn(), input$stat_series)
 
-    y <- df()[[input$stat_series]]
-    y <- as.numeric(y)
+    d0 <- df_dyn()
+    y  <- d0[[input$stat_series]]
+    y  <- as.numeric(y)
+    y  <- y[!is.na(y)]
 
-    adf_lvl <- try(tseries::adf.test(y), silent = TRUE)
+    if (length(y) < 20) {
+      return(data.frame(
+        Serie = c("Original (niveli)", "First difference (Δ)"),
+        Statistic = NA_real_,
+        `p-value` = NA_real_,
+        Method = "ADF (tseries::adf.test) — kërkon ≥ 20 pika",
+        check.names = FALSE
+      ))
+    }
+
+    adf_lvl  <- try(tseries::adf.test(y), silent = TRUE)
     dy <- diff(y)
-    adf_diff <- try(tseries::adf.test(dy), silent = TRUE)
+    adf_diff <- if (length(dy) >= 20) try(tseries::adf.test(dy), silent = TRUE) else "try-error"
 
     extract_adf <- function(obj, label) {
       if (inherits(obj, "try-error")) {
@@ -612,7 +790,6 @@ server_plots <- function(input, output, session, df) {
       )
     }
 
-
     out <- rbind(
       extract_adf(adf_lvl,  "Original (niveli)"),
       extract_adf(adf_diff, "First difference (Δ)")
@@ -623,14 +800,27 @@ server_plots <- function(input, output, session, df) {
 
     out
   }, striped = FALSE, bordered = TRUE, spacing = "s")
-
   output$stat_adf_note <- renderUI({
-    req(df(), input$stat_series)
+    req(df_dyn(), input$stat_series)
 
-    y <- as.numeric(df()[[input$stat_series]])
+    m <- var_meta(input$stat_series, meta())
+    d0 <- df_dyn()
+
+    y <- as.numeric(d0[[input$stat_series]])
+    y <- y[!is.na(y)]
+
+    alpha <- 0.05
+
+    if (length(y) < 20) {
+      return(HTML(
+        "<p style='margin-top:10px; font-size: 13px; line-height: 1.45;'>
+          <b>Interpretim (ADF):</b> Seria ka shumë pak pika (duhen ≥ 20) për test të besueshëm.
+        </p>"
+      ))
+    }
 
     adf_lvl  <- try(tseries::adf.test(y), silent = TRUE)
-    adf_diff <- try(tseries::adf.test(diff(y)), silent = TRUE)
+    adf_diff <- if (length(diff(y)) >= 20) try(tseries::adf.test(diff(y)), silent = TRUE) else "try-error"
 
     get_p <- function(obj) {
       if (inherits(obj, "try-error")) return(NA_real_)
@@ -639,9 +829,6 @@ server_plots <- function(input, output, session, df) {
 
     p_lvl  <- get_p(adf_lvl)
     p_diff <- get_p(adf_diff)
-
-    meta <- var_meta(input$stat_series)
-    alpha <- 0.05
 
     concl_lvl <- if (!is.na(p_lvl) && p_lvl < alpha) {
       "refuzohet hipoteza zero dhe seria në nivel vlerësohet stacionare"
@@ -662,9 +849,11 @@ server_plots <- function(input, output, session, df) {
     p_txt_lvl  <- ifelse(is.na(p_lvl),  "NA", formatC(p_lvl,  format = "f", digits = 4))
     p_txt_diff <- ifelse(is.na(p_diff), "NA", formatC(p_diff, format = "f", digits = 4))
 
+    unit_txt <- if (nzchar(m$unit %||% "")) paste0(" (", m$unit, ")") else ""
+
     HTML(paste0(
       "<p style='margin-top:10px; font-size: 13px; line-height: 1.45;'>",
-      "<b>Interpretim (ADF):</b> Për serinë <i>", meta$label, "</i> (", meta$unit, "), ",
+      "<b>Interpretim (ADF):</b> Për serinë <i>", m$label, "</i>", unit_txt, ", ",
       "hipoteza zero e testit ADF është se seria ka rrënjë njësi (pra është jo-stacionare). ",
       "Me nivel rëndësie &alpha; = 0.05: ",
       "<br>• <b>Niveli</b> (p = ", p_txt_lvl, "): ", concl_lvl, ".",
@@ -674,65 +863,105 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================
-  # Modelimi – ETS & ARIMA
+  # Modelimi – ETS & ARIMA (DINAMIK)
   # =========================
 
   output$model_plot <- renderPlotly({
-    req(df(), input$model_series, input$model_h)
+    req(df_dyn(), input$model_series, input$model_h)
 
-    m <- var_meta(input$model_series)
+    m  <- var_meta(input$model_series, meta())
+    d0 <- df_dyn()
+    xlab <- time_axis_label(d0$Time)
 
-    y <- ts(
-      df()[[input$model_series]],
-      start = min(df()$Year),
-      frequency = 1
+    # dataset për serinë (hiq NA, sort)
+    dd <- d0 %>%
+      dplyr::select(Time, y = dplyr::all_of(input$model_series)) %>%
+      dplyr::arrange(Time) %>%
+      dplyr::filter(!is.na(y))
+
+    n <- nrow(dd)
+    if (n < 20) {
+      showNotification("Për ETS/ARIMA rekomandohen ≥ 20 pika reale (jo-NA).", type = "warning")
+      return(NULL)
+    }
+
+    h <- as.integer(input$model_h)
+    if (is.na(h) || h < 1) h <- 1
+    if (h > floor(n/2)) {
+      showNotification("Kujdes: h është i madh krahasuar me të dhënat (h > n/2).", type = "message")
+    }
+
+    y <- as.numeric(dd$y)
+
+    # policy performance për ARIMA kur n i madh
+    fast_arima <- n > 5000
+    arima_stepwise <- if (fast_arima) TRUE else FALSE
+    arima_approx   <- if (fast_arima) TRUE else FALSE
+
+    fit_ets <- try(forecast::ets(y), silent = TRUE)
+    fit_arima <- try(
+      forecast::auto.arima(
+        y,
+        seasonal = FALSE,
+        stepwise = arima_stepwise,
+        approximation = arima_approx
+      ),
+      silent = TRUE
     )
 
-    fit_ets   <- forecast::ets(y)
-    fit_arima <- forecast::auto.arima(
-      y,
-      seasonal = FALSE,
-      stepwise = FALSE,
-      approximation = FALSE
-    )
+    if (inherits(fit_ets, "try-error") || inherits(fit_arima, "try-error")) {
+      showNotification("Modelimi dështoi për ETS ose ARIMA (kontrollo të dhënat / NA / seri konstante).", type="error")
+      return(NULL)
+    }
 
-    fc_ets   <- forecast::forecast(fit_ets, h = input$model_h)
-    fc_arima <- forecast::forecast(fit_arima, h = input$model_h)
+    fc_ets   <- forecast::forecast(fit_ets,   h = h)
+    fc_arima <- forecast::forecast(fit_arima, h = h)
+
+    # koha e ardhshme (h hapa)
+    future_time <- make_future_time(dd$Time, h)
 
     obs_df <- data.frame(
-      Viti  = as.numeric(time(y)),
-      Vlera = as.numeric(y),
-      Tipi  = "Vëzhguar"
+      Time  = dd$Time,
+      Vlera = y,
+      Tipi  = "Vëzhguar",
+      stringsAsFactors = FALSE
     )
 
     ets_df <- data.frame(
-      Viti  = as.numeric(time(fc_ets$mean)),
+      Time  = future_time,
       Vlera = as.numeric(fc_ets$mean),
-      Tipi  = "ETS"
+      Tipi  = "ETS",
+      stringsAsFactors = FALSE
     )
 
     arima_df <- data.frame(
-      Viti  = as.numeric(time(fc_arima$mean)),
+      Time  = future_time,
       Vlera = as.numeric(fc_arima$mean),
-      Tipi  = "ARIMA"
+      Tipi  = "ARIMA",
+      stringsAsFactors = FALSE
     )
 
     plot_df <- rbind(obs_df, ets_df, arima_df) %>%
       dplyr::mutate(
         hover = paste0(
-          "Viti: ", Viti,
-          "<br>", Tipi, ": ", fmt_unit(Vlera, input$model_series)
+          xlab, ": ", fmt_time(Time),
+          "<br>", Tipi, ": ", fmt_unit(Vlera, input$model_series, meta())
         )
       )
 
-    p <- ggplot(plot_df, aes(x = Viti, y = Vlera, color = Tipi, group = Tipi)) +
+    p <- ggplot(plot_df, aes(x = Time, y = Vlera, color = Tipi, group = Tipi)) +
       geom_line(linewidth = 1.1) +
+      scale_color_manual(values = c(
+        "Vëzhguar" = "white",
+        "ETS"      = "#0a84ff",  # ✅ blu
+        "ARIMA"    = "#ff3b30"   # ✅ kuqe
+      )) +
       labs(
         title = paste0("Krahasimi i parashikimeve – ", m$label),
-        x = "Viti",
-        y = paste0(m$label, " (", m$unit, ")")
+        x = xlab,
+        y = if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")") else m$label
       ) +
-      scale_y_continuous(labels = function(x) fmt_by_var(x, input$model_series)) +
+      scale_y_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
       theme_minimal(base_size = 13) +
       theme(
         plot.background   = element_rect(fill = "transparent", color = NA),
@@ -752,11 +981,14 @@ server_plots <- function(input, output, session, df) {
     pl <- ggplotly(p, tooltip = NULL) %>%
       layout(
         paper_bgcolor = "rgba(0,0,0,0)",
-        plot_bgcolor  = "rgba(0,0,0,0)"
+        plot_bgcolor  = "rgba(0,0,0,0)",
+        font  = list(color = "white"),
+        xaxis = list(gridcolor = "rgba(255,255,255,0.15)"),
+        yaxis = list(gridcolor = "rgba(255,255,255,0.15)")
       )
 
+    # hover custom për çdo trace
     by_type <- split(plot_df$hover, plot_df$Tipi)
-
     for (i in seq_along(pl$x$data)) {
       nm <- pl$x$data[[i]]$name %||% ""
       if (nm %in% names(by_type)) {
@@ -769,21 +1001,51 @@ server_plots <- function(input, output, session, df) {
   })
 
   output$model_acc_tbl <- renderTable({
-    req(df(), input$model_series)
+    req(df_dyn(), input$model_series)
 
-    y <- ts(
-      df()[[input$model_series]],
-      start = min(df()$Year),
-      frequency = 1
+    m  <- var_meta(input$model_series, meta())
+    d0 <- df_dyn()
+
+    dd <- d0 %>%
+      dplyr::select(Time, y = dplyr::all_of(input$model_series)) %>%
+      dplyr::arrange(Time) %>%
+      dplyr::filter(!is.na(y))
+
+    n <- nrow(dd)
+    if (n < 20) {
+      return(data.frame(
+        Modeli = c("ETS", "ARIMA"),
+        RMSE = NA_character_,
+        MAE  = NA_character_,
+        MAPE = NA_character_,
+        check.names = FALSE
+      ))
+    }
+
+    y <- as.numeric(dd$y)
+
+    fit_ets <- try(forecast::ets(y), silent = TRUE)
+
+    fast_arima <- n > 5000
+    fit_arima <- try(
+      forecast::auto.arima(
+        y,
+        seasonal = FALSE,
+        stepwise = if (fast_arima) TRUE else FALSE,
+        approximation = if (fast_arima) TRUE else FALSE
+      ),
+      silent = TRUE
     )
 
-    fit_ets   <- forecast::ets(y)
-    fit_arima <- forecast::auto.arima(
-      y,
-      seasonal = FALSE,
-      stepwise = FALSE,
-      approximation = FALSE
-    )
+    if (inherits(fit_ets, "try-error") || inherits(fit_arima, "try-error")) {
+      return(data.frame(
+        Modeli = c("ETS", "ARIMA"),
+        RMSE = NA_character_,
+        MAE  = NA_character_,
+        MAPE = NA_character_,
+        check.names = FALSE
+      ))
+    }
 
     acc_ets   <- forecast::accuracy(fit_ets)
     acc_arima <- forecast::accuracy(fit_arima)
@@ -793,110 +1055,218 @@ server_plots <- function(input, output, session, df) {
       as.numeric(val)
     }
 
+    add_unit <- function(txt) {
+      u <- m$unit %||% ""
+      if (nzchar(u)) paste0(txt, " ", u) else txt
+    }
+
+    rmse_vals <- c(get_metric(acc_ets, "RMSE"), get_metric(acc_arima, "RMSE"))
+    mae_vals  <- c(get_metric(acc_ets, "MAE"),  get_metric(acc_arima, "MAE"))
+    mape_vals <- c(get_metric(acc_ets, "MAPE"), get_metric(acc_arima, "MAPE"))
+
     data.frame(
       Modeli = c("ETS", "ARIMA"),
-      RMSE   = fmt_by_var(c(get_metric(acc_ets, "RMSE"), get_metric(acc_arima, "RMSE")), input$model_series, for_axis = FALSE),
-      MAE    = fmt_by_var(c(get_metric(acc_ets, "MAE"),  get_metric(acc_arima, "MAE")),  input$model_series, for_axis = FALSE),
-      MAPE   = fmt_fixed(c(get_metric(acc_ets, "MAPE"), get_metric(acc_arima, "MAPE")), digits = 2),
+      RMSE   = vapply(rmse_vals, function(v) add_unit(fmt_by_series(v, for_axis = FALSE)), character(1)),
+      MAE    = vapply(mae_vals,  function(v) add_unit(fmt_by_series(v, for_axis = FALSE)), character(1)),
+      MAPE   = fmt_fixed(mape_vals, digits = 2),
       check.names = FALSE
     )
   })
 
   # =========================================================
-  # Parashikimi – Objekte reaktive
+  # Parashikimi – Objekte reaktive (DINAMIK)
   # =========================================================
 
-  series_ts <- reactive({
-    req(df(), input$forecast_series)
+  # 1) Dataset i serisë (Time + y), i pastrum dhe i gatshëm
+  series_dat <- reactive({
+    req(df_dyn(), input$forecast_series)
 
-    ts(
-      df()[[input$forecast_series]],
-      start = min(df()$Year),
-      frequency = 1
-    )
+    d0 <- df_dyn()
+
+    if (!(input$forecast_series %in% names(d0))) {
+      showNotification("Seria e zgjedhur s’gjendet në dataset.", type = "error")
+      return(NULL)
+    }
+
+    dd <- d0 %>%
+      dplyr::select(Time, y = dplyr::all_of(input$forecast_series)) %>%
+      dplyr::arrange(Time) %>%
+      dplyr::mutate(y = as.numeric(y)) %>%
+      dplyr::filter(!is.na(Time), !is.na(y))
+
+    if (nrow(dd) < 2) {
+      showNotification("Duhet të paktën 2 pika reale (jo-NA) për parashikim.", type = "warning")
+      return(NULL)
+    }
+
+    # Nëse ka duplikate në kohë → agregim (mean) që të mos prishet logjika
+    if (any(duplicated(dd$Time))) {
+      dd <- dd %>%
+        dplyr::group_by(Time) %>%
+        dplyr::summarise(y = mean(y, na.rm = TRUE), .groups = "drop") %>%
+        dplyr::arrange(Time)
+
+      showNotification("U gjetën duplikate në kohë; u agreguan me mesatare (mean).", type = "message")
+    }
+
+    # seri konstante → s’ka sens me vazhdu
+    if (stats::sd(dd$y, na.rm = TRUE) < 1e-12) {
+      showNotification("Seria është (pothuaj) konstante — parashikimi s’ka kuptim.", type = "warning")
+      return(NULL)
+    }
+
+    dd
   })
 
+  # 2) Vector/ts për forecast (ne e mbajmë frequency=1; koha përdoret veç për grafik)
+  series_ts <- reactive({
+    req(series_dat())
+    y <- series_dat()$y
+    ts(y, frequency = 1)
+  })
+
+  # 3) Modeli i parashikimit (SES / Holt / ARIMA)
   fitted_model <- reactive({
     req(series_ts(), input$method, input$h)
 
     y <- series_ts()
+    n <- length(y)
+
+    h <- as.integer(input$h)
+    if (is.na(h) || h < 1) h <- 1
+
+    if (h > floor(n / 2)) {
+      showNotification("Kujdes: h është i madh krahasuar me të dhënat (h > n/2).", type = "message")
+    }
+
+    # policies minimal-length
+    if (input$method %in% c("ses", "holt") && n < 2) {
+      showNotification("SES/Holt kërkojnë ≥ 2 pika.", type = "warning")
+      return(NULL)
+    }
+
+    if (!(input$method %in% c("ses", "holt", "arima"))) {
+      showNotification("Metodë e panjohur. Lejohen: ses, holt, arima.", type = "error")
+      return(NULL)
+    }
 
     if (input$method == "ses") {
-      forecast::ses(y, h = input$h)
-    } else if (input$method == "holt") {
-      forecast::holt(y, h = input$h)
-    } else {
-      fit <- forecast::auto.arima(
+      return(forecast::ses(y, h = h))
+    }
+
+    if (input$method == "holt") {
+      return(forecast::holt(y, h = h))
+    }
+
+    # ARIMA
+    if (n < 30) {
+      showNotification("Për ARIMA rekomandohen ≥ 30 pika reale. Zgjidh SES/Holt ose shto të dhëna.", type = "warning")
+      return(NULL)
+    }
+
+    fast_arima <- n > 5000
+
+    fit <- try(
+      forecast::auto.arima(
         y,
         seasonal = FALSE,
-        stepwise = FALSE,
-        approximation = FALSE
-      )
-      forecast::forecast(fit, h = input$h)
+        stepwise = if (fast_arima) TRUE else FALSE,
+        approximation = if (fast_arima) TRUE else FALSE
+      ),
+      silent = TRUE
+    )
+
+    if (inherits(fit, "try-error")) {
+      showNotification("ARIMA dështoi (kontrollo të dhënat / missing / seri konstante).", type = "error")
+      return(NULL)
     }
+
+    forecast::forecast(fit, h = h)
   })
 
   # =========================================================
-  # Grafiku i parashikimit
+  # Grafiku i parashikimit (DINAMIK me Time)
   # =========================================================
 
   output$forecast_plot <- renderPlotly({
-    req(series_ts(), fitted_model(), input$forecast_series)
+    req(series_dat(), fitted_model(), input$forecast_series, input$h, input$method)
 
-    m <- var_meta(input$forecast_series)
+    m  <- var_meta(input$forecast_series, meta())
+    dd <- series_dat()
+    fc <- fitted_model()
 
-    y_ts <- series_ts()
-    fc   <- fitted_model()
+    xlab <- time_axis_label(dd$Time)
 
+    # Observed
     obs_df <- data.frame(
-      Viti  = as.numeric(time(y_ts)),
-      Vlera = as.numeric(y_ts)
+      Time  = dd$Time,
+      Vlera = as.numeric(dd$y),
+      stringsAsFactors = FALSE
     )
+
+    # Forecast time axis (future)
+    h <- as.integer(input$h); if (is.na(h) || h < 1) h <- 1
+    fut_time <- make_future_time(obs_df$Time, h)
+
+    # Forecast values
+    fc_mean  <- as.numeric(fc$mean)
+
+    # Lower/Upper 80% (safe)
+    low80 <- up80 <- rep(NA_real_, length(fc_mean))
+    if (!is.null(fc$lower) && "80%" %in% colnames(fc$lower)) low80 <- as.numeric(fc$lower[, "80%"])
+    if (!is.null(fc$upper) && "80%" %in% colnames(fc$upper)) up80  <- as.numeric(fc$upper[, "80%"])
 
     fc_df <- data.frame(
-      Viti = as.numeric(time(fc$mean)),
-      Mesatarja = as.numeric(fc$mean),
-      Poshtë80  = as.numeric(fc$lower[, "80%"]),
-      Sipër80   = as.numeric(fc$upper[, "80%"])
+      Time      = fut_time,
+      Mesatarja = fc_mean,
+      Poshtë80  = low80,
+      Sipër80   = up80,
+      stringsAsFactors = FALSE
     )
 
+    # Hover
     obs_df$hover <- paste0(
-      "Viti: ", obs_df$Viti,
-      "<br>", m$label, ": ", fmt_unit(obs_df$Vlera, input$forecast_series)
+      xlab, ": ", fmt_time(obs_df$Time),
+      "<br>", m$label, ": ", fmt_unit(obs_df$Vlera, input$forecast_series, meta())
     )
 
     fc_df$hover <- paste0(
-      "Viti: ", fc_df$Viti,
-      "<br>Parashikimi: ", fmt_unit(fc_df$Mesatarja, input$forecast_series),
-      "<br>Intervali 80%: [", fmt_unit(fc_df$Poshtë80, input$forecast_series), " ; ", fmt_unit(fc_df$Sipër80, input$forecast_series), "]"
+      xlab, ": ", fmt_time(fc_df$Time),
+      "<br>Parashikimi: ", fmt_unit(fc_df$Mesatarja, input$forecast_series, meta()),
+      "<br>Intervali 80%: [",
+      fmt_unit(fc_df$Poshtë80, input$forecast_series, meta()),
+      " ; ",
+      fmt_unit(fc_df$Sipër80, input$forecast_series, meta()),
+      "]"
     )
 
+    # Plot (ruaj stilin: white line + white ribbon)
     p <- ggplot() +
       geom_line(
         data = obs_df,
-        aes(x = Viti, y = Vlera),
+        aes(x = Time, y = Vlera),
         color = "white",
         linewidth = 1
       ) +
       geom_ribbon(
         data = fc_df,
-        aes(x = Viti, ymin = Poshtë80, ymax = Sipër80),
+        aes(x = Time, ymin = Poshtë80, ymax = Sipër80),
         fill = "white",
         alpha = 0.12
       ) +
       geom_line(
         data = fc_df,
-        aes(x = Viti, y = Mesatarja),
+        aes(x = Time, y = Mesatarja),
         color = "white",
         linewidth = 1.2,
         linetype = "solid"
       ) +
       labs(
         title = paste0("Parashikimi – ", m$label, " (", toupper(input$method), ")"),
-        x = "Viti",
-        y = paste0(m$label, " (", m$unit, ")")
+        x = xlab,
+        y = if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")") else m$label
       ) +
-      scale_y_continuous(labels = function(x) fmt_by_var(x, input$forecast_series)) +
+      scale_y_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
       theme_minimal(base_size = 13) +
       theme(
         plot.background  = element_rect(fill = "transparent", color = NA),
@@ -916,15 +1286,14 @@ server_plots <- function(input, output, session, df) {
         font = list(color = "white")
       )
 
+    # Vendos hover në line traces (observed & forecast line)
     line_idx <- find_traces(pl, function(tr) {
-      (tr$type %||% "") == "scatter" &&
-        grepl("lines", tr$mode %||% "") &&
-        is.null(tr$fill)
+      (tr$type %||% "") == "scatter" && grepl("lines", tr$mode %||% "") && is.null(tr$fill)
     })
 
-    if (length(line_idx) >= 1) {
+    if (length(line_idx) > 0) {
       for (i in line_idx) {
-        nx <- length(pl$x$data[[i]]$x %||% numeric(0))
+        nx <- length(pl$x$data[[i]]$x %||% list())
         if (nx == nrow(obs_df)) {
           pl <- set_trace_text(pl, i, obs_df$hover)
         } else if (nx == nrow(fc_df)) {
@@ -937,11 +1306,11 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================================================
-  # Saktësia e parashikimit (seti i trajnimit)
+  # Saktësia e parashikimit (seti i trajnimit) — DINAMIK
   # =========================================================
 
   output$forecast_metrics <- renderUI({
-    req(fitted_model())
+    req(fitted_model(), input$forecast_series)
 
     acc <- tryCatch(
       forecast::accuracy(fitted_model()),
@@ -951,7 +1320,8 @@ server_plots <- function(input, output, session, df) {
     if (is.null(acc)) {
       div(
         class = "section-box",
-        p("Saktësia nuk u llogarit. Ju lutemi kontrolloni modelin dhe paketat e instaluara.")
+        h4("Saktësia në setin e trajnimit"),
+        p("Saktësia nuk u llogarit. Shkak i mundshëm: seri shumë e shkurtër, shumë NA, seri konstante, ose model i dështuar.")
       )
     } else {
       div(
@@ -963,13 +1333,42 @@ server_plots <- function(input, output, session, df) {
   })
 
   output$acc_tbl <- renderTable({
-    acc <- forecast::accuracy(fitted_model())
+    req(fitted_model(), input$forecast_series)
 
-    if ("Training set" %in% rownames(acc)) {
-      a <- acc["Training set", c("ME", "MAE", "RMSE", "MAPE")]
-    } else {
-      a <- acc[1, c("ME", "MAE", "RMSE", "MAPE")]
+    acc <- tryCatch(
+      forecast::accuracy(fitted_model()),
+      error = function(e) NULL
+    )
+
+    # fallback (mos e rrëzo UI-n)
+    if (is.null(acc) || nrow(acc) == 0) {
+      return(data.frame(
+        Treguesi = c(
+          "Gabimi mesatar (ME)",
+          "Gabimi mesatar absolut (MAE)",
+          "Rrënja e gabimit mesatar katror (RMSE)",
+          "Gabimi mesatar absolut përqindor (MAPE)"
+        ),
+        Vlera = rep("NA", 4),
+        check.names = FALSE
+      ))
     }
+
+    row_name <- if ("Training set" %in% rownames(acc)) "Training set" else rownames(acc)[1]
+
+    metrics <- c("ME", "MAE", "RMSE", "MAPE")
+    vals <- setNames(rep(NA_real_, length(metrics)), metrics)
+
+    for (mt in metrics) {
+      if (mt %in% colnames(acc)) {
+        vals[mt] <- suppressWarnings(as.numeric(acc[row_name, mt]))
+      }
+    }
+
+    # njësi për ME/MAE/RMSE (në të njëjtën njësi si seria)
+    m  <- var_meta(input$forecast_series, meta())
+    u  <- m$unit %||% ""
+    add_unit <- function(x_chr) if (nzchar(u)) paste0(x_chr, " ", u) else x_chr
 
     data.frame(
       Treguesi = c(
@@ -979,12 +1378,12 @@ server_plots <- function(input, output, session, df) {
         "Gabimi mesatar absolut përqindor (MAPE)"
       ),
       Vlera = c(
-        fmt_by_var(as.numeric(a["ME"]),   input$forecast_series, for_axis = FALSE),
-        fmt_by_var(as.numeric(a["MAE"]),  input$forecast_series, for_axis = FALSE),
-        fmt_by_var(as.numeric(a["RMSE"]), input$forecast_series, for_axis = FALSE),
-        fmt_fixed(as.numeric(a["MAPE"]), digits = 2)
+        add_unit(fmt_by_series(vals["ME"],   for_axis = FALSE)),
+        add_unit(fmt_by_series(vals["MAE"],  for_axis = FALSE)),
+        add_unit(fmt_by_series(vals["RMSE"], for_axis = FALSE)),
+        if (is.na(vals["MAPE"])) "NA" else paste0(fmt_fixed(vals["MAPE"], digits = 2), " %")
       ),
       check.names = FALSE
     )
-  })
+  }, striped = FALSE, bordered = TRUE, spacing = "s")
 }

@@ -130,9 +130,45 @@ ui <- fluidPage(
               ),
             ),
 
-            div(class = "glass-divider"),
+            
+              div(
+                class = "section-box",
+                h4("Ngarko dataset-in (CSV)"),
+                fileInput(
+                  "data_file",
+                  label = "Zgjidh një skedar .csv",
+                  accept = c(".csv")
+                ),
+                tags$small(
+                  "Nëse nuk ngarkon skedar, aplikacioni përdor dataset-in default të projektit (demo).",
+                  style = "opacity:0.8;"
+                ),
+                div(class = "glass-divider"),
+                textInput(
+                  "data_source",
+                  label = "Burimi i të dhënave (opsionale)",
+                  placeholder = "p.sh. INSTAT / Meteo / etj."
+                ),
+                selectInput(
+                  "data_time_col",
+                  label = "Kolona e kohës (opsionale)",
+                  choices = character(0)
+                ),
+                selectizeInput(
+                  "data_value_cols",
+                  label = "Seritë numerike (opsionale)",
+                  choices = character(0),
+                  multiple = TRUE,
+                  options = list(placeholder = "Zgjidh kolonat numerike…")
+                ),
+                tags$small(
+                  "Nëse këto fusha lihen bosh, aplikacioni bën auto-detect për kolonën e kohës dhe seritë numerike.",
+                  style = "opacity:0.8;"
+                )
+              ),
+div(class = "glass-divider"),
 
-              h4("Ekstrakt i të dhënave (2000–2010)"),
+              h4("Preview i dataset-it (15 rreshta)"),
               p("Më poshtë paraqiten vëzhgime të renditura kronologjikisht nga seria e të dhënave, për qëllime ilustrimi dhe verifikimi të strukturës së dataset-it."),
 
               fluidRow(
@@ -249,17 +285,7 @@ ui <- fluidPage(
               position = "left",
 
               sidebarPanel(
-                selectInput(
-                  "eda_series",
-                  "Përzgjidhni serinë",
-                  choices = c(
-                    "Prodhimi (ton)"     = "Production_ton",
-                    "Sipërfaqja (ha)"     = "Area_ha",
-                    "Rendimenti (ton/ha)"= "Yield_ton_per_ha",
-                    "Reshjet (mm)"       = "Rainfall_mm"
-                  ),
-                  selected = "Production_ton"
-                ),
+                selectInput("eda_series", "Përzgjidhni serinë", choices = character(0)),
 
                 sliderInput(
                   "roll_k",
@@ -320,29 +346,9 @@ ui <- fluidPage(
               position = "left",
 
               sidebarPanel(
-                selectInput(
-                  "rel_x",
-                  "Përzgjidhni variablën X",
-                  choices = c(
-                    "Prodhimi (ton)"      = "Production_ton",
-                    "Sipërfaqja (ha)"     = "Area_ha",
-                    "Rendimenti (ton/ha)" = "Yield_ton_per_ha",
-                    "Reshjet (mm)"        = "Rainfall_mm"
-                  ),
-                  selected = "Rainfall_mm"
-                ),
+                selectInput("rel_x", "Përzgjidhni variablën X", choices = character(0)),
 
-                selectInput(
-                  "rel_y",
-                  "Përzgjidhni variablën Y",
-                  choices = c(
-                    "Prodhimi (ton)"      = "Production_ton",
-                    "Sipërfaqja (ha)"     = "Area_ha",
-                    "Rendimenti (ton/ha)" = "Yield_ton_per_ha",
-                    "Reshjet (mm)"        = "Rainfall_mm"
-                  ),
-                  selected = "Production_ton"
-                )
+                selectInput("rel_y", "Përzgjidhni variablën Y", choices = character(0))
               ),
 
               mainPanel(
@@ -385,17 +391,7 @@ ui <- fluidPage(
               position = "left",
 
               sidebarPanel(
-                selectInput(
-                  "stat_series",
-                  "Përzgjidhni serinë",
-                  choices = c(
-                    "Prodhimi (ton)"      = "Production_ton",
-                    "Sipërfaqja (ha)"     = "Area_ha",
-                    "Rendimenti (ton/ha)" = "Yield_ton_per_ha",
-                    "Reshjet (mm)"        = "Rainfall_mm"
-                  ),
-                  selected = "Production_ton"
-                )
+                selectInput("stat_series", "Përzgjidhni serinë", choices = character(0))
               ),
 
               mainPanel(
@@ -450,17 +446,7 @@ ui <- fluidPage(
               position = "left",
 
               sidebarPanel(
-                selectInput(
-                  "model_series",
-                  "Përzgjidhni serinë",
-                  choices = c(
-                    "Prodhimi (ton)"      = "Production_ton",
-                    "Sipërfaqja (ha)"     = "Area_ha",
-                    "Rendimenti (ton/ha)" = "Yield_ton_per_ha",
-                    "Reshjet (mm)"        = "Rainfall_mm"
-                  ),
-                  selected = "Production_ton"
-                ),
+                selectInput("model_series", "Përzgjidhni serinë", choices = character(0)),
 
                 sliderInput(
                   "model_h",
@@ -507,16 +493,7 @@ ui <- fluidPage(
               sidebarPanel(
                 h4("Cilësimet e parashikimit"),
 
-                selectInput(
-                  "forecast_series",
-                  "Seria",
-                  choices = c(
-                    "Prodhimi (ton)"      = "Production_ton",
-                    "Sipërfaqja (ha)"     = "Area_ha",
-                    "Rendimenti (ton/ha)" = "Yield_ton_per_ha",
-                    "Reshjet (mm)"        = "Rainfall_mm"
-                  )
-                ),
+                selectInput("forecast_series", "Seria", choices = character(0)),
 
                 selectInput(
                   "method",
@@ -605,8 +582,122 @@ server <- function(input, output, session) {
   observeEvent(input$go_wrapup,     { updateTabsetPanel(session, "main_tabs", "tab_wrapup") })
 
   df <- reactive({
-    read_data_safe(DATA_PATH)
+    in_file <- input$data_file
+
+    # Nëse nuk ka upload → përdor dataset-in default (demo)
+    if (is.null(in_file) || is.null(in_file$datapath) || !nzchar(in_file$datapath)) {
+      return(read_data_safe(DATA_PATH))
+    }
+
+    # Lexo CSV-n e upload-uar
+    out <- tryCatch(
+      read_data_safe(in_file$datapath, in_file$name),
+      error = function(e) {
+        showNotification(
+          paste0("Gabim gjatë leximit të skedarit: ", e$message,
+                 ". U përdor dataset-i default (demo)."),
+          type = "error",
+          duration = 8
+        )
+        read_data_safe(DATA_PATH)
+      }
+    )
+
+    out
   })
+
+  # =========================================================
+  # 0.1) Mbush dropdown-at dinamikë sapo lexohen të dhënat
+  # =========================================================
+  observeEvent(df(), {
+    d <- df()
+    if (is.null(d) || nrow(d) == 0) return()
+
+    nm <- names(d)
+    if (length(nm) == 0) return()
+
+    # (A) Kandidatë për kolonën e kohës
+    cand <- tryCatch(detect_time_candidates(d), error = function(e) {
+      data.frame(col = nm, score = 0)
+    })
+
+    time_choices <- unique(cand$col)
+    if (length(time_choices) == 0) time_choices <- nm
+
+    pick <- function(cur, choices, fallback) {
+      if (!is.null(cur) && length(cur) == 1 && cur %in% choices) cur else fallback
+    }
+
+    tc_cur <- isolate(input$data_time_col)
+    tc_sel <- pick(tc_cur, time_choices, time_choices[1])
+
+    updateSelectInput(session, "data_time_col", choices = time_choices, selected = tc_sel)
+
+    # (B) Kandidatë numerikë (pas konvertimit të butë)
+    cols <- setdiff(nm, tc_sel)
+    num_cols <- cols[vapply(d[cols], function(x) {
+      xn <- to_numeric_safe(x)
+      mean(!is.na(xn)) >= 0.70
+    }, logical(1))]
+
+    # fallback: nëse s'ka numeric të fortë, lejo çdo kolonë (përzgjedhje manuale)
+    if (length(num_cols) == 0) num_cols <- cols
+
+    vc_cur <- isolate(input$data_value_cols)
+    vc_sel <- vc_cur[vc_cur %in% num_cols]
+
+    if (length(vc_sel) == 0) {
+      vc_sel <- head(num_cols, min(3, length(num_cols)))
+    }
+
+    updateSelectizeInput(session, "data_value_cols",
+                         choices = num_cols,
+                         selected = vc_sel,
+                         server = TRUE)
+
+    # (C) Mbush selector-at e analizës me kolonat numerike
+    choices <- num_cols
+    if (length(choices) == 0) choices <- cols
+    if (length(choices) == 0) return()
+
+    s1 <- choices[1]
+    s2 <- if (length(choices) >= 2) choices[2] else choices[1]
+
+    updateSelectInput(session, "eda_series",
+                      choices = choices,
+                      selected = pick(isolate(input$eda_series), choices, s1))
+
+    updateSelectInput(session, "stat_series",
+                      choices = choices,
+                      selected = pick(isolate(input$stat_series), choices, s1))
+
+    updateSelectInput(session, "model_series",
+                      choices = choices,
+                      selected = pick(isolate(input$model_series), choices, s1))
+
+    updateSelectInput(session, "forecast_series",
+                      choices = choices,
+                      selected = pick(isolate(input$forecast_series), choices, s1))
+
+    updateSelectInput(session, "rel_x",
+                      choices = choices,
+                      selected = pick(isolate(input$rel_x), choices, s1))
+
+    updateSelectInput(session, "rel_y",
+                      choices = choices,
+                      selected = pick(isolate(input$rel_y), choices, s2))
+
+    # (D) Burimi i të dhënave: nëse s'është plotësuar, vendose nga emri i file-it
+    if (!is.null(input$data_file) &&
+        !is.null(input$data_file$name) &&
+        nzchar(input$data_file$name)) {
+
+      if (is.null(isolate(input$data_source)) || !nzchar(isolate(input$data_source))) {
+        updateTextInput(session, "data_source", value = input$data_file$name)
+      }
+    }
+  }, ignoreInit = FALSE)
+
 
   server_plots(input, output, session, df)
 }

@@ -1,18 +1,24 @@
 suppressPackageStartupMessages({
   library(shiny)
+  library(shinyjs)
   library(plotly)
   library(ggplot2)
   library(dplyr)
+  library(tidyr)
   library(readr)
   library(forecast)
   library(scales)
-  library(shinyjs)
-  library(tidyr)
   library(tseries)
   library(DT)
 })
+
 options(scipen = 999)
 
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
+# -------------------------
+# App dir
+# -------------------------
 get_app_dir <- function() {
   d <- getOption("shiny.appdir")
   if (!is.null(d) && dir.exists(d)) {
@@ -29,37 +35,207 @@ get_app_dir <- function() {
   normalizePath(getwd(), winslash = "/", mustWork = FALSE)
 }
 
-APP_DIR   <- get_app_dir()
-DATA_PATH <- file.path(APP_DIR, "data", "albania_agriculture_timeseries_1998_2024.csv")
+APP_DIR <- get_app_dir()
 
+# -------------------------
+# Optional packages checks
+# -------------------------
+has_zoo    <- requireNamespace("zoo", quietly = TRUE)
+has_readxl <- requireNamespace("readxl", quietly = TRUE)
 has_vars   <- requireNamespace("vars", quietly = TRUE)
 has_rugarch <- requireNamespace("rugarch", quietly = TRUE)
 
-read_data_safe <- function(path) {
+# =========================================================
+# 1) Read data safe (CSV/TSV/Excel optional)
+# =========================================================
+read_data_safe <- function(path, filename = NULL) {
   if (!file.exists(path)) {
     stop("Dataset nuk u gjet në shtegun: ", normalizePath(path, winslash = "/", mustWork = FALSE))
   }
 
-  readr::read_csv(path, show_col_types = FALSE) %>%
-    mutate(Year = as.integer(Year))
+  ext <- tolower(tools::file_ext(filename %||% path))
+
+  if (ext %in% c("csv")) {
+    d <- readr::read_csv(path, show_col_types = FALSE)
+  } else if (ext %in% c("tsv")) {
+    d <- readr::read_tsv(path, show_col_types = FALSE)
+  } else if (ext %in% c("xlsx", "xls")) {
+    if (!has_readxl) stop("Për Excel duhet paketa 'readxl' (instaloje).")
+    d <- readxl::read_excel(path)
+  } else {
+    # fallback: provo csv
+    d <- readr::read_csv(path, show_col_types = FALSE)
+  }
+
+  as.data.frame(d, stringsAsFactors = FALSE)
 }
 
 # =========================================================
-# Meta-informacion (etiketa + njësi) për variablat
+# 2) Time parsing (YYYY, YYYY-MM, YYYYQ#, Date)
 # =========================================================
-var_meta <- function(var) {
-  switch(
-    var,
-    "Production_ton"   = list(label = "Prodhimi bujqësor", unit = "ton"),
-    "Yield_ton_per_ha" = list(label = "Rendimenti bujqësor", unit = "ton/ha"),
-    "Rainfall_mm"      = list(label = "Reshjet vjetore", unit = "mm"),
-    "Area_ha"          = list(label = "Sipërfaqja bujqësore", unit = "ha"),
-    list(label = var, unit = "")
-  )
+parse_time_safe <- function(x) {
+  if (inherits(x, "Date")) return(x)
+  if (inherits(x, "POSIXt")) return(as.Date(x))
+
+  # numeric/integer: prano vetëm nëse duket si YEAR ose INDEX
+  # numeric/integer could be years or index
+  if (is.numeric(x) || is.integer(x)) {
+    xn  <- as.numeric(x)          # ruaj gjatësinë origjinale
+    xn0 <- xn[!is.na(xn)]         # vetëm për kontrolle
+
+    if (length(xn0) < 2) return(xn)
+
+    # year-like (1500–3000, pothuaj integer)
+    if (all(xn0 >= 1500 & xn0 <= 3000) &&
+        mean(abs(xn0 - round(xn0)) < 1e-8) >= 0.95) {
+      return(round(xn))           # ruan NA-t në pozicion
+    }
+
+    # index-like / numeric period: lejo, por kontrollo rregullsinë nëse do
+    xu <- sort(unique(xn0))
+    if (length(xu) >= 3) {
+      steps <- diff(xu)
+      if (all(steps > 0) && (sd(steps) / mean(steps)) < 1e-6) {
+        return(xn)
+      }
+    }
+
+    return(xn)
+  }
+
+  # --------- (pjesa jote për karakter/date formats poshtë e lë siç është) ---------
+  x0 <- trimws(as.character(x))
+  x0[x0 == ""] <- NA_character_
+
+  if (all(grepl("^\\d{4}$", x0[!is.na(x0)]))) return(as.numeric(x0))
+
+  if (all(grepl("^\\d{4}-\\d{2}$", x0[!is.na(x0)]))) {
+    return(as.Date(paste0(x0, "-01")))
+  }
+
+  if (all(grepl("^\\d{4}Q[1-4]$", x0[!is.na(x0)]))) {
+    yr <- as.integer(substr(x0, 1, 4))
+    q  <- as.integer(substr(x0, 6, 6))
+    m  <- (q - 1) * 3 + 1
+    return(as.Date(sprintf("%04d-%02d-01", yr, m)))
+  }
+
+  try_formats <- c("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d", "%m/%d/%Y")
+  ok_rate <- function(v) sum(!is.na(v)) / max(1, sum(!is.na(x0)))
+
+  for (f in try_formats) {
+    t <- suppressWarnings(as.Date(x0, format = f))
+    if (ok_rate(t) >= 0.95) return(t)
+  }
+
+  t <- suppressWarnings(as.Date(x0))
+  if (ok_rate(t) >= 0.95) return(t)
+
+  stop("Kolona e kohës nuk u parse dot. Formate: YYYY, YYYY-MM, YYYY-MM-DD, YYYYQ#.")
+}
+
+
+# =========================================================
+# 3) Numeric normalization (1 234,56 -> 1234.56 etc.)
+# =========================================================
+to_numeric_safe <- function(x) {
+  if (is.numeric(x)) return(x)
+  if (is.integer(x)) return(as.numeric(x))
+
+  s <- trimws(as.character(x))
+  s[s == ""] <- NA_character_
+
+  # remove currency/letters, keep digits, separators, minus
+  s <- gsub("[^0-9,\\.\\- ]", "", s)
+
+  # remove spaces as thousand sep
+  s <- gsub(" ", "", s)
+
+  # if contains comma and dot, assume dot thousands and comma decimal: 1.234,56 -> 1234.56
+  has_comma <- grepl(",", s, fixed = TRUE)
+  has_dot   <- grepl("\\.", s)
+  both <- has_comma & has_dot
+
+  s[both] <- gsub("\\.", "", s[both])
+  s[both] <- sub(",", ".", s[both], fixed = TRUE)
+
+  # if only comma, treat as decimal separator: 12,5 -> 12.5
+  only_comma <- has_comma & !has_dot
+  s[only_comma] <- sub(",", ".", s[only_comma], fixed = TRUE)
+
+  suppressWarnings(as.numeric(s))
 }
 
 # =========================================================
-# Formatim akademik i numrave (pa 1e+06)
+# 4) Detect candidate time columns (scoring)
+# =========================================================
+detect_time_candidates <- function(df) {
+  nm <- names(df)
+  scores <- rep(0, length(nm))
+
+  for (i in seq_along(nm)) {
+    col <- df[[i]]
+    name_l <- tolower(nm[i])
+
+    # name hints
+    if (name_l %in% c("year","date","time","timestamp","period","month","quarter")) scores[i] <- scores[i] + 3
+    if (grepl("date|time|year|month|quarter|period", name_l)) scores[i] <- scores[i] + 1
+
+    # parse success hints
+    ok <- tryCatch({
+      t <- parse_time_safe(col)
+      t0 <- t[!is.na(t)]
+      if (length(t0) < 2) return(0)
+
+      uniq_ratio <- length(unique(t0)) / length(t0)
+      base_ok <- mean(!is.na(t))
+
+      # penalize nëse ka shumë duplikate
+      if (uniq_ratio < 0.85) base_ok <- base_ok - 0.25
+
+      base_ok
+    }, error = function(e) 0)
+
+
+    if (ok >= 0.95) scores[i] <- scores[i] + 5
+    else if (ok >= 0.70) scores[i] <- scores[i] + 2
+  }
+
+  out <- data.frame(
+    col = nm,
+    score = scores,
+    stringsAsFactors = FALSE
+  ) %>%
+    arrange(desc(score))
+
+  out
+}
+
+# =========================================================
+# 5) Build dynamic meta (label/unit) — no hardcode
+# =========================================================
+make_label <- function(x) {
+  # Production_ton -> Production ton
+  s <- gsub("_", " ", x)
+  s <- gsub("\\s+", " ", s)
+  trimws(s)
+}
+
+build_meta <- function(value_cols) {
+  # default meta for each series: label from name, unit empty
+  meta <- lapply(value_cols, function(v) list(label = make_label(v), unit = ""))
+  names(meta) <- value_cols
+  meta
+}
+
+# helper: get meta record
+var_meta <- function(var, meta = NULL) {
+  if (!is.null(meta) && !is.null(meta[[var]])) return(meta[[var]])
+  list(label = make_label(var), unit = "")
+}
+
+# =========================================================
+# 6) Academic formatting (generic)
 # =========================================================
 fmt_fixed <- function(x, digits = 2) {
   ifelse(
@@ -81,15 +257,10 @@ fmt_compact <- function(x, digits = 1) {
     if (is.na(v)) return(NA_character_)
     av <- abs(v)
 
-    if (av >= 1e9) {
-      val <- v / 1e9; suf <- " mld"
-    } else if (av >= 1e6) {
-      val <- v / 1e6; suf <- " mln"
-    } else if (av >= 1e3) {
-      val <- v / 1e3; suf <- " mijë"
-    } else {
-      val <- v; suf <- ""
-    }
+    if (av >= 1e9) { val <- v / 1e9; suf <- " mld"
+    } else if (av >= 1e6) { val <- v / 1e6; suf <- " mln"
+    } else if (av >= 1e3) { val <- v / 1e3; suf <- " mijë"
+    } else { val <- v; suf <- "" }
 
     s <- format(
       round(val, digits),
@@ -107,24 +278,171 @@ fmt_compact <- function(x, digits = 1) {
   out
 }
 
-fmt_by_var <- function(x, var, for_axis = TRUE) {
-  if (var == "Production_ton") {
-    return(fmt_compact(x, digits = 1))
-  }
-  if (var == "Yield_ton_per_ha") {
+# choose formatting based on value range (dynamic)
+fmt_by_series <- function(x, for_axis = TRUE) {
+  if (all(is.na(x))) return(rep(NA_character_, length(x)))
+  rng <- range(x, na.rm = TRUE)
+  span <- abs(rng[2] - rng[1])
+
+  if (for_axis) {
+    if (max(abs(rng), na.rm = TRUE) >= 1e3) return(fmt_compact(x, digits = 1))
+    if (span < 1) return(fmt_fixed(x, digits = 3))
+    if (span < 10) return(fmt_fixed(x, digits = 2))
+    if (span < 100) return(fmt_fixed(x, digits = 1))
+    return(fmt_fixed(x, digits = 0))
+  } else {
+    if (span < 1) return(fmt_fixed(x, digits = 4))
+    if (span < 10) return(fmt_fixed(x, digits = 2))
     return(fmt_fixed(x, digits = 2))
   }
-  if (var == "Rainfall_mm") {
-    return(fmt_fixed(x, digits = 1))
-  }
-  if (var == "Area_ha") {
-    if (for_axis) return(fmt_compact(x, digits = 1))
-    return(fmt_fixed(x, digits = 0))
-  }
-  if (for_axis) fmt_compact(x, digits = 1) else fmt_fixed(x, digits = 2)
 }
 
-fmt_unit <- function(x, var) {
-  m <- var_meta(var)
-  paste0(fmt_by_var(x, var, for_axis = FALSE), " ", m$unit)
+fmt_unit <- function(x, var, meta = NULL) {
+  m <- var_meta(var, meta)
+  u <- m$unit %||% ""
+  if (nzchar(u)) paste0(fmt_by_series(x, for_axis = FALSE), " ", u)
+  else fmt_by_series(x, for_axis = FALSE)
+}
+
+# =========================================================
+# 7) Plotly helpers (same spirit as before)
+# =========================================================
+plotly_cfg <- function(p) {
+  config(p, displayModeBar = FALSE, responsive = TRUE)
+}
+
+# find plotly traces
+find_traces <- function(pl, predicate) {
+  idx <- integer(0)
+  for (i in seq_along(pl$x$data)) {
+    tr <- pl$x$data[[i]]
+    if (isTRUE(predicate(tr))) idx <- c(idx, i)
+  }
+  idx
+}
+
+# set hover text on a specific trace
+set_trace_text <- function(pl, trace_index, text_vec) {
+  if (length(trace_index) == 0 || is.na(trace_index)) return(pl)
+  pl$x$data[[trace_index]]$text <- text_vec
+  pl$x$data[[trace_index]]$hoverinfo <- "text"
+  pl
+}
+
+skip_trace_hover <- function(pl, idx) {
+  if (length(idx) == 0) return(pl)
+  for (i in idx) {
+    pl$x$data[[i]]$hoverinfo <- "skip"
+  }
+  pl
+}
+
+
+# =========================================================
+# 8) Build dynamic standardized df (adds Time)
+# =========================================================
+make_df_dyn <- function(df, time_col) {
+  d <- df
+
+  tm <- tryCatch(
+    parse_time_safe(d[[time_col]]),
+    error = function(e) stop("Kolona e kohës s’u parse dot: ", e$message)
+  )
+
+  d$Time <- tm
+  d <- d[order(d$Time), , drop = FALSE]
+  d
+}
+
+time_axis_label <- function(Time) {
+  if (inherits(Time, "Date")) return("Data")
+  if (is.numeric(Time) && all(Time >= 1500 & Time <= 3000, na.rm = TRUE)) return("Viti")
+  "Koha"
+}
+
+fmt_time <- function(x) {
+  if (inherits(x, "Date")) return(format(x, "%Y-%m-%d"))
+  as.character(x)
+}
+
+infer_step_from_time <- function(Time) {
+  # kthen list(type=..., step=...) ku:
+  # type: "date" ose "numeric"
+  # step: për date -> "day"/"month"/"quarter"/"year"
+  #       për numeric -> numeric step (p.sh. 1)
+  tt <- Time[!is.na(Time)]
+  if (length(tt) < 3) {
+    if (inherits(Time, "Date")) return(list(type="date", step="day"))
+    return(list(type="numeric", step=1))
+  }
+
+  if (inherits(tt, "Date")) {
+    dd <- as.numeric(diff(tt))
+    dd <- dd[is.finite(dd)]
+    if (length(dd) == 0) return(list(type="date", step="day"))
+    md <- stats::median(dd)
+
+    # klasifikim praktik
+    if (md <= 2) return(list(type="date", step="day"))
+    if (md >= 27 && md <= 32) return(list(type="date", step="month"))
+    if (md >= 80 && md <= 100) return(list(type="date", step="quarter"))
+    if (md >= 330 && md <= 400) return(list(type="date", step="year"))
+
+    # fallback: merre si day
+    return(list(type="date", step="day"))
+  }
+
+  # numeric
+  vn <- as.numeric(tt)
+  dv <- diff(vn)
+  dv <- dv[is.finite(dv)]
+  if (length(dv) == 0) return(list(type="numeric", step=1))
+  st <- stats::median(dv)
+  if (!is.finite(st) || st == 0) st <- 1
+  list(type="numeric", step=st)
+}
+
+make_future_time <- function(Time, h) {
+  # jep vektor kohe me gjatësi h, duke vazhdu nga last(Time)
+  req_h <- as.integer(h)
+  if (is.na(req_h) || req_h < 1) return(Time[0])
+
+  tt <- Time[!is.na(Time)]
+  if (length(tt) == 0) return(Time[0])
+  last_t <- tt[length(tt)]
+
+  info <- infer_step_from_time(tt)
+
+  if (info$type == "date") {
+    by <- info$step
+    # seq nga last_t me length h+1, pastaj heq të parin (last_t)
+    return(seq.Date(from = as.Date(last_t), by = by, length.out = req_h + 1)[-1])
+  } else {
+    st <- as.numeric(info$step)
+    return(last_t + st * seq_len(req_h))
+  }
+}
+
+# =========================================================
+# Future time builder (based on detected frequency)
+# =========================================================
+detect_freq_from_time <- function(Time) {
+  # kthen: "year" | "quarter" | "month" | "day" | "index"
+  if (inherits(Time, "Date")) {
+    dt <- sort(unique(Time))
+    if (length(dt) < 2) return("day")
+    md <- as.integer(stats::median(diff(dt), na.rm = TRUE))
+    if (md >= 350) return("year")
+    if (md >= 80)  return("quarter")
+    if (md >= 25)  return("month")
+    return("day")
+  }
+
+  if (is.numeric(Time)) {
+    # nëse duket si vite (p.sh 1998..2024)
+    if (all(Time >= 1500 & Time <= 3000, na.rm = TRUE)) return("year")
+    return("index")
+  }
+
+  "index"
 }
