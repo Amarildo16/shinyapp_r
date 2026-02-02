@@ -35,7 +35,9 @@ get_app_dir <- function() {
   normalizePath(getwd(), winslash = "/", mustWork = FALSE)
 }
 
-APP_DIR <- get_app_dir()
+DATA_DIR  <- file.path(APP_DIR, "data")
+if (!dir.exists(DATA_DIR)) dir.create(DATA_DIR, recursive = TRUE)
+DATA_PATH <- file.path(DATA_DIR, "albania_agriculture_timeseries_1998_2024.csv")
 
 # -------------------------
 # Optional packages checks
@@ -354,6 +356,90 @@ make_df_dyn <- function(df, time_col) {
   d
 }
 
+apply_dup_policy <- function(d, vc, method = "mean") {
+  if (!("Time" %in% names(d))) stop("Mungon kolona Time.")
+  if (length(vc) == 0) return(d)
+
+  d <- d[order(d$Time), c("Time", vc), drop = FALSE]
+  if (!any(duplicated(d$Time))) return(d)
+
+  method <- tolower(method %||% "mean")
+
+  if (method == "last") {
+    keep <- !duplicated(d$Time, fromLast = TRUE)
+    return(d[keep, , drop = FALSE])
+  }
+
+  fun <- switch(
+    method,
+    "sum"  = function(x) sum(x, na.rm = TRUE),
+    "mean" = function(x) mean(x, na.rm = TRUE),
+    function(x) mean(x, na.rm = TRUE)
+  )
+
+  out <- stats::aggregate(d[vc], by = list(Time = d$Time), FUN = fun)
+  out <- out[order(out$Time), , drop = FALSE]
+  out
+}
+
+apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
+  if (!("Time" %in% names(d))) stop("Mungon kolona Time.")
+  if (is.null(vc)) vc <- setdiff(names(d), "Time")
+  if (length(vc) == 0) return(d)
+
+  tt <- d$Time
+  if (length(tt) < 2) return(d)
+
+  f <- tolower(freq %||% "auto")
+
+  # auto → detekto nga Time
+  if (f == "auto") {
+    f <- detect_freq_from_time(tt)  # year/quarter/month/day/index
+  } else {
+    # e kthejm në format të helper-it
+    f <- switch(f,
+      "yearly" = "year",
+      "quarterly" = "quarter",
+      "monthly" = "month",
+      "daily" = "day",
+      f
+    )
+  }
+
+  # index → mos e rregullo timeline-in
+  if (f == "index") return(d)
+
+  if (inherits(tt, "Date")) {
+    by <- switch(
+      f,
+      "day"    = "day",
+      "month"  = "month",
+      "quarter"= "3 months",
+      "year"   = "year",
+      NULL
+    )
+    if (is.null(by)) return(d)
+
+    full_time <- seq.Date(min(tt, na.rm = TRUE), max(tt, na.rm = TRUE), by = by)
+    full <- data.frame(Time = full_time)
+    out <- merge(full, d[, c("Time", vc), drop = FALSE], by = "Time", all.x = TRUE, sort = TRUE)
+    return(out)
+  }
+
+  # numeric time (p.sh. Year) → vetëm yearly ka sens praktik
+  if (is.numeric(tt)) {
+    step <- switch(f, "year" = 1, NULL)
+    if (is.null(step)) return(d)
+
+    full_time <- seq(min(tt, na.rm = TRUE), max(tt, na.rm = TRUE), by = step)
+    full <- data.frame(Time = full_time)
+    out <- merge(full, d[, c("Time", vc), drop = FALSE], by = "Time", all.x = TRUE, sort = TRUE)
+    return(out)
+  }
+
+  d
+}
+
 time_axis_label <- function(Time) {
   if (inherits(Time, "Date")) return("Data")
   if (is.numeric(Time) && all(Time >= 1500 & Time <= 3000, na.rm = TRUE)) return("Viti")
@@ -446,3 +532,21 @@ detect_freq_from_time <- function(Time) {
 
   "index"
 }
+
+sanitize_filename <- function(x, default_ext = "csv") {
+  x <- basename(as.character(x %||% ""))
+  x <- trimws(x)
+  x <- gsub("[^A-Za-z0-9._-]+", "_", x)
+  x <- gsub("_+", "_", x)
+  x <- sub("^_+", "", x)
+  x <- sub("_+$", "", x)
+
+  if (!nzchar(x)) {
+    x <- paste0("dataset_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".", default_ext)
+  }
+
+  ext <- tools::file_ext(x)
+  if (!nzchar(ext)) x <- paste0(x, ".", default_ext)
+  x
+}
+

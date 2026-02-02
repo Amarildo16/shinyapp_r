@@ -57,11 +57,26 @@ server_plots <- function(input, output, session, df) {
     req(df(), time_col())
     d <- df()
 
-    # konverto kolonat value në numeric (safe)
     vc <- value_cols()
+    req(length(vc) > 0)
+
     for (v in vc) d[[v]] <- to_numeric_safe(d[[v]])
 
-    make_df_dyn(d, time_col())
+    # 1) standardizo (Time + sort)
+    d <- make_df_dyn(d, time_col())
+
+    # mbaj vetëm Time + value cols (kështu s’na ngatërrojnë kolonat e tjera)
+    d <- d[, c("Time", vc), drop = FALSE]
+
+    # 2) apliko dup policy nga config
+    dup <- input$data_dup %||% "mean"
+    d <- apply_dup_policy(d, vc = vc, method = dup)
+
+    # 3) apliko freq policy nga config
+    fr <- input$data_freq %||% "auto"
+    d <- apply_freq_policy(d, freq = fr, vc = vc)
+
+    d
   })
 
   # helper: start/end tekst

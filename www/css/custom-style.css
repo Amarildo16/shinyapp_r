@@ -713,3 +713,148 @@ select,
     margin-bottom: 18px;
     line-height: 1;
 }
+
+/* =========================================================
+   Upload modal (SM) – centered + glass + FilePond styling
+   ========================================================= */
+
+#main_modal_sm.modal {
+    text-align: center;
+    padding: 0 !important;
+}
+
+#main_modal_sm.modal:before {
+    content: '';
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+}
+
+#main_modal_sm .modal-dialog {
+    display: inline-block;
+    vertical-align: middle;
+    text-align: left;
+    width: min(720px, calc(100% - 24px));
+    margin: 0 auto;
+}
+
+#main_modal_sm .modal-content {
+    background: rgba(16, 24, 28, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 18px;
+    box-shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+}
+
+#main_modal_sm .modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+#main_modal_sm .modal-body {
+    padding: 22px 22px 26px;
+}
+
+/* close button (BS3) */
+#main_modal_sm .close {
+    color: rgba(255, 255, 255, 0.90);
+    opacity: 1;
+    text-shadow: none;
+}
+
+#main_modal_sm .close:hover {
+    opacity: 0.85;
+}
+
+/* FilePond look */
+.filepond--panel-root {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px dashed rgba(255, 255, 255, 0.22) !important;
+}
+
+.filepond--drop-label {
+    color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.filepond--label-action {
+    text-decoration: underline;
+}
+
+/* =========================================================
+   Fullscreen modal (FS) – emulate modal-fullscreen në BS3
+   ========================================================= */
+
+#main_modal_fs .modal-dialog {
+    width: calc(100% - 20px);
+    height: calc(100% - 20px);
+    margin: 10px auto;
+}
+
+#main_modal_fs .modal-content {
+    height: calc(100vh - 20px);
+    display: flex;
+    flex-direction: column;
+}
+
+#main_modal_fs .modal-body {
+    flex: 1 1 auto;
+    overflow: auto;
+}
+
+/* ===== Topbar layout ===== */
+.app-topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 18px 10px;
+}
+
+/* hiq marginat që e shtyjnë poshtë/majtas */
+.app-topbar .hamburger-btn {
+    margin: 0 !important;
+}
+
+/* title */
+.app-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.92);
+    line-height: 1;
+    letter-spacing: 0.2px;
+    user-select: none;
+}
+
+/* ===== MODAL BACKDROP: blur + glass overlay (Bootstrap 3) ===== */
+.modal-backdrop.in {
+    opacity: 1 !important;
+    background: rgba(0, 0, 0, 0.38) !important;
+
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* ===== kur e levizim fileInput nga wrapper-i i Shiny, fshi UI-n e vjeter ===== */
+.shiny-fileinput-hidden {
+    display: none !important;
+}
+
+/* ===== host ku vendoset FilePond ===== */
+#csv_file_modal_pond_host {
+    width: 100%;
+}
+
+#csv_file_modal_pond_host .filepond--root {
+    width: 100%;
+    margin-top: 6px;
+}
+
+.shiny-fileinput-hidden {
+    display: none !important;
+}
+
+#csv_file_modal_pond_host {
+    width: 100%;
+}
+
+#csv_file_modal_pond_host .filepond--root {
+    width: 100%;
+}
