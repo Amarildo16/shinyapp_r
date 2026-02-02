@@ -1,5 +1,5 @@
 // ===============================
-// 1) Global Preloader (Shiny busy/idle)
+// 1) Global Preloader
 // ===============================
 (function () {
     function showLoader() {
@@ -19,16 +19,13 @@
         hideLoader();
     });
 
-    // optional: ekspozo për thirrje manuale
     window.__showLoader = showLoader;
     window.__hideLoader = hideLoader;
 })();
 
 
 // ===============================
-// 2) FilePond init (PROXY) për input-in e modalit
-//    - FilePond punon mbi një input proxy (UI)
-//    - Shiny upload punon mbi input-in real (csv_file_modal)
+// 2) FilePond init
 // ===============================
 (function () {
 
@@ -49,16 +46,14 @@
         const host = getHost(inputId);
         if (!host) return false;
 
-        // ✅ fshi UI-n e vjetër të Shiny fileInput, por e lë input-in aty (për binding/upload)
         const wrapper = shinyInput.closest(".shiny-input-container") || shinyInput.closest(".form-group");
         if (wrapper) wrapper.classList.add("shiny-fileinput-hidden");
 
-        // ✅ krijo / gjej input proxy ku do lidhet FilePond UI
         const proxyId = inputId + "__pond_proxy";
         let proxy = document.getElementById(proxyId);
 
         if (!proxy) {
-            host.innerHTML = ""; // pastro host-in
+            host.innerHTML = "";
             proxy = document.createElement("input");
             proxy.type = "file";
             proxy.id = proxyId;
@@ -66,10 +61,7 @@
             host.appendChild(proxy);
         }
 
-        // mos e inicializo 2 herë
         if (proxy._pond) return true;
-
-        // plugins
         if (window.FilePondPluginFileValidateType) FilePond.registerPlugin(FilePondPluginFileValidateType);
         if (window.FilePondPluginFileValidateSize) FilePond.registerPlugin(FilePondPluginFileValidateSize);
 
@@ -79,20 +71,17 @@
             instantUpload: false,
             allowProcess: false,
             server: {
-                // mos lejo ASNJË komunikim me server nga FilePond
                 process: null,
                 revert: null,
                 restore: null,
                 fetch: null,
 
-                // kjo e ndal "GET /[object Object]" që po sheh ti
                 load: (source, load, error, progress, abort) => {
                     console.log("POND server.load BLOCKED:", source);
                     abort();
                 }
             },
 
-            // validim
             acceptedFileTypes: [
                 "text/csv",
                 "application/csv",
@@ -116,19 +105,24 @@
             maxFileSize: "25MB",
             allowFileSizeValidation: true,
 
-            labelIdle: "Drag & Drop CSV ose <span class=\"filepond--label-action\">Browse</span>",
+            labelIdle: `
+                <div class="pond-idle">
+                    <i class="ri-upload-cloud-2-fill"></i>
+                    <div class="pond-text">
+                    Drop files here or <span class="filepond--label-action">click to upload</span>.
+                    </div>
+                </div>
+                `,
             labelFileTypeNotAllowed: "Ky fajll s'pranohet",
             fileValidateTypeLabelExpectedTypes: "Lejohet vetëm: .csv",
             credits: false
         });
 
-        // ✅ kur user shton file në FilePond, kopjoje te input-i real i Shiny-t
         pond.on("addfile", (err, item) => {
             console.log("POND addfile err:", err);
             if (err) return;
 
             try {
-                // pastro input-in real
                 try { shinyInput.value = ""; } catch (e) { }
 
                 const dt = new DataTransfer();
@@ -159,19 +153,27 @@
         setTimeout(function () { initWithRetry(inputId, tries - 1); }, 120);
     }
 
-    // kur modali hapet
     $(document).on("shown.bs.modal", "#main_modal_sm", function () {
         initWithRetry("csv_file_modal", 25);
     });
 
-    // kur Shiny lidhet me DOM elementet
+    $(document).on('shown.bs.modal', '#main_modal_fs', function () {
+        setTimeout(function () {
+            if ($.fn.dataTable) {
+                $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
+            }
+        }, 150);
+    });
+
     $(document).on("shiny:bound", function () {
         initWithRetry("csv_file_modal", 10);
     });
 
 })();
 
-// Server -> JS: show/hide modal
+// ===============================
+// 3) Ajax Modals
+// ===============================
 Shiny.addCustomMessageHandler('toggle_modal', function (msg) {
     const $m = $('#' + msg.id);
     if (!$m.length) return;
@@ -199,12 +201,10 @@ $(document).on("hidden.bs.modal", "#main_modal_sm", function () {
     const shinyInput = document.getElementById("csv_file_modal");
     const proxy = document.getElementById("csv_file_modal__pond_proxy");
 
-    // pastro FilePond UI
     if (proxy && proxy._pond) {
         proxy._pond.removeFiles();
     }
 
-    // pastro input-in e Shiny-t
     if (shinyInput) {
         try { shinyInput.value = ""; } catch (e) { }
         try { shinyInput.files = new DataTransfer().files; } catch (e) { }

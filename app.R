@@ -6,27 +6,17 @@ ui <- fluidPage(
 
   tags$head(
     tags$meta(name="viewport", content="width=device-width, initial-scale=1"),
-
-    # FilePond CSS FIRST
     tags$link(rel="stylesheet", href="vendor/filepond/filepond.min.css"),
-    tags$link(rel="stylesheet", href="vendor/filepond/filepond-plugin-file-validate-type.min.css"),
-    tags$link(rel="stylesheet", href="vendor/filepond/filepond-plugin-file-validate-size.min.css"),
-
-    # pastaj CSS yt
     tags$link(rel="stylesheet", type="text/css", href="css/custom-style.css"),
-
     tags$link(rel="icon", type="image/png", href="images/favicon.png"),
-
-    # FilePond JS
     tags$script(src="vendor/filepond/filepond.min.js"),
     tags$script(src="vendor/filepond/filepond-plugin-file-validate-type.min.js"),
     tags$script(src="vendor/filepond/filepond-plugin-file-validate-size.min.js"),
-
-    # pastaj JS yt
     tags$script(src="js/bg.js"),
     tags$script(src="js/sidebar.js"),
     tags$script(src="js/plotly-animate.js"),
-    tags$link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css"),
+    tags$link(rel = "stylesheet", href = "https://cdn.jsdelivr.net/npm/remixicon@4.9.1/fonts/remixicon.css"),
+    tags$link(rel="stylesheet", href="css/icons.css"),
     tags$script(src="js/custom.js")
   ),
 
@@ -118,14 +108,12 @@ ui <- fluidPage(
         )
       )
     ),
-
-    # Content
+    # App content
     div(
       class = "app-content",
       div(
         class = "app-content-inner",
 
-        # ===== TOPBAR (hamburger + title) =====
         div(
           class = "app-topbar",
           tags$button(
@@ -574,7 +562,12 @@ ui <- fluidPage(
             tags$span(`aria-hidden` = "true", HTML("&times;"))
           )
         ),
-        tags$div(class = "modal-body", uiOutput("modal_sm_body"))
+        tags$div(class = "modal-body", uiOutput("modal_sm_body")),
+        tags$div(
+          class = "modal-footer",
+          actionButton("btn_cancel_upload", "Cancel", class = "btn btn-light"),
+          actionButton("btn_proceed_upload", "Proceed", class = "btn btn-success")
+        )
       )
     )
   ),
@@ -603,6 +596,7 @@ ui <- fluidPage(
         tags$div(class = "modal-body", uiOutput("modal_fs_body")),
         tags$div(
           class = "modal-footer",
+          actionButton("btn_cancel_config", "Cancel", class = "btn btn-light"),
           actionButton("btn_save_config", "Save", class = "btn btn-success")
         )
       )
@@ -620,8 +614,6 @@ server <- function(input, output, session) {
   observeEvent(input$go_modeling,       { updateTabsetPanel(session, "main_tabs", "tab_modeling") })
   observeEvent(input$go_forecast,       { updateTabsetPanel(session, "main_tabs", "tab_forecast") })
   observeEvent(input$go_wrapup,         { updateTabsetPanel(session, "main_tabs", "tab_wrapup") })
-
-  `%||%` <- function(a, b) if (!is.null(a) && nzchar(as.character(a))) a else b
 
   uploaded_tmp_path <- reactiveVal(NULL)
   uploaded_tmp_name <- reactiveVal(NULL)
@@ -647,6 +639,9 @@ server <- function(input, output, session) {
   # =========================
   df_raw <- reactiveVal(NULL)
 
+  pending_data <- reactiveVal(NULL)
+  pending_cfg  <- reactiveVal(NULL)
+
   observe({
     if (is.null(df_raw())) {
       df_raw(read_data_safe(DATA_PATH))
@@ -655,9 +650,6 @@ server <- function(input, output, session) {
 
   df <- reactive(df_raw())
 
-  # =========================
-  # 0.1) Mbush dropdown-at dinamikë sapo ndryshon dataset-i
-  # =========================
   observeEvent(df(), {
     d <- df()
     if (is.null(d) || nrow(d) == 0) return()
@@ -755,18 +747,15 @@ server <- function(input, output, session) {
     req(input$csv_file_modal$datapath)
     req(input$csv_file_modal$name)
 
-    # ✅ (NEW) Validim i thjeshtë i extension-it
     ext <- tolower(tools::file_ext(input$csv_file_modal$name))
     if (ext != "csv") {
       showNotification("Ky fajll s'pranohet. Lejohet vetëm: .csv", type = "error", duration = 6)
       return()
     }
 
-    # ✅ Ruaj tmp info për SAVE në /data
     uploaded_tmp_path(input$csv_file_modal$datapath)
     uploaded_tmp_name(input$csv_file_modal$name)
 
-    # ✅ Lexo datasetin dhe bëje aktiv
     d <- tryCatch(
       read_data_safe(input$csv_file_modal$datapath, input$csv_file_modal$name),
       error = function(e) {
@@ -775,11 +764,6 @@ server <- function(input, output, session) {
       }
     )
     if (is.null(d)) return()
-
-    df_raw(d)
-
-    # Mbyll modalin e vogël
-    session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "hide"))
 
     nm <- names(d)
 
@@ -798,66 +782,82 @@ server <- function(input, output, session) {
     if (length(num_cols) == 0) num_cols <- cols
     value_default <- head(num_cols, min(3, length(num_cols)))
 
-    output$modal_fs_title <- renderUI(tags$h5(class = "modal-title", "Konfigurimi i dataset-it"))
-
-    output$modal_fs_body <- renderUI(tagList(
-      fluidRow(
-        column(8, DT::DTOutput("csv_preview_big")),
-        column(4,
-          selectInput(
-            "modal_time_col",
-            "Kolona e kohës",
-            choices = time_choices,
-            selected = time_default
-          ),
-          selectizeInput(
-            "modal_value_cols",
-            "Seritë numerike",
-            choices = setdiff(nm, time_default),
-            selected = value_default,
-            multiple = TRUE
-          ),
-          selectInput(
-            "modal_dup",
-            "Duplikate në kohë",
-            c("mean","sum","last"),
-            selected = isolate(input$data_dup) %||% "mean"
-          ),
-          selectInput(
-            "modal_freq",
-            "Frekuenca",
-            c("auto","yearly","quarterly","monthly","daily"),
-            selected = isolate(input$data_freq) %||% "auto"
-          )
-        )
-      )
+    pending_data(d)
+    pending_cfg(list(
+      nm = nm,
+      time_choices = time_choices,
+      time_default = time_default,
+      value_default = value_default
     ))
 
-    output$csv_preview_big <- DT::renderDT({
-      DT::datatable(head(d, 200), options = list(scrollX = TRUE, pageLength = 15))
-    })
-
-    # Hape modalin fullscreen
-    session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "show"))
-
-    # Burimi i të dhënave (opsionale)
     if (nzchar(input$csv_file_modal$name)) {
       if (is.null(isolate(input$data_source)) || !nzchar(isolate(input$data_source))) {
         updateTextInput(session, "data_source", value = input$csv_file_modal$name)
       }
     }
+
+    showNotification("CSV u ngarkua. Tani kliko Proceed për konfigurim.", type = "message", duration = 5)
+
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$btn_cancel_upload, {
+    session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "hide"))
+    pending_cfg(NULL)
+    pending_data(NULL)
+    uploaded_tmp_path(NULL)
+    uploaded_tmp_name(NULL)
+  })
+
+  observeEvent(input$btn_proceed_upload, {
+    req(pending_data())
+    req(pending_cfg())
+
+    d   <- pending_data()
+    cfg <- pending_cfg()
+
+    output$modal_fs_body <- renderUI(tagList(
+      tags$div(class="cfg-top",
+        fluidRow(
+          column(3,
+            selectInput("modal_time_col", "Kolona e kohës",
+              choices  = cfg$time_choices,
+              selected = cfg$time_default
+            )
+          ),
+          column(5,
+            selectizeInput("modal_value_cols", "Seritë numerike",
+              choices  = setdiff(cfg$nm, cfg$time_default),
+              selected = cfg$value_default,
+              multiple = TRUE
+            )
+          )
+        )
+      ),
+      tags$hr(),
+      DT::DTOutput("csv_preview_big")
+    ))
+
+    output$csv_preview_big <- DT::renderDT({
+      DT::datatable(head(d, 200), rownames = FALSE, options = list(scrollX = TRUE))
+    })
+
+    session$sendCustomMessage("toggle_modal", list(id="main_modal_sm", action="hide"))
+    session$sendCustomMessage("toggle_modal", list(id="main_modal_fs", action="show"))
   }, ignoreInit = TRUE)
 
   observeEvent(input$modal_time_col, {
-    req(df())
-    d <- df()
+    req(pending_data())
+    d <- pending_data()
     nm <- names(d)
+
+    sel <- isolate(input$modal_value_cols)
+    sel <- setdiff(sel, input$modal_time_col)
 
     updateSelectizeInput(
       session, "modal_value_cols",
-      choices = setdiff(nm, input$modal_time_col),
-      selected = isolate(input$modal_value_cols),
-      server = TRUE
+      choices  = setdiff(nm, input$modal_time_col),
+      selected = sel,
+      server   = TRUE
     )
   }, ignoreInit = TRUE)
 
@@ -867,12 +867,19 @@ server <- function(input, output, session) {
 
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "hide"))
 
-    d <- df()
+    d <- pending_data()
     nm <- names(d)
 
     updateSelectInput(session, "data_time_col",
       choices = nm,
       selected = input$modal_time_col)
+
+    vals <- isolate(input$modal_value_cols)
+      tc   <- isolate(input$modal_time_col)
+      vals <- setdiff(vals, tc)
+
+      if (length(vals) == 0) vals <- num_cols
+
 
     updateSelectizeInput(session, "data_value_cols",
       choices = setdiff(nm, input$modal_time_col),
@@ -880,8 +887,21 @@ server <- function(input, output, session) {
       server = TRUE)
 
 
-    updateSelectInput(session, "data_dup", choices = c("mean","sum","last"), selected = input$modal_dup %||% "mean")
-    updateSelectInput(session, "data_freq", choices = c("auto","yearly","quarterly","monthly","daily"), selected = input$modal_freq %||% "auto")
+    dup_sel  <- isolate(input$data_dup)
+      freq_sel <- isolate(input$data_freq)
+
+      if (is.null(dup_sel)  || dup_sel  == "") dup_sel  <- "mean"
+      if (is.null(freq_sel) || freq_sel == "") freq_sel <- "auto"
+
+      updateSelectInput(session, "data_dup",
+        choices  = c("mean", "sum", "first", "last"),
+        selected = dup_sel
+      )
+
+      updateSelectInput(session, "data_freq",
+        choices  = c("auto", "yearly", "quarterly", "monthly", "weekly", "daily"),
+        selected = freq_sel
+      )
 
     showNotification("Konfigurimi i dataset-it u ruajt me sukses.", type = "message", duration = 5)
 
@@ -913,14 +933,19 @@ server <- function(input, output, session) {
         showNotification("S’u arrit me ruajt datasetin te /data (permissions).", type="error", duration=8)
       }
 
+      df_raw(d)
+
+      pending_cfg(NULL)
+      pending_data(NULL)
       uploaded_tmp_path(NULL)
       uploaded_tmp_name(NULL)
     }
   })
 
-  # =========================
-  # MAIN MODULES
-  # =========================
+  observeEvent(input$btn_cancel_config, {
+    session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "hide"))
+    session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "show"))
+  })
 
   observeEvent(input$data_time_col, {
     d <- df()
@@ -951,10 +976,6 @@ server <- function(input, output, session) {
     s1 <- choices[1]
     s2 <- if (length(choices) >= 2) choices[2] else choices[1]
 
-    pick <- function(cur, choices, fallback) {
-      if (!is.null(cur) && length(cur) == 1 && cur %in% choices) cur else fallback
-    }
-
     updateSelectInput(session, "eda_series",      choices = choices, selected = pick(isolate(input$eda_series), choices, s1))
     updateSelectInput(session, "stat_series",     choices = choices, selected = pick(isolate(input$stat_series), choices, s1))
     updateSelectInput(session, "model_series",    choices = choices, selected = pick(isolate(input$model_series), choices, s1))
@@ -962,9 +983,6 @@ server <- function(input, output, session) {
     updateSelectInput(session, "rel_x",           choices = choices, selected = pick(isolate(input$rel_x), choices, s1))
     updateSelectInput(session, "rel_y",           choices = choices, selected = pick(isolate(input$rel_y), choices, s2))
   })
-
-  DATA_DIR <- file.path(APP_DIR, "data")
-    if (!dir.exists(DATA_DIR)) dir.create(DATA_DIR, recursive = TRUE)
 
     list_saved_datasets <- function() {
       sort(list.files(
@@ -1007,36 +1025,40 @@ server <- function(input, output, session) {
       )
     })
 
-    observeEvent(input$btn_refresh_saved, {
-      saved_datasets(list_saved_datasets())
-    })
+  observeEvent(input$btn_refresh_saved, {
+    saved_datasets(list_saved_datasets())
+  })
 
-    observeEvent(input$btn_activate_saved, {
-      req(input$saved_dataset_select)
+  observeEvent(input$btn_activate_saved, {
+    req(input$saved_dataset_select)
 
-      path <- file.path(DATA_DIR, input$saved_dataset_select)
-      if (!file.exists(path)) {
-        showNotification("Dataset-i s’u gjet në /data.", type="error", duration=6)
-        return()
+    path <- file.path(DATA_DIR, input$saved_dataset_select)
+    if (!file.exists(path)) {
+      showNotification("Dataset-i s’u gjet në /data.", type="error", duration=6)
+      return()
+    }
+
+    d <- tryCatch(
+      read_data_safe(path, input$saved_dataset_select),
+      error = function(e) {
+        showNotification(paste0("Gabim gjatë leximit: ", e$message), type="error", duration=8)
+        NULL
       }
+    )
+    if (is.null(d)) return()
 
-      d <- tryCatch(
-        read_data_safe(path, input$saved_dataset_select),
-        error = function(e) {
-          showNotification(paste0("Gabim gjatë leximit: ", e$message), type="error", duration=8)
-          NULL
-        }
-      )
-      if (is.null(d)) return()
+    df_raw(d)
+    updateTextInput(session, "data_source", value = input$saved_dataset_select)
+    active_dataset_file(input$saved_dataset_select)
 
-      df_raw(d)
-      updateTextInput(session, "data_source", value = input$saved_dataset_select)
-      active_dataset_file(input$saved_dataset_select)
-
-      showNotification(paste0("Dataset aktiv: ", input$saved_dataset_select), type="message", duration=4)
-    })
+    showNotification(paste0("Dataset aktiv: ", input$saved_dataset_select), type="message", duration=4)
+  })
 
   server_plots(input, output, session, df)
 }
+
+  #================================
+  # Backround settings
+  #================================
 
 shinyApp(ui, server)

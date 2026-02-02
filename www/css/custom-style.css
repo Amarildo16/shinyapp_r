@@ -847,14 +847,89 @@ select,
     margin-top: 6px;
 }
 
-.shiny-fileinput-hidden {
-    display: none !important;
+/* Ikona brenda FilePond */
+.pond-icon {
+    font-size: 26px;
+    margin-right: 10px;
+    vertical-align: middle;
+    opacity: .9;
 }
 
-#csv_file_modal_pond_host {
-    width: 100%;
+/* ===== FilePond: big centered idle (si default) ===== */
+#csv_upload_modal .filepond--root,
+#main_modal_sm .filepond--root {
+    min-height: 170px;
 }
 
-#csv_file_modal_pond_host .filepond--root {
-    width: 100%;
+#csv_upload_modal .filepond--drop-label,
+#main_modal_sm .filepond--drop-label {
+    min-height: 170px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* panel/border (mbaje si të duash) */
+#csv_upload_modal .filepond--panel-root,
+#main_modal_sm .filepond--panel-root {
+    border: 2px dashed rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 14px;
+}
+
+/* layout vertikal i label */
+#csv_upload_modal .pond-idle,
+#main_modal_sm .pond-idle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+}
+
+/* ikona e madhe */
+#csv_upload_modal .pond-idle i,
+#main_modal_sm .pond-idle i {
+    font-size: 48px;
+    opacity: 0.9;
+    line-height: 1;
+}
+
+/* teksti */
+#csv_upload_modal .pond-text,
+#main_modal_sm .pond-text {
+    font-size: 16px;
+    opacity: 0.92;
+}
+
+
+/* ===== DT top/bottom layout në modal fs ===== */
+#main_modal_fs .dt-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+
+#main_modal_fs .dt-top-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#main_modal_fs .dt-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-top: 10px;
+}
+
+/* butonat e DT (Buttons extension) */
+#main_modal_fs .dt-buttons button {
+    margin-left: 6px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
 }

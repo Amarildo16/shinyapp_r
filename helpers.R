@@ -14,7 +14,15 @@ suppressPackageStartupMessages({
 
 options(scipen = 999)
 
-`%||%` <- function(a, b) if (!is.null(a)) a else b
+`%||%` <- function(a, b) {
+  if (is.null(a)) return(b)
+  if (length(a) == 0) return(b)
+
+  if (is.character(a) && length(a) == 1) {
+    if (!nzchar(a) || is.na(a)) return(b)
+  }
+  a
+}
 
 # -------------------------
 # App dir
@@ -34,6 +42,8 @@ get_app_dir <- function() {
 
   normalizePath(getwd(), winslash = "/", mustWork = FALSE)
 }
+
+APP_DIR <- get_app_dir()
 
 DATA_DIR  <- file.path(APP_DIR, "data")
 if (!dir.exists(DATA_DIR)) dir.create(DATA_DIR, recursive = TRUE)
@@ -65,7 +75,6 @@ read_data_safe <- function(path, filename = NULL) {
     if (!has_readxl) stop("Për Excel duhet paketa 'readxl' (instaloje).")
     d <- readxl::read_excel(path)
   } else {
-    # fallback: provo csv
     d <- readr::read_csv(path, show_col_types = FALSE)
   }
 
@@ -78,22 +87,17 @@ read_data_safe <- function(path, filename = NULL) {
 parse_time_safe <- function(x) {
   if (inherits(x, "Date")) return(x)
   if (inherits(x, "POSIXt")) return(as.Date(x))
-
-  # numeric/integer: prano vetëm nëse duket si YEAR ose INDEX
-  # numeric/integer could be years or index
   if (is.numeric(x) || is.integer(x)) {
-    xn  <- as.numeric(x)          # ruaj gjatësinë origjinale
-    xn0 <- xn[!is.na(xn)]         # vetëm për kontrolle
+    xn  <- as.numeric(x)
+    xn0 <- xn[!is.na(xn)]
 
     if (length(xn0) < 2) return(xn)
 
-    # year-like (1500–3000, pothuaj integer)
     if (all(xn0 >= 1500 & xn0 <= 3000) &&
         mean(abs(xn0 - round(xn0)) < 1e-8) >= 0.95) {
-      return(round(xn))           # ruan NA-t në pozicion
+      return(round(xn))
     }
 
-    # index-like / numeric period: lejo, por kontrollo rregullsinë nëse do
     xu <- sort(unique(xn0))
     if (length(xu) >= 3) {
       steps <- diff(xu)
@@ -105,7 +109,6 @@ parse_time_safe <- function(x) {
     return(xn)
   }
 
-  # --------- (pjesa jote për karakter/date formats poshtë e lë siç është) ---------
   x0 <- trimws(as.character(x))
   x0[x0 == ""] <- NA_character_
 
@@ -136,7 +139,6 @@ parse_time_safe <- function(x) {
   stop("Kolona e kohës nuk u parse dot. Formate: YYYY, YYYY-MM, YYYY-MM-DD, YYYYQ#.")
 }
 
-
 # =========================================================
 # 3) Numeric normalization (1 234,56 -> 1234.56 etc.)
 # =========================================================
@@ -147,21 +149,15 @@ to_numeric_safe <- function(x) {
   s <- trimws(as.character(x))
   s[s == ""] <- NA_character_
 
-  # remove currency/letters, keep digits, separators, minus
   s <- gsub("[^0-9,\\.\\- ]", "", s)
 
-  # remove spaces as thousand sep
   s <- gsub(" ", "", s)
-
-  # if contains comma and dot, assume dot thousands and comma decimal: 1.234,56 -> 1234.56
   has_comma <- grepl(",", s, fixed = TRUE)
   has_dot   <- grepl("\\.", s)
   both <- has_comma & has_dot
-
   s[both] <- gsub("\\.", "", s[both])
   s[both] <- sub(",", ".", s[both], fixed = TRUE)
 
-  # if only comma, treat as decimal separator: 12,5 -> 12.5
   only_comma <- has_comma & !has_dot
   s[only_comma] <- sub(",", ".", s[only_comma], fixed = TRUE)
 
@@ -179,11 +175,9 @@ detect_time_candidates <- function(df) {
     col <- df[[i]]
     name_l <- tolower(nm[i])
 
-    # name hints
     if (name_l %in% c("year","date","time","timestamp","period","month","quarter")) scores[i] <- scores[i] + 3
     if (grepl("date|time|year|month|quarter|period", name_l)) scores[i] <- scores[i] + 1
 
-    # parse success hints
     ok <- tryCatch({
       t <- parse_time_safe(col)
       t0 <- t[!is.na(t)]
@@ -192,7 +186,6 @@ detect_time_candidates <- function(df) {
       uniq_ratio <- length(unique(t0)) / length(t0)
       base_ok <- mean(!is.na(t))
 
-      # penalize nëse ka shumë duplikate
       if (uniq_ratio < 0.85) base_ok <- base_ok - 0.25
 
       base_ok
@@ -214,30 +207,27 @@ detect_time_candidates <- function(df) {
 }
 
 # =========================================================
-# 5) Build dynamic meta (label/unit) — no hardcode
+# 5) Build dynamic meta
 # =========================================================
 make_label <- function(x) {
-  # Production_ton -> Production ton
   s <- gsub("_", " ", x)
   s <- gsub("\\s+", " ", s)
   trimws(s)
 }
 
 build_meta <- function(value_cols) {
-  # default meta for each series: label from name, unit empty
   meta <- lapply(value_cols, function(v) list(label = make_label(v), unit = ""))
   names(meta) <- value_cols
   meta
 }
 
-# helper: get meta record
 var_meta <- function(var, meta = NULL) {
   if (!is.null(meta) && !is.null(meta[[var]])) return(meta[[var]])
   list(label = make_label(var), unit = "")
 }
 
 # =========================================================
-# 6) Academic formatting (generic)
+# 6) Academic formatting
 # =========================================================
 fmt_fixed <- function(x, digits = 2) {
   ifelse(
@@ -280,7 +270,6 @@ fmt_compact <- function(x, digits = 1) {
   out
 }
 
-# choose formatting based on value range (dynamic)
 fmt_by_series <- function(x, for_axis = TRUE) {
   if (all(is.na(x))) return(rep(NA_character_, length(x)))
   rng <- range(x, na.rm = TRUE)
@@ -307,13 +296,12 @@ fmt_unit <- function(x, var, meta = NULL) {
 }
 
 # =========================================================
-# 7) Plotly helpers (same spirit as before)
+# 7) Plotly helpers
 # =========================================================
 plotly_cfg <- function(p) {
   config(p, displayModeBar = FALSE, responsive = TRUE)
 }
 
-# find plotly traces
 find_traces <- function(pl, predicate) {
   idx <- integer(0)
   for (i in seq_along(pl$x$data)) {
@@ -323,7 +311,6 @@ find_traces <- function(pl, predicate) {
   idx
 }
 
-# set hover text on a specific trace
 set_trace_text <- function(pl, trace_index, text_vec) {
   if (length(trace_index) == 0 || is.na(trace_index)) return(pl)
   pl$x$data[[trace_index]]$text <- text_vec
@@ -341,7 +328,7 @@ skip_trace_hover <- function(pl, idx) {
 
 
 # =========================================================
-# 8) Build dynamic standardized df (adds Time)
+# 8) Build dynamic standardized df
 # =========================================================
 make_df_dyn <- function(df, time_col) {
   d <- df
@@ -392,21 +379,19 @@ apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
 
   f <- tolower(freq %||% "auto")
 
-  # auto → detekto nga Time
   if (f == "auto") {
-    f <- detect_freq_from_time(tt)  # year/quarter/month/day/index
+    f <- detect_freq_from_time(tt)
   } else {
-    # e kthejm në format të helper-it
     f <- switch(f,
       "yearly" = "year",
       "quarterly" = "quarter",
       "monthly" = "month",
+      "weekly" = "week",
       "daily" = "day",
       f
     )
   }
 
-  # index → mos e rregullo timeline-in
   if (f == "index") return(d)
 
   if (inherits(tt, "Date")) {
@@ -415,6 +400,7 @@ apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
       "day"    = "day",
       "month"  = "month",
       "quarter"= "3 months",
+      "week"   = "7 days",
       "year"   = "year",
       NULL
     )
@@ -426,7 +412,6 @@ apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
     return(out)
   }
 
-  # numeric time (p.sh. Year) → vetëm yearly ka sens praktik
   if (is.numeric(tt)) {
     step <- switch(f, "year" = 1, NULL)
     if (is.null(step)) return(d)
@@ -468,17 +453,15 @@ infer_step_from_time <- function(Time) {
     if (length(dd) == 0) return(list(type="date", step="day"))
     md <- stats::median(dd)
 
-    # klasifikim praktik
     if (md <= 2) return(list(type="date", step="day"))
+    if (md >= 5 && md <= 10) return(list(type="date", step="week"))
     if (md >= 27 && md <= 32) return(list(type="date", step="month"))
     if (md >= 80 && md <= 100) return(list(type="date", step="quarter"))
     if (md >= 330 && md <= 400) return(list(type="date", step="year"))
 
-    # fallback: merre si day
     return(list(type="date", step="day"))
   }
 
-  # numeric
   vn <- as.numeric(tt)
   dv <- diff(vn)
   dv <- dv[is.finite(dv)]
@@ -489,7 +472,6 @@ infer_step_from_time <- function(Time) {
 }
 
 make_future_time <- function(Time, h) {
-  # jep vektor kohe me gjatësi h, duke vazhdu nga last(Time)
   req_h <- as.integer(h)
   if (is.na(req_h) || req_h < 1) return(Time[0])
 
@@ -501,7 +483,11 @@ make_future_time <- function(Time, h) {
 
   if (info$type == "date") {
     by <- info$step
-    # seq nga last_t me length h+1, pastaj heq të parin (last_t)
+    rby <- switch(by,
+      "quarter" = "3 months",
+      "week"    = "7 days",
+      by
+    )
     return(seq.Date(from = as.Date(last_t), by = by, length.out = req_h + 1)[-1])
   } else {
     st <- as.numeric(info$step)
@@ -510,10 +496,9 @@ make_future_time <- function(Time, h) {
 }
 
 # =========================================================
-# Future time builder (based on detected frequency)
+# Future time builder
 # =========================================================
 detect_freq_from_time <- function(Time) {
-  # kthen: "year" | "quarter" | "month" | "day" | "index"
   if (inherits(Time, "Date")) {
     dt <- sort(unique(Time))
     if (length(dt) < 2) return("day")
@@ -525,12 +510,66 @@ detect_freq_from_time <- function(Time) {
   }
 
   if (is.numeric(Time)) {
-    # nëse duket si vite (p.sh 1998..2024)
     if (all(Time >= 1500 & Time <= 3000, na.rm = TRUE)) return("year")
     return("index")
   }
 
   "index"
+}
+
+ts_spec_from_time <- function(Time, freq_choice = "auto") {
+  tt <- Time[!is.na(Time)]
+  if (length(tt) == 0) return(list(key="index", freq=1, start=c(1,1)))
+
+  key <- tolower(freq_choice %||% "auto")
+  key <- switch(key,
+    "auto"      = "auto",
+    "yearly"    = "year",
+    "year"      = "year",
+    "quarterly" = "quarter",
+    "quarter"   = "quarter",
+    "monthly"   = "month",
+    "month"     = "month",
+    "weekly"    = "week",
+    "week"      = "week",
+    "daily"     = "day",
+    "day"       = "day",
+    key
+  )
+
+  if (key == "auto") key <- detect_freq_from_time(tt)
+
+  if (inherits(tt, "Date")) {
+    d0 <- sort(tt)[1]
+    y  <- as.integer(format(d0, "%Y"))
+    m  <- as.integer(format(d0, "%m"))
+
+    if (key == "year")    return(list(key=key, freq=1,   start=c(y, 1)))
+    if (key == "quarter") return(list(key=key, freq=4,   start=c(y, (m-1) %/% 3 + 1)))
+    if (key == "month")   return(list(key=key, freq=12,  start=c(y, m)))
+
+    if (key == "week") {
+      w  <- suppressWarnings(as.integer(strftime(d0, "%V")))
+      yy <- suppressWarnings(as.integer(strftime(d0, "%G")))
+      if (is.na(w))  w  <- as.integer(strftime(d0, "%U")) + 1
+      if (is.na(yy)) yy <- y
+      return(list(key=key, freq=52, start=c(yy, w)))
+    }
+
+    if (key == "day") {
+      doy <- as.POSIXlt(d0)$yday + 1
+      return(list(key=key, freq=365, start=c(y, doy)))
+    }
+
+    return(list(key="index", freq=1, start=c(1,1)))
+  }
+
+  if (is.numeric(tt) && all(tt >= 1500 & tt <= 3000, na.rm = TRUE)) {
+    y0 <- as.integer(min(tt, na.rm = TRUE))
+    return(list(key="year", freq=1, start=c(y0, 1)))
+  }
+
+  list(key="index", freq=1, start=c(1,1))
 }
 
 sanitize_filename <- function(x, default_ext = "csv") {
@@ -549,4 +588,37 @@ sanitize_filename <- function(x, default_ext = "csv") {
   if (!nzchar(ext)) x <- paste0(x, ".", default_ext)
   x
 }
+
+pick <- function(..., default = NULL) {
+  xs <- list(...)
+  for (x in xs) {
+    if (is.null(x)) next
+    if (length(x) == 0) next
+    if (is.character(x) && all(trimws(x) == "")) next
+    return(x)
+  }
+  default
+}
+
+detect_freq_from_time <- function(Time) {
+  if (inherits(Time, "Date")) {
+    dt <- sort(unique(Time))
+    if (length(dt) < 2) return("day")
+    md <- as.integer(stats::median(diff(dt), na.rm = TRUE))
+
+    if (md >= 350) return("year")
+    if (md >= 80)  return("quarter")
+    if (md >= 25)  return("month")
+    if (md >= 5)   return("week")
+    return("day")
+  }
+
+  if (is.numeric(Time)) {
+    if (all(Time >= 1500 & Time <= 3000, na.rm = TRUE)) return("year")
+    return("index")
+  }
+
+  "index"
+}
+
 

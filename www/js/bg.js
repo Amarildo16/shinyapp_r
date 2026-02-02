@@ -88,15 +88,6 @@
 
         setBg(tabBackgrounds.tab_overview);
 
-        document.addEventListener(
-            "shiny:inputchanged",
-            function (e) {
-                const name = getName(e);
-                if (name === "main_tabs") setBgByTabValue(getValue(e));
-            },
-            true
-        );
-
         if (window.jQuery) {
             jQuery(document).on("shiny:inputchanged", function (e) {
                 const name = getName(e);
