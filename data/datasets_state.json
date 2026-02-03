@@ -1,0 +1,25 @@
+{
+  "active": "airpas.csv",
+  "datasets": [
+    {
+      "file": "albania_agriculture_timeseries_1998_2024.csv",
+      "added_at": "2026-02-02 23:09:42.96632",
+      "is_active": false
+    },
+    {
+      "file": "airpas.csv",
+      "added_at": "2026-02-03 01:10:49.572243",
+      "is_active": true
+    },
+    {
+      "file": "CPI.csv",
+      "added_at": "2026-02-03 01:11:10.163227",
+      "is_active": false
+    },
+    {
+      "file": "Digjitalizimi_Financiar_Shqiperi_data.csv",
+      "added_at": "2026-02-03 01:53:45.438926",
+      "is_active": false
+    }
+  ]
+}

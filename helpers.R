@@ -49,6 +49,97 @@ DATA_DIR  <- file.path(APP_DIR, "data")
 if (!dir.exists(DATA_DIR)) dir.create(DATA_DIR, recursive = TRUE)
 DATA_PATH <- file.path(DATA_DIR, "albania_agriculture_timeseries_1998_2024.csv")
 
+STATE_FILE <- file.path(DATA_DIR, "datasets_state.json")
+
+read_state <- function() {
+  if (!requireNamespace("jsonlite", quietly = TRUE)) {
+    stop("Mungon paketa 'jsonlite'. Instalo: install.packages('jsonlite')")
+  }
+
+  if (!file.exists(STATE_FILE)) {
+    return(list(
+      active   = NULL,
+      datasets = data.frame(file = character(), added_at = character(), is_active = logical(),
+                            stringsAsFactors = FALSE)
+    ))
+  }
+
+  st <- jsonlite::fromJSON(STATE_FILE)
+
+  if (is.null(st$datasets) || !is.data.frame(st$datasets)) {
+    st$datasets <- data.frame(file = character(), added_at = character(), is_active = logical(),
+                              stringsAsFactors = FALSE)
+  }
+
+  if (is.null(st$active)) st$active <- NULL
+  st
+}
+
+write_state <- function(st) {
+  # siguro vetëm 1 aktiv
+  if (!is.null(st$active) && nzchar(st$active)) {
+    st$datasets$is_active <- st$datasets$file == st$active
+  } else {
+    st$datasets$is_active <- FALSE
+  }
+
+  jsonlite::write_json(st, STATE_FILE, auto_unbox = TRUE, pretty = TRUE)
+}
+
+sync_state <- function(files) {
+  st <- read_state()
+
+  if (nrow(st$datasets) > 0) {
+    st$datasets <- st$datasets[st$datasets$file %in% files, , drop = FALSE]
+  }
+
+  existing <- st$datasets$file
+  new_files <- setdiff(files, existing)
+  if (length(new_files) > 0) {
+    add_df <- data.frame(
+      file      = new_files,
+      added_at  = as.character(Sys.time()),
+      is_active = FALSE,
+      stringsAsFactors = FALSE
+    )
+    st$datasets <- rbind(st$datasets, add_df)
+  }
+
+  if (is.null(st$active) || !nzchar(st$active) || !(st$active %in% files)) {
+    if (nrow(st$datasets) > 0 && any(st$datasets$is_active)) {
+      st$active <- st$datasets$file[which(st$datasets$is_active)[1]]
+    } else {
+      st$active <- if (length(files) > 0) files[1] else NULL
+    }
+  }
+
+  st$datasets$is_active <- st$datasets$file == st$active
+
+  write_state(st)
+  st
+}
+
+set_active_dataset <- function(file) {
+  files <- list_saved_datasets()
+  st <- sync_state(files)
+
+  if (is.null(file) || !nzchar(file) || !(file %in% files)) return(st)
+
+  st$active <- file
+  st$datasets$is_active <- st$datasets$file == file
+  write_state(st)
+  st
+}
+
+list_saved_datasets <- function() {
+  sort(list.files(
+    DATA_DIR,
+    pattern = "\\.(csv|tsv|xlsx|xls)$",
+    ignore.case = TRUE,
+    full.names = FALSE
+  ))
+}
+
 # -------------------------
 # Optional packages checks
 # -------------------------

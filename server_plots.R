@@ -6,14 +6,16 @@ server_plots <- function(input, output, session, df) {
   time_col <- reactive({
     req(df())
     nm <- names(df())
+    req(length(nm) > 0)
 
-    tc <- input$data_time_col %||% input$time_col %||% NULL
+    tc <- input$data_time_col %||% NULL
     if (!is.null(tc) && tc %in% nm) return(tc)
 
     if ("Year" %in% nm) return("Year")
 
-    cand <- detect_time_candidates(df())
-    best <- cand$col[1]
+    cand <- tryCatch(detect_time_candidates(df()), error = function(e) data.frame(col = nm, score = 0))
+    best <- cand$col[1] %||% NULL
+    if (is.null(best) || is.na(best) || !(best %in% nm)) best <- nm[1]
     best
   })
 
@@ -21,7 +23,7 @@ server_plots <- function(input, output, session, df) {
     req(df())
     nm <- names(df())
 
-    vc <- input$data_value_cols %||% input$value_cols %||% NULL
+    vc <- input$data_value_cols %||% NULL
     if (!is.null(vc)) {
       vc <- vc[vc %in% nm]
       if (length(vc) > 0) return(vc)
@@ -41,7 +43,9 @@ server_plots <- function(input, output, session, df) {
   })
 
   meta <- reactive({
-    build_meta(value_cols())
+    vc <- value_cols()
+    if (is.null(vc) || length(vc) == 0) return(list())
+    build_meta(vc)
   })
 
   df_dyn <- reactive({
@@ -137,7 +141,7 @@ server_plots <- function(input, output, session, df) {
       return(data.frame(Mesazh = "Zgjidh të paktën 1 seri numerike.", check.names = FALSE))
     }
 
-    X <- setNames(lapply(vc, function(v) to_numeric_safe(d[[v]])), vc)
+    X <- setNames(lapply(vc, function(v) d[[v]]), vc)
 
     safe_stat <- function(x, fun) {
       x <- x[!is.na(x)]
@@ -191,9 +195,10 @@ server_plots <- function(input, output, session, df) {
   # =========================================================
   fmt_pct <- function(x) {
     if (is.na(x)) return("N/A")
-    if (x > 0)  return(paste0("+", sprintf("%.2f", x), "% / vit"))
-    if (x < 0)  return(paste0(sprintf("%.2f", x), "% / vit"))
-    "0.00% / vit"
+    s <- fmt_fixed(abs(x), digits = 2)  # kjo ta bën me presje
+    if (x > 0)  return(paste0("+", s, "% / vit"))
+    if (x < 0)  return(paste0("-", s, "% / vit"))
+    "0,00% / vit"
   }
   
   # ========================= 
@@ -467,6 +472,7 @@ server_plots <- function(input, output, session, df) {
           "<br>", my$label, ": ", fmt_unit(yval, input$rel_y, meta())
         )
       )
+    d <- d %>% dplyr::filter(!is.na(xval), !is.na(yval))
 
     p <- ggplot(d, aes(x = xval, y = yval)) +
       geom_point(
@@ -507,11 +513,15 @@ server_plots <- function(input, output, session, df) {
         hovermode = "closest"
       )
 
-    marker_idx <- find_traces(pl, function(tr) grepl("markers", tr$mode %||% ""))[1]
+    marker_idx <- find_traces(pl, function(tr) grepl("markers", tr$mode %||% ""))
     line_idx   <- find_traces(pl, function(tr) grepl("lines", tr$mode %||% ""))
 
-    pl <- set_trace_text(pl, marker_idx, d$hover)
-    pl <- skip_trace_hover(pl, setdiff(line_idx, marker_idx))
+    if (length(marker_idx) >= 1) {
+      pl <- set_trace_text(pl, marker_idx[1], d$hover)
+    }
+    if (length(line_idx) >= 1) {
+      pl <- skip_trace_hover(pl, line_idx)
+    }
 
     plotly_cfg(pl)
   })
@@ -521,14 +531,9 @@ server_plots <- function(input, output, session, df) {
 
     d0 <- df_dyn()
 
-    tc <- NULL
-    if (exists("time_col")) {
-      tc <- tryCatch(time_col(), error = function(e) NULL)
-    }
-
     num_df <- d0 %>%
-      dplyr::select(where(is.numeric)) %>%
-      dplyr::select(-dplyr::any_of(c("Time", tc)))
+    dplyr::select(where(is.numeric)) %>%
+    dplyr::select(-dplyr::any_of("Time"))
 
     if (ncol(num_df) < 2) {
       showNotification("Duhet të paktën 2 kolona numerike për korrelacion.", type = "warning")
@@ -540,7 +545,10 @@ server_plots <- function(input, output, session, df) {
       showNotification("U përdorën vetëm 20 kolonat e para numerike për heatmap.", type = "message")
     }
 
-    corr_mat <- cor(num_df, use = "complete.obs")
+    num_df <- num_df %>%
+    dplyr::select(where(~ stats::sd(.x, na.rm = TRUE) > 0))
+
+    corr_mat <- cor(num_df, use = "pairwise.complete.obs")
 
     corr_df <- as.data.frame(as.table(corr_mat))
     colnames(corr_df) <- c("Var1", "Var2", "Korrelacioni")
@@ -559,7 +567,7 @@ server_plots <- function(input, output, session, df) {
       ) +
       geom_text(
         aes(label = fmt_fixed(Korrelacioni, digits = 2)),
-        color = scales::alpha("black", 0.75),
+        color = scales::alpha("white", 0.75),
         size = 4.2
       ) +
       labs(
@@ -587,7 +595,7 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================
-  # Stacionariteti (DINAMIK)
+  # Stacionariteti
   # =========================
 
   output$stat_diff_plot <- renderPlotly({
@@ -653,8 +661,10 @@ server_plots <- function(input, output, session, df) {
         yaxis = list(gridcolor = "rgba(255,255,255,0.15)")
       )
 
-    line_idx <- find_traces(pl, function(tr) grepl("lines", tr$mode %||% ""))[1]
-    pl <- set_trace_text(pl, line_idx, d$hover)
+    line_idx <- find_traces(pl, function(tr) grepl("lines", tr$mode %||% ""))
+    if (length(line_idx) >= 1) {
+      pl <- set_trace_text(pl, line_idx[1], d$hover)
+    }
 
     plotly_cfg(pl)
   })
@@ -675,32 +685,38 @@ server_plots <- function(input, output, session, df) {
       return(NULL)
     }
 
-    dy <- diff(dd$y)
-    n  <- length(dy)
+    spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
+    y_ts <- stats::ts(as.numeric(dd$y), frequency = spec$freq, start = spec$start)
+    dy   <- diff(y_ts)
+    n    <- length(dy)
 
     if (n < 5) {
       showNotification("Seria e diferencuar ka shumë pak pika për ACF/PACF.", type="warning")
       return(NULL)
     }
 
-    acf_obj  <- acf(dy, plot = FALSE)
-    pacf_obj <- pacf(dy, plot = FALSE)
+    acf_obj  <- stats::acf(dy, plot = FALSE)
+    pacf_obj <- stats::pacf(dy, plot = FALSE)
+
+    freq0 <- stats::frequency(y_ts)
+    if (is.null(freq0) || is.na(freq0) || freq0 < 1) freq0 <- 1
 
     acf_df <- data.frame(
-      Vonesa = as.numeric(acf_obj$lag[-1]),
+      Vonesa = as.integer(round(as.numeric(acf_obj$lag[-1]) * freq0)),
       Vlera  = as.numeric(acf_obj$acf[-1]),
       Tipi   = "ACF",
       stringsAsFactors = FALSE
     )
 
     pacf_df <- data.frame(
-      Vonesa = as.numeric(pacf_obj$lag),
+      Vonesa = as.integer(round(as.numeric(pacf_obj$lag) * freq0)),
       Vlera  = as.numeric(pacf_obj$acf),
       Tipi   = "PACF",
       stringsAsFactors = FALSE
     )
 
     df_plot <- rbind(acf_df, pacf_df)
+
     conf <- 1.96 / sqrt(n)
 
     p <- ggplot(df_plot, aes(x = Vonesa, y = Vlera)) +
@@ -743,9 +759,18 @@ server_plots <- function(input, output, session, df) {
   output$stat_adf_tbl <- renderTable({
     req(df_dyn(), input$stat_series)
 
+    if (!requireNamespace("tseries", quietly = TRUE)) {
+      return(data.frame(
+        Serie = c("Original (niveli)", "First difference (Δ)"),
+        Statistic = NA_real_,
+        `p-value` = NA_real_,
+        Method = "Paketa 'tseries' mungon — instalo: install.packages('tseries')",
+        check.names = FALSE
+      ))
+    }
+
     d0 <- df_dyn()
-    y  <- d0[[input$stat_series]]
-    y  <- as.numeric(y)
+    y  <- as.numeric(d0[[input$stat_series]])
     y  <- y[!is.na(y)]
 
     if (length(y) < 20) {
@@ -797,6 +822,15 @@ server_plots <- function(input, output, session, df) {
   output$stat_adf_note <- renderUI({
     req(df_dyn(), input$stat_series)
 
+    if (!requireNamespace("tseries", quietly = TRUE)) {
+      return(HTML(
+        "<p style='margin-top:10px; font-size: 13px; line-height: 1.45;'>
+          <b>Interpretim (ADF):</b> Paketa <b>tseries</b> mungon.
+          Instalo: <code>install.packages('tseries')</code>.
+        </p>"
+      ))
+    }
+
     m <- var_meta(input$stat_series, meta())
     d0 <- df_dyn()
 
@@ -814,7 +848,8 @@ server_plots <- function(input, output, session, df) {
     }
 
     adf_lvl  <- try(tseries::adf.test(y), silent = TRUE)
-    adf_diff <- if (length(diff(y)) >= 20) try(tseries::adf.test(diff(y)), silent = TRUE) else "try-error"
+    dy <- diff(y)
+    adf_diff <- if (length(dy) >= 20) try(tseries::adf.test(dy), silent = TRUE) else "try-error"
 
     get_p <- function(obj) {
       if (inherits(obj, "try-error")) return(NA_real_)
@@ -884,17 +919,23 @@ server_plots <- function(input, output, session, df) {
       showNotification("Kujdes: h është i madh krahasuar me të dhënat (h > n/2).", type = "message")
     }
 
-    y <- as.numeric(dd$y)
+    y_raw <- as.numeric(dd$y)
 
-    fast_arima <- n > 5000
+    spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
+    y_ts <- stats::ts(y_raw, frequency = spec$freq, start = spec$start)
+
+    y_mod <- if (anyNA(y_ts)) forecast::na.interp(y_ts) else y_ts
+
+    fast_arima <- length(y_mod) > 5000
     arima_stepwise <- if (fast_arima) TRUE else FALSE
     arima_approx   <- if (fast_arima) TRUE else FALSE
 
-    fit_ets <- try(forecast::ets(y), silent = TRUE)
-    seasonal_flag <- frequency(y) %in% c(4, 12)
+    fit_ets <- try(forecast::ets(y_mod), silent = TRUE)
+
+    seasonal_flag <- stats::frequency(y_mod) %in% c(4, 12)
     fit_arima <- try(
       forecast::auto.arima(
-        y,
+        y_mod,
         seasonal = seasonal_flag,
         stepwise = arima_stepwise,
         approximation = arima_approx
@@ -914,7 +955,7 @@ server_plots <- function(input, output, session, df) {
 
     obs_df <- data.frame(
       Time  = dd$Time,
-      Vlera = y,
+      Vlera = y_raw,
       Tipi  = "Vëzhguar",
       stringsAsFactors = FALSE
     )
@@ -1013,15 +1054,21 @@ server_plots <- function(input, output, session, df) {
       ))
     }
 
-    y <- as.numeric(dd$y)
+    y_raw <- as.numeric(dd$y)
 
-    fit_ets <- try(forecast::ets(y), silent = TRUE)
+    spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
+    y_ts <- stats::ts(y_raw, frequency = spec$freq, start = spec$start)
+    y_mod <- if (anyNA(y_ts)) forecast::na.interp(y_ts) else y_ts
 
-    fast_arima <- n > 5000
+    fit_ets <- try(forecast::ets(y_mod), silent = TRUE)
+
+    seasonal_flag <- stats::frequency(y_mod) %in% c(4, 12)
+    fast_arima <- length(y_mod) > 5000
+
     fit_arima <- try(
       forecast::auto.arima(
-        y,
-        seasonal = FALSE,
+        y_mod,
+        seasonal = seasonal_flag,
         stepwise = if (fast_arima) TRUE else FALSE,
         approximation = if (fast_arima) TRUE else FALSE
       ),
@@ -1065,7 +1112,7 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================================================
-  # Parashikimi – Objekte reaktive (DINAMIK)
+  # Parashikimi – Objekte reaktive
   # =========================================================
 
   series_dat <- reactive({
@@ -1077,6 +1124,11 @@ server_plots <- function(input, output, session, df) {
       showNotification("Seria e zgjedhur s’gjendet në dataset.", type = "error")
       return(NULL)
     }
+
+    dd <- d0 %>%
+      dplyr::select(Time, y = dplyr::all_of(input$forecast_series)) %>%
+      dplyr::filter(!is.na(Time)) %>%
+      dplyr::arrange(Time)
 
     if (any(duplicated(dd$Time))) {
       dd <- dd %>%
@@ -1094,16 +1146,6 @@ server_plots <- function(input, output, session, df) {
       return(NULL)
     }
 
-    if (any(duplicated(dd$Time))) {
-      dd <- dd %>%
-        dplyr::group_by(Time) %>%
-        dplyr::summarise(y = mean(y, na.rm = TRUE), .groups = "drop") %>%
-        dd$y[is.nan(dd$y)] <- NA_real_
-        dplyr::arrange(Time)
-
-      showNotification("U gjetën duplikate në kohë; u agreguan me mesatare (mean).", type = "message")
-    }
-
     if (stats::sd(dd$y, na.rm = TRUE) < 1e-12) {
       showNotification("Seria është (pothuaj) konstante — parashikimi s’ka kuptim.", type = "warning")
       return(NULL)
@@ -1117,9 +1159,8 @@ server_plots <- function(input, output, session, df) {
     dd <- series_dat()
 
     spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
-    yts  <- ts(as.numeric(dd$y), frequency = spec$freq, start = spec$start)
+    yts  <- stats::ts(as.numeric(dd$y), frequency = spec$freq, start = spec$start)
 
-    # nëse apply_freq_policy futi boshllëqe (NA), i plotësojmë vetëm për modelim
     if (anyNA(yts)) {
       yts <- forecast::na.interp(yts)
     }
@@ -1128,20 +1169,23 @@ server_plots <- function(input, output, session, df) {
   })
 
   fitted_model <- reactive({
-    req(series_ts(), input$method, input$h)
+    req(series_ts(), series_dat(), input$method, input$h)
 
-    y <- series_ts()
+    y  <- series_ts()
+    dd <- series_dat()
+
+    n_real <- sum(!is.na(dd$y))
     n <- length(y)
 
     h <- as.integer(input$h)
     if (is.na(h) || h < 1) h <- 1
 
-    if (h > floor(n / 2)) {
+    if (h > floor(n_real / 2)) {
       showNotification("Kujdes: h është i madh krahasuar me të dhënat (h > n/2).", type = "message")
     }
 
-    if (input$method %in% c("ses", "holt") && n < 2) {
-      showNotification("SES/Holt kërkojnë ≥ 2 pika.", type = "warning")
+    if (input$method %in% c("ses", "holt") && n_real < 2) {
+      showNotification("SES/Holt kërkojnë ≥ 2 pika reale.", type = "warning")
       return(NULL)
     }
 
@@ -1150,22 +1194,17 @@ server_plots <- function(input, output, session, df) {
       return(NULL)
     }
 
-    if (input$method == "ses") {
-      return(forecast::ses(y, h = h))
-    }
+    if (input$method == "ses")  return(forecast::ses(y, h = h))
+    if (input$method == "holt") return(forecast::holt(y, h = h))
 
-    if (input$method == "holt") {
-      return(forecast::holt(y, h = h))
-    }
-
-    if (n < 30) {
+    if (n_real < 30) {
       showNotification("Për ARIMA rekomandohen ≥ 30 pika reale. Zgjidh SES/Holt ose shto të dhëna.", type = "warning")
       return(NULL)
     }
 
     fast_arima <- n > 5000
+    seasonal_flag <- stats::frequency(y) %in% c(4, 12)
 
-    seasonal_flag <- frequency(y) %in% c(4, 12)
     fit <- try(
       forecast::auto.arima(
         y,
@@ -1185,7 +1224,7 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================================================
-  # Grafiku i parashikimit (DINAMIK me Time)
+  # Grafiku i parashikimit
   # =========================================================
 
   output$forecast_plot <- renderPlotly({
@@ -1203,37 +1242,57 @@ server_plots <- function(input, output, session, df) {
       stringsAsFactors = FALSE
     )
 
-    h <- as.integer(input$h); if (is.na(h) || h < 1) h <- 1
-    fut_time <- make_future_time(obs_df$Time, h)
+    h <- as.integer(input$h)
+    if (is.na(h) || h < 1) h <- 1
 
-    fc_mean  <- as.numeric(fc$mean)
+    fut_time <- tryCatch(
+      make_future_time(obs_df$Time, h, freq = input$data_freq %||% "auto"),
+      error = function(e) make_future_time(obs_df$Time, h)
+    )
 
-    low80 <- up80 <- rep(NA_real_, length(fc_mean))
-    if (!is.null(fc$lower) && "80%" %in% colnames(fc$lower)) low80 <- as.numeric(fc$lower[, "80%"])
-    if (!is.null(fc$upper) && "80%" %in% colnames(fc$upper)) up80  <- as.numeric(fc$upper[, "80%"])
+    fc_mean <- as.numeric(fc$mean)
+
+    lev <- NULL
+    if (!is.null(fc$lower)) {
+      cn <- colnames(fc$lower)
+      if (!is.null(cn) && length(cn) >= 1) lev <- cn[1]
+    }
+
+    low <- up <- rep(NA_real_, length(fc_mean))
+    if (!is.null(lev) && !is.null(fc$lower) && !is.null(fc$upper) &&
+        lev %in% colnames(fc$lower) && lev %in% colnames(fc$upper)) {
+      low <- as.numeric(fc$lower[, lev])
+      up  <- as.numeric(fc$upper[, lev])
+    }
 
     fc_df <- data.frame(
       Time      = fut_time,
       Mesatarja = fc_mean,
-      Poshtë80  = low80,
-      Sipër80   = up80,
+      PoshtëCI  = low,
+      SipërCI   = up,
       stringsAsFactors = FALSE
     )
 
-    obs_df$hover <- paste0(
-      xlab, ": ", fmt_time(obs_df$Time),
-      "<br>", m$label, ": ", fmt_unit(obs_df$Vlera, input$forecast_series, meta())
-    )
+    obs_df$hover <- vapply(seq_len(nrow(obs_df)), function(i) {
+      paste0(
+        xlab, ": ", fmt_time(obs_df$Time[i]),
+        "<br>", m$label, ": ", fmt_unit(obs_df$Vlera[i], input$forecast_series, meta())
+      )
+    }, character(1))
 
-    fc_df$hover <- paste0(
-      xlab, ": ", fmt_time(fc_df$Time),
-      "<br>Parashikimi: ", fmt_unit(fc_df$Mesatarja, input$forecast_series, meta()),
-      "<br>Intervali 80%: [",
-      fmt_unit(fc_df$Poshtë80, input$forecast_series, meta()),
-      " ; ",
-      fmt_unit(fc_df$Sipër80, input$forecast_series, meta()),
-      "]"
-    )
+    lev_txt <- if (is.null(lev) || !nzchar(lev)) "Intervali" else paste0("Intervali ", lev)
+
+    fc_df$hover <- vapply(seq_len(nrow(fc_df)), function(i) {
+      paste0(
+        xlab, ": ", fmt_time(fc_df$Time[i]),
+        "<br>Parashikimi: ", fmt_unit(fc_df$Mesatarja[i], input$forecast_series, meta()),
+        "<br>", lev_txt, ": [",
+        fmt_unit(fc_df$PoshtëCI[i], input$forecast_series, meta()),
+        " ; ",
+        fmt_unit(fc_df$SipërCI[i], input$forecast_series, meta()),
+        "]"
+      )
+    }, character(1))
 
     p <- ggplot() +
       geom_line(
@@ -1244,7 +1303,7 @@ server_plots <- function(input, output, session, df) {
       ) +
       geom_ribbon(
         data = fc_df,
-        aes(x = Time, ymin = Poshtë80, ymax = Sipër80),
+        aes(x = Time, ymin = PoshtëCI, ymax = SipërCI),
         fill = "white",
         alpha = 0.12
       ) +
@@ -1299,39 +1358,54 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================================================
-  # Saktësia e parashikimit (seti i trajnimit) — DINAMIK
+  # Saktësia e parashikimit
   # =========================================================
 
-  output$forecast_metrics <- renderUI({
-    req(fitted_model(), input$forecast_series)
+  acc_obj <- reactive({
+    req(input$forecast_series)
 
-    acc <- tryCatch(
-      forecast::accuracy(fitted_model()),
+    fm <- fitted_model()
+    if (is.null(fm)) return(NULL)
+
+    tryCatch(
+      forecast::accuracy(fm),
       error = function(e) NULL
     )
+  })
+
+  output$forecast_metrics <- renderUI({
+    req(input$forecast_series)
+
+    fm  <- fitted_model()
+    acc <- acc_obj()
+
+    if (is.null(fm)) {
+      return(div(
+        class = "section-box",
+        h4("Saktësia në setin e trajnimit"),
+        p("Nuk u llogarit saktësia sepse modeli nuk u krijua. Shkak i mundshëm: seri shumë e shkurtër, shumë NA, seri konstante, ose ARIMA e refuzuar nga kushtet.")
+      ))
+    }
 
     if (is.null(acc)) {
-      div(
+      return(div(
         class = "section-box",
         h4("Saktësia në setin e trajnimit"),
         p("Saktësia nuk u llogarit. Shkak i mundshëm: seri shumë e shkurtër, shumë NA, seri konstante, ose model i dështuar.")
-      )
-    } else {
-      div(
-        class = "section-box",
-        h4("Saktësia në setin e trajnimit"),
-        tableOutput("acc_tbl")
-      )
+      ))
     }
+
+    div(
+      class = "section-box",
+      h4("Saktësia në setin e trajnimit"),
+      tableOutput("acc_tbl")
+    )
   })
 
   output$acc_tbl <- renderTable({
-    req(fitted_model(), input$forecast_series)
+    req(input$forecast_series)
 
-    acc <- tryCatch(
-      forecast::accuracy(fitted_model()),
-      error = function(e) NULL
-    )
+    acc <- acc_obj()
 
     if (is.null(acc) || nrow(acc) == 0) {
       return(data.frame(
@@ -1356,6 +1430,8 @@ server_plots <- function(input, output, session, df) {
         vals[mt] <- suppressWarnings(as.numeric(acc[row_name, mt]))
       }
     }
+
+    if (!is.finite(vals["MAPE"])) vals["MAPE"] <- NA_real_
 
     m  <- var_meta(input$forecast_series, meta())
     u  <- m$unit %||% ""

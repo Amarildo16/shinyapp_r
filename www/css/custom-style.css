@@ -87,7 +87,7 @@ body>.container-fluid {
 ========================= */
 .hamburger-btn {
     position: relative;
-    z-index: 1200;
+    z-index: 10;
     margin: 14px 0 18px 14px;
 
     width: 40px;
@@ -715,6 +715,26 @@ select,
 }
 
 /* =========================================================
+
+/* =========================================================
+   MODALS (Bootstrap 3) + FilePond + DataTables + Saved datasets
+   (refactor: removed duplicates / kept behavior)
+   ========================================================= */
+
+/* ===== MODAL BACKDROP: blur + glass overlay (Bootstrap 3) ===== */
+.modal-backdrop.in {
+    opacity: 1 !important;
+    background: rgba(0, 0, 0, 0.38) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* ===== kur e levizim fileInput nga wrapper-i i Shiny, fshi UI-n e vjeter ===== */
+.shiny-fileinput-hidden {
+    display: none !important;
+}
+
+/* =========================================================
    Upload modal (SM) – centered + glass + FilePond styling
    ========================================================= */
 
@@ -744,6 +764,7 @@ select,
     border-radius: 18px;
     box-shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 #main_modal_sm .modal-header {
@@ -765,7 +786,7 @@ select,
     opacity: 0.85;
 }
 
-/* FilePond look */
+/* FilePond look (global) */
 .filepond--panel-root {
     background: rgba(255, 255, 255, 0.06) !important;
     border: 1px dashed rgba(255, 255, 255, 0.22) !important;
@@ -777,64 +798,6 @@ select,
 
 .filepond--label-action {
     text-decoration: underline;
-}
-
-/* =========================================================
-   Fullscreen modal (FS) – emulate modal-fullscreen në BS3
-   ========================================================= */
-
-#main_modal_fs .modal-dialog {
-    width: calc(100% - 20px);
-    height: calc(100% - 20px);
-    margin: 10px auto;
-}
-
-#main_modal_fs .modal-content {
-    height: calc(100vh - 20px);
-    display: flex;
-    flex-direction: column;
-}
-
-#main_modal_fs .modal-body {
-    flex: 1 1 auto;
-    overflow: auto;
-}
-
-/* ===== Topbar layout ===== */
-.app-topbar {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 18px 18px 10px;
-}
-
-/* hiq marginat që e shtyjnë poshtë/majtas */
-.app-topbar .hamburger-btn {
-    margin: 0 !important;
-}
-
-/* title */
-.app-title {
-    font-size: 26px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.92);
-    line-height: 1;
-    letter-spacing: 0.2px;
-    user-select: none;
-}
-
-/* ===== MODAL BACKDROP: blur + glass overlay (Bootstrap 3) ===== */
-.modal-backdrop.in {
-    opacity: 1 !important;
-    background: rgba(0, 0, 0, 0.38) !important;
-
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-}
-
-/* ===== kur e levizim fileInput nga wrapper-i i Shiny, fshi UI-n e vjeter ===== */
-.shiny-fileinput-hidden {
-    display: none !important;
 }
 
 /* ===== host ku vendoset FilePond ===== */
@@ -855,7 +818,7 @@ select,
     opacity: .9;
 }
 
-/* ===== FilePond: big centered idle (si default) ===== */
+/* ===== FilePond: big centered idle ===== */
 #csv_upload_modal .filepond--root,
 #main_modal_sm .filepond--root {
     min-height: 170px;
@@ -902,14 +865,106 @@ select,
     opacity: 0.92;
 }
 
+/* =========================================================
+   Fullscreen modal (FS) – REAL fullscreen (BS3 safe)
+   ========================================================= */
 
-/* ===== DT top/bottom layout në modal fs ===== */
+#main_modal_fs.modal {
+    padding: 0 !important;
+}
+
+#main_modal_fs .modal-dialog {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+}
+
+#main_modal_fs .modal-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: rgba(16, 24, 28, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 18px;
+    box-shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+
+#main_modal_fs .modal-header {
+    flex: 0 0 auto;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    padding: 14px 18px;
+}
+
+#main_modal_fs .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px 18px 18px;
+}
+
+#main_modal_fs .modal-footer {
+    flex: 0 0 auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    padding: 12px 18px;
+}
+
+#main_modal_fs .close {
+    color: rgba(255, 255, 255, 0.90);
+    opacity: 1;
+    text-shadow: none;
+}
+
+#main_modal_fs .close:hover {
+    opacity: 0.85;
+}
+
+/* ===== Topbar layout (FS) ===== */
+.app-topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 18px 10px;
+}
+
+/* hiq marginat që e shtyjnë poshtë/majtas */
+.app-topbar .hamburger-btn {
+    margin: 0 !important;
+}
+
+.app-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.92);
+    line-height: 1;
+    letter-spacing: 0.2px;
+    user-select: none;
+}
+
+/* =========================================================
+   DataTables DARK GLASS – vetëm brenda #main_modal_fs
+   ========================================================= */
+
+#main_modal_fs .dataTables_wrapper {
+    width: 100%;
+    color: rgba(255, 255, 255, 0.78) !important;
+}
+
+/* dt-top/dt-bottom layout */
 #main_modal_fs .dt-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 16px;
     margin-bottom: 10px;
+    flex-wrap: wrap;
 }
 
 #main_modal_fs .dt-top-right {
@@ -924,6 +979,91 @@ select,
     align-items: center;
     gap: 16px;
     margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+/* labelat (Show entries / Search / info) */
+#main_modal_fs .dataTables_length label,
+#main_modal_fs .dataTables_filter label,
+#main_modal_fs .dataTables_info {
+    color: rgba(255, 255, 255, 0.70) !important;
+}
+
+/* INPUT + SELECT dark */
+#main_modal_fs .dataTables_filter input,
+#main_modal_fs .dataTables_length select {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    border-radius: 10px !important;
+    padding: 7px 10px !important;
+    outline: none !important;
+}
+
+#main_modal_fs .dataTables_filter input::placeholder {
+    color: rgba(255, 255, 255, 0.55) !important;
+}
+
+/* tabela: dark glass */
+#main_modal_fs table.dataTable {
+    width: 100% !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+}
+
+/* header */
+#main_modal_fs table.dataTable thead th {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.88) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+/* qelizat */
+#main_modal_fs table.dataTable tbody td {
+    color: rgba(255, 255, 255, 0.82) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* zebra striping (butë) */
+#main_modal_fs table.dataTable tbody tr {
+    background: transparent !important;
+}
+
+#main_modal_fs table.dataTable tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* hover */
+#main_modal_fs table.dataTable tbody tr:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+}
+
+/* pagination */
+#main_modal_fs .dataTables_paginate .paginate_button {
+    color: rgba(255, 255, 255, 0.72) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-radius: 10px !important;
+    padding: 6px 10px !important;
+    margin-left: 6px !important;
+}
+
+#main_modal_fs .dataTables_paginate .paginate_button:hover {
+    background: rgba(255, 255, 255, 0.10) !important;
+}
+
+#main_modal_fs .dataTables_paginate .paginate_button.current {
+    background: rgba(255, 255, 255, 0.14) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* sort arrows që të mos duken shumë “hard” */
+#main_modal_fs table.dataTable thead .sorting:after,
+#main_modal_fs table.dataTable thead .sorting_asc:after,
+#main_modal_fs table.dataTable thead .sorting_desc:after {
+    opacity: 0.45 !important;
 }
 
 /* butonat e DT (Buttons extension) */
@@ -932,4 +1072,79 @@ select,
     padding: 6px 10px;
     border-radius: 8px;
     cursor: pointer;
+}
+
+/* =========================================================
+   Saved datasets list (UI)
+   ========================================================= */
+
+.saved-ds-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.saved-ds-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.saved-ds-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, .55);
+    display: inline-block;
+}
+
+.saved-ds-dot.on {
+    background: rgba(255, 255, 255, .95);
+    border-color: rgba(255, 255, 255, .95);
+}
+
+.saved-ds-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .16);
+}
+
+.saved-ds-trash {
+    border: none;
+    background: rgba(255, 255, 255, .10);
+    border-radius: 10px;
+    padding: 6px 10px;
+    color: white;
+}
+
+.saved-ds-item.is-active {
+    outline: 1px solid rgba(255, 255, 255, .35);
+}
+
+/* 2 datasets per row */
+.saved-ds-grid-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 780px) {
+    .saved-ds-grid-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Apple-green “Aktiv” badge */
+.saved-ds-item.is-active .saved-ds-badge {
+    background: rgba(52, 199, 89, .20);
+    border: 1px solid rgba(52, 199, 89, .45);
+    color: rgba(52, 199, 89, 1);
+    font-weight: 600;
+    letter-spacing: .2px;
+    box-shadow: 0 0 0 1px rgba(52, 199, 89, .10) inset;
 }

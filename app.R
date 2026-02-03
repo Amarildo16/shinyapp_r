@@ -36,8 +36,8 @@ ui <- fluidPage(
     textInput("data_source", label = NULL, value = ""),
     selectInput("data_time_col", label = NULL, choices = character(0)),
     selectizeInput("data_value_cols", label = NULL, choices = character(0), multiple = TRUE),
-    selectInput("data_dup", label = NULL, choices = c("mean","sum","last"), selected = "mean"),
-    selectInput("data_freq", label = NULL, choices = c("auto","yearly","quarterly","monthly","daily"), selected = "auto")
+    selectInput("data_dup", label = NULL, choices = c("mean","sum","first","last"), selected = "mean"),
+    selectInput("data_freq", label = NULL, choices = c("auto","yearly","quarterly","monthly","weekly","daily"), selected = "auto")
   ),
 
   # Background
@@ -606,14 +606,18 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
-  observeEvent(input$go_settings,       { updateTabsetPanel(session, "main_tabs", "tab_settings") })
-  observeEvent(input$go_overview,       { updateTabsetPanel(session, "main_tabs", "tab_overview") })
-  observeEvent(input$go_eda_ts,         { updateTabsetPanel(session, "main_tabs", "tab_eda_ts") })
-  observeEvent(input$go_eda_rel,        { updateTabsetPanel(session, "main_tabs", "tab_eda_rel") })
-  observeEvent(input$go_stationary,     { updateTabsetPanel(session, "main_tabs", "tab_stationary") })
-  observeEvent(input$go_modeling,       { updateTabsetPanel(session, "main_tabs", "tab_modeling") })
-  observeEvent(input$go_forecast,       { updateTabsetPanel(session, "main_tabs", "tab_forecast") })
-  observeEvent(input$go_wrapup,         { updateTabsetPanel(session, "main_tabs", "tab_wrapup") })
+
+  # =========================================================
+  # 0) NAV
+  # =========================================================
+  observeEvent(input$go_settings,   { updateTabsetPanel(session, "main_tabs", "tab_settings") })
+  observeEvent(input$go_overview,   { updateTabsetPanel(session, "main_tabs", "tab_overview") })
+  observeEvent(input$go_eda_ts,     { updateTabsetPanel(session, "main_tabs", "tab_eda_ts") })
+  observeEvent(input$go_eda_rel,    { updateTabsetPanel(session, "main_tabs", "tab_eda_rel") })
+  observeEvent(input$go_stationary, { updateTabsetPanel(session, "main_tabs", "tab_stationary") })
+  observeEvent(input$go_modeling,   { updateTabsetPanel(session, "main_tabs", "tab_modeling") })
+  observeEvent(input$go_forecast,   { updateTabsetPanel(session, "main_tabs", "tab_forecast") })
+  observeEvent(input$go_wrapup,     { updateTabsetPanel(session, "main_tabs", "tab_wrapup") })
 
   uploaded_tmp_path <- reactiveVal(NULL)
   uploaded_tmp_name <- reactiveVal(NULL)
@@ -634,22 +638,239 @@ server <- function(input, output, session) {
     TITLE_MAP[[key]] %||% "Time Series Analysis"
   })
 
-  # =========================
-  # DATA SOURCE (demo + upload)
-  # =========================
-  df_raw <- reactiveVal(NULL)
+  # =========================================================
+  # 1) PATHS (safe fallbacks)
+  # =========================================================
+  DATA_DIR  <- get0("DATA_DIR",  inherits = TRUE)
+  DATA_PATH <- get0("DATA_PATH", inherits = TRUE)
 
+  if (is.null(DATA_DIR))  DATA_DIR  <- file.path(getwd(), "data")
+  if (!dir.exists(DATA_DIR)) dir.create(DATA_DIR, recursive = TRUE)
+
+  # =========================================================
+  # 2) HELPERS (avoid dplyr::pick conflict)
+  # =========================================================
+  pick_choice <- function(cur, choices, fallback) {
+    if (!is.null(cur) && length(cur) == 1 && nzchar(cur) && cur %in% choices) cur else fallback
+  }
+
+  # =========================================================
+  # 3) SAVED DATASETS
+  # =========================================================
+
+  saved_datasets      <- reactiveVal(list_saved_datasets())
+  active_dataset_file <- reactiveVal(NULL)
+  pending_delete_file <- reactiveVal(NULL)
+
+  output$saved_datasets_ui <- renderUI({
+    files   <- saved_datasets()
+    act_mem <- active_dataset_file()
+
+    if (length(files) == 0) {
+      return(
+        div(
+          class = "section-box",
+          h4("Datasetet e ruajtura"),
+          tags$small("S’ka dataset të ruajtur te folderi data.", style = "opacity:.75;")
+        )
+      )
+    }
+
+    st <- sync_state(files)
+
+    active <- act_mem %||% st$active %||% files[1]
+
+    if (!(active %in% files)) active <- st$active %||% files[1]
+    if (!(active %in% files)) active <- files[1]
+
+    js_val <- function(x) jsonlite::toJSON(x, auto_unbox = TRUE)
+
+    rows <- split(files, ceiling(seq_along(files) / 2))
+
+    tagList(
+      lapply(rows, function(pair) {
+        tags$div(
+          class = "saved-ds-grid-row",
+          lapply(pair, function(f) {
+            is_active <- identical(f, active)
+
+            div(
+              class = paste("section-box saved-ds-item", if (is_active) "is-active" else ""),
+              tags$div(
+                class = "saved-ds-row",
+                onclick = sprintf(
+                  "Shiny.setInputValue('activate_dataset', %s, {priority:'event'});",
+                  js_val(f)
+                ),
+
+                tags$div(
+                  class = "saved-ds-left",
+                  tags$span(class = paste("saved-ds-dot", if (is_active) "on" else "")),
+                  tags$span(class = "saved-ds-name", f),
+                  if (is_active) tags$span(class = "saved-ds-badge", "Aktiv") else NULL
+                ),
+
+                tags$button(
+                  type  = "button",
+                  class = "saved-ds-trash",
+                  onclick = sprintf(
+                    "event.stopPropagation(); Shiny.setInputValue('delete_dataset', %s, {priority:'event'});",
+                    js_val(f)
+                  ),
+                  icon("trash")
+                )
+              )
+            )
+          })
+        )
+      })
+    )
+  })
+
+  observeEvent(input$activate_dataset, {
+    sel <- input$activate_dataset
+    req(sel)
+
+    path <- file.path(DATA_DIR, sel)
+    if (!file.exists(path)) {
+      showNotification("Dataset-i s’u gjet në /data.", type = "error", duration = 6)
+      return()
+    }
+
+    d <- tryCatch(
+      read_data_safe(path, sel),
+      error = function(e) {
+        showNotification(paste0("Gabim gjatë leximit: ", e$message), type = "error", duration = 8)
+        NULL
+      }
+    )
+    if (is.null(d)) return()
+
+    st <- set_active_dataset(sel)
+    active_dataset_file(st$active)
+
+    df_raw(d)
+    updateTextInput(session, "data_source", value = sel)
+
+    showNotification(paste0("Dataset aktiv u bë: ", sel), type = "message", duration = 4)
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$delete_dataset, {
+    sel <- input$delete_dataset
+    req(sel)
+
+    pending_delete_file(sel)
+
+    showModal(modalDialog(
+      title = "Fshirje dataset",
+      p(paste0("Je i sigurt që do ta fshish: ", sel, " ?")),
+      footer = tagList(
+        modalButton("Anulo"),
+        actionButton("confirm_delete_saved", "Po, fshije", class = "btn-danger")
+      ),
+      easyClose = TRUE
+    ))
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$confirm_delete_saved, {
+    removeModal()
+
+    sel <- pending_delete_file()
+    req(sel)
+
+    target <- file.path(DATA_DIR, sel)
+    if (!file.exists(target)) {
+      showNotification("File s’u gjet (ndoshta u fshi më parë).", type = "warning", duration = 5)
+      return()
+    }
+
+    ok <- file.remove(target)
+    if (!isTRUE(ok)) {
+      showNotification("S’u fshi dot file-i. Kontrollo lejet / nëse është i hapur diku.", type = "error", duration = 7)
+      return()
+    }
+
+    files <- list_saved_datasets()
+    saved_datasets(files)
+
+    st <- sync_state(files)
+    active_dataset_file(st$active)
+
+    if (!is.null(st$active) && nzchar(st$active) && st$active %in% files &&
+        file.exists(file.path(DATA_DIR, st$active))) {
+
+      d <- tryCatch(read_data_safe(file.path(DATA_DIR, st$active), st$active), error = function(e) NULL)
+      if (!is.null(d)) {
+        df_raw(d)
+        updateTextInput(session, "data_source", value = st$active)
+      }
+
+    } else if (length(files) == 0) {
+
+      if (!is.null(DATA_PATH) && file.exists(DATA_PATH)) {
+        df_raw(read_data_safe(DATA_PATH, basename(DATA_PATH)))
+        updateTextInput(session, "data_source", value = "")
+      } else {
+        df_raw(NULL)
+        updateTextInput(session, "data_source", value = "")
+        showNotification("S’ka dataset demo te data/ (DATA_PATH mungon).", type = "warning", duration = 6)
+      }
+
+    } else {
+
+      pick <- files[1]
+      st2  <- set_active_dataset(pick)
+      active_dataset_file(st2$active)
+
+      d <- tryCatch(read_data_safe(file.path(DATA_DIR, st2$active), st2$active), error = function(e) NULL)
+      if (!is.null(d)) {
+        df_raw(d)
+        updateTextInput(session, "data_source", value = st2$active)
+      }
+    }
+
+    showNotification("Dataset u fshi me sukses.", type = "message", duration = 4)
+  }, ignoreInit = TRUE)
+
+
+  # =========================================================
+  # 4) DATA SOURCE (demo + upload) + startup load from state
+  # =========================================================
+  df_raw <- reactiveVal(NULL)
   pending_data <- reactiveVal(NULL)
   pending_cfg  <- reactiveVal(NULL)
 
   observe({
-    if (is.null(df_raw())) {
+    if (!is.null(df_raw())) return()
+
+    files <- list_saved_datasets()
+    saved_datasets(files)
+
+    st <- tryCatch(sync_state(files), error = function(e) list(active = NULL))
+    act <- st$active %||% NULL
+
+    if (!is.null(act) && nzchar(act) && file.exists(file.path(DATA_DIR, act))) {
+      d <- tryCatch(read_data_safe(file.path(DATA_DIR, act), act), error = function(e) NULL)
+      if (!is.null(d)) {
+        df_raw(d)
+        active_dataset_file(act)
+        try(updateTextInput(session, "data_source", value = act), silent = TRUE)
+        return()
+      }
+    }
+
+    if (!is.null(DATA_PATH) && file.exists(DATA_PATH)) {
       df_raw(read_data_safe(DATA_PATH))
+    } else {
+      df_raw(NULL)
     }
   })
 
   df <- reactive(df_raw())
 
+  # =========================================================
+  # 5) UPDATE SELECTORS WHEN df() CHANGES
+  # =========================================================
   observeEvent(df(), {
     d <- df()
     if (is.null(d) || nrow(d) == 0) return()
@@ -657,19 +878,12 @@ server <- function(input, output, session) {
     nm <- names(d)
     if (length(nm) == 0) return()
 
-    cand <- tryCatch(detect_time_candidates(d), error = function(e) {
-      data.frame(col = nm, score = 0)
-    })
-
+    cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
     time_choices <- unique(cand$col)
     if (length(time_choices) == 0) time_choices <- nm
 
-    pick <- function(cur, choices, fallback) {
-      if (!is.null(cur) && length(cur) == 1 && cur %in% choices) cur else fallback
-    }
-
     tc_cur <- isolate(input$data_time_col)
-    tc_sel <- pick(tc_cur, time_choices, time_choices[1])
+    tc_sel <- pick_choice(tc_cur, time_choices, time_choices[1])
 
     updateSelectInput(session, "data_time_col", choices = time_choices, selected = tc_sel)
 
@@ -678,20 +892,17 @@ server <- function(input, output, session) {
       xn <- to_numeric_safe(x)
       mean(!is.na(xn)) >= 0.70
     }, logical(1))]
-
     if (length(num_cols) == 0) num_cols <- cols
 
     vc_cur <- isolate(input$data_value_cols)
     vc_sel <- vc_cur[vc_cur %in% num_cols]
-
-    if (length(vc_sel) == 0) {
-      vc_sel <- head(num_cols, min(3, length(num_cols)))
-    }
+    if (length(vc_sel) == 0) vc_sel <- head(num_cols, min(3, length(num_cols)))
 
     updateSelectizeInput(session, "data_value_cols",
-      choices = num_cols,
+      choices  = num_cols,
       selected = vc_sel,
-      server = TRUE)
+      server   = TRUE
+    )
 
     choices <- num_cols
     if (length(choices) == 0) choices <- cols
@@ -700,18 +911,18 @@ server <- function(input, output, session) {
     s1 <- choices[1]
     s2 <- if (length(choices) >= 2) choices[2] else choices[1]
 
-    updateSelectInput(session, "eda_series", choices = choices, selected = pick(isolate(input$eda_series), choices, s1))
-    updateSelectInput(session, "stat_series", choices = choices, selected = pick(isolate(input$stat_series), choices, s1))
-    updateSelectInput(session, "model_series", choices = choices, selected = pick(isolate(input$model_series), choices, s1))
-    updateSelectInput(session, "forecast_series", choices = choices, selected = pick(isolate(input$forecast_series), choices, s1))
-    updateSelectInput(session, "rel_x", choices = choices, selected = pick(isolate(input$rel_x), choices, s1))
-    updateSelectInput(session, "rel_y", choices = choices, selected = pick(isolate(input$rel_y), choices, s2))
+    updateSelectInput(session, "eda_series",      choices = choices, selected = pick_choice(isolate(input$eda_series), choices, s1))
+    updateSelectInput(session, "stat_series",     choices = choices, selected = pick_choice(isolate(input$stat_series), choices, s1))
+    updateSelectInput(session, "model_series",    choices = choices, selected = pick_choice(isolate(input$model_series), choices, s1))
+    updateSelectInput(session, "forecast_series", choices = choices, selected = pick_choice(isolate(input$forecast_series), choices, s1))
+    updateSelectInput(session, "rel_x",           choices = choices, selected = pick_choice(isolate(input$rel_x), choices, s1))
+    updateSelectInput(session, "rel_y",           choices = choices, selected = pick_choice(isolate(input$rel_y), choices, s2))
 
   }, ignoreInit = FALSE)
 
-  # =========================
-  # MODAL FLOW (sm -> fs)
-  # =========================
+  # =========================================================
+  # 6) MODAL FLOW (sm -> fs)
+  # =========================================================
   observeEvent(input$ajax_modal_open, {
     req(input$ajax_modal_open$modal)
 
@@ -720,19 +931,13 @@ server <- function(input, output, session) {
 
     if (modal == "sm") {
       output$modal_sm_title <- renderUI(tags$h5(class = "modal-title", title))
-
       output$modal_sm_body <- renderUI({
         tagList(
           tags$div(id = "csv_file_modal_pond_host"),
-          fileInput(
-            "csv_file_modal",
-            label = NULL,
-            accept = c(".csv")
-          ),
+          fileInput("csv_file_modal", label = NULL, accept = c(".csv")),
           tags$small("Hidh CSV këtu (drag & drop) ose Browse.")
         )
       })
-
       session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "show"))
     }
 
@@ -744,8 +949,7 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$csv_file_modal, {
-    req(input$csv_file_modal$datapath)
-    req(input$csv_file_modal$name)
+    req(input$csv_file_modal$datapath, input$csv_file_modal$name)
 
     ext <- tolower(tools::file_ext(input$csv_file_modal$name))
     if (ext != "csv") {
@@ -767,9 +971,7 @@ server <- function(input, output, session) {
 
     nm <- names(d)
 
-    cand <- tryCatch(detect_time_candidates(d), error = function(e) {
-      data.frame(col = nm, score = 0)
-    })
+    cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
     time_choices <- unique(cand$col)
     if (length(time_choices) == 0) time_choices <- nm
     time_default <- time_choices[1]
@@ -797,20 +999,16 @@ server <- function(input, output, session) {
     }
 
     showNotification("CSV u ngarkua. Tani kliko Proceed për konfigurim.", type = "message", duration = 5)
-
   }, ignoreInit = TRUE)
 
   observeEvent(input$btn_cancel_upload, {
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "hide"))
-    pending_cfg(NULL)
-    pending_data(NULL)
-    uploaded_tmp_path(NULL)
-    uploaded_tmp_name(NULL)
-  })
+    pending_cfg(NULL); pending_data(NULL)
+    uploaded_tmp_path(NULL); uploaded_tmp_name(NULL)
+  }, ignoreInit = TRUE)
 
   observeEvent(input$btn_proceed_upload, {
-    req(pending_data())
-    req(pending_cfg())
+    req(pending_data(), pending_cfg())
 
     d   <- pending_data()
     cfg <- pending_cfg()
@@ -862,48 +1060,43 @@ server <- function(input, output, session) {
   }, ignoreInit = TRUE)
 
   observeEvent(input$btn_save_config, {
-    req(input$modal_time_col)
-    req(input$modal_value_cols)
+    req(input$modal_time_col, input$modal_value_cols, pending_data())
 
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "hide"))
 
-    d <- pending_data()
+    d  <- pending_data()
     nm <- names(d)
 
-    updateSelectInput(session, "data_time_col",
-      choices = nm,
-      selected = input$modal_time_col)
-
+    tc   <- isolate(input$modal_time_col)
     vals <- isolate(input$modal_value_cols)
-      tc   <- isolate(input$modal_time_col)
-      vals <- setdiff(vals, tc)
+    vals <- setdiff(vals, tc)
 
-      if (length(vals) == 0) vals <- num_cols
+    cols <- setdiff(nm, tc)
+    num_cols <- cols[vapply(d[cols], function(x) {
+      xn <- to_numeric_safe(x)
+      mean(!is.na(xn)) >= 0.70
+    }, logical(1))]
+    if (length(num_cols) == 0) num_cols <- cols
+    if (length(vals) == 0) vals <- head(num_cols, min(3, length(num_cols)))
 
-
+    updateSelectInput(session, "data_time_col", choices = nm, selected = tc)
     updateSelectizeInput(session, "data_value_cols",
-      choices = setdiff(nm, input$modal_time_col),
-      selected = input$modal_value_cols,
-      server = TRUE)
+      choices  = num_cols,
+      selected = vals,
+      server   = TRUE
+    )
 
+    dup_sel  <- isolate(input$data_dup)  %||% "mean"
+    freq_sel <- isolate(input$data_freq) %||% "auto"
 
-    dup_sel  <- isolate(input$data_dup)
-      freq_sel <- isolate(input$data_freq)
-
-      if (is.null(dup_sel)  || dup_sel  == "") dup_sel  <- "mean"
-      if (is.null(freq_sel) || freq_sel == "") freq_sel <- "auto"
-
-      updateSelectInput(session, "data_dup",
-        choices  = c("mean", "sum", "first", "last"),
-        selected = dup_sel
-      )
-
-      updateSelectInput(session, "data_freq",
-        choices  = c("auto", "yearly", "quarterly", "monthly", "weekly", "daily"),
-        selected = freq_sel
-      )
-
-    showNotification("Konfigurimi i dataset-it u ruajt me sukses.", type = "message", duration = 5)
+    updateSelectInput(session, "data_dup",
+      choices  = c("mean", "sum", "first", "last"),
+      selected = dup_sel
+    )
+    updateSelectInput(session, "data_freq",
+      choices  = c("auto", "yearly", "quarterly", "monthly", "weekly", "daily"),
+      selected = freq_sel
+    )
 
     up_path <- uploaded_tmp_path()
     up_name <- uploaded_tmp_name()
@@ -923,30 +1116,36 @@ server <- function(input, output, session) {
       ok <- file.copy(up_path, target, overwrite = FALSE)
 
       if (isTRUE(ok)) {
-        saved_datasets(list_saved_datasets())
-        active_dataset_file(safe)
+        files <- list_saved_datasets()
+        saved_datasets(files)
 
-        try(updateSelectInput(session, "saved_dataset_select", choices = saved_datasets(), selected = safe), silent = TRUE)
+        st <- set_active_dataset(safe)
+        active_dataset_file(st$active)
+
+        try(updateRadioButtons(session, "saved_dataset_radio", choices = files, selected = st$active), silent = TRUE)
 
         showNotification(paste0("Dataset u ruajt te data/", safe), type="message", duration=6)
       } else {
         showNotification("S’u arrit me ruajt datasetin te /data (permissions).", type="error", duration=8)
       }
-
-      df_raw(d)
-
-      pending_cfg(NULL)
-      pending_data(NULL)
-      uploaded_tmp_path(NULL)
-      uploaded_tmp_name(NULL)
     }
-  })
+
+    df_raw(d)
+
+    pending_cfg(NULL); pending_data(NULL)
+    uploaded_tmp_path(NULL); uploaded_tmp_name(NULL)
+
+    showNotification("Konfigurimi i dataset-it u ruajt me sukses.", type = "message", duration = 5)
+  }, ignoreInit = TRUE)
 
   observeEvent(input$btn_cancel_config, {
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "hide"))
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "show"))
-  })
+  }, ignoreInit = TRUE)
 
+  # =========================================================
+  # 7) when time col changes manually -> recompute numeric cols
+  # =========================================================
   observeEvent(input$data_time_col, {
     d <- df()
     if (is.null(d) || nrow(d) == 0) return()
@@ -961,14 +1160,17 @@ server <- function(input, output, session) {
       xn <- to_numeric_safe(x)
       mean(!is.na(xn)) >= 0.70
     }, logical(1))]
-
     if (length(num_cols) == 0) num_cols <- cols
 
     vc_cur <- isolate(input$data_value_cols)
     vc_sel <- vc_cur[vc_cur %in% num_cols]
     if (length(vc_sel) == 0) vc_sel <- head(num_cols, min(3, length(num_cols)))
 
-    updateSelectizeInput(session, "data_value_cols", choices = num_cols, selected = vc_sel, server = TRUE)
+    updateSelectizeInput(session, "data_value_cols",
+      choices  = num_cols,
+      selected = vc_sel,
+      server   = TRUE
+    )
 
     choices <- num_cols
     if (length(choices) == 0) return()
@@ -976,84 +1178,17 @@ server <- function(input, output, session) {
     s1 <- choices[1]
     s2 <- if (length(choices) >= 2) choices[2] else choices[1]
 
-    updateSelectInput(session, "eda_series",      choices = choices, selected = pick(isolate(input$eda_series), choices, s1))
-    updateSelectInput(session, "stat_series",     choices = choices, selected = pick(isolate(input$stat_series), choices, s1))
-    updateSelectInput(session, "model_series",    choices = choices, selected = pick(isolate(input$model_series), choices, s1))
-    updateSelectInput(session, "forecast_series", choices = choices, selected = pick(isolate(input$forecast_series), choices, s1))
-    updateSelectInput(session, "rel_x",           choices = choices, selected = pick(isolate(input$rel_x), choices, s1))
-    updateSelectInput(session, "rel_y",           choices = choices, selected = pick(isolate(input$rel_y), choices, s2))
-  })
+    updateSelectInput(session, "eda_series",      choices = choices, selected = pick_choice(isolate(input$eda_series), choices, s1))
+    updateSelectInput(session, "stat_series",     choices = choices, selected = pick_choice(isolate(input$stat_series), choices, s1))
+    updateSelectInput(session, "model_series",    choices = choices, selected = pick_choice(isolate(input$model_series), choices, s1))
+    updateSelectInput(session, "forecast_series", choices = choices, selected = pick_choice(isolate(input$forecast_series), choices, s1))
+    updateSelectInput(session, "rel_x",           choices = choices, selected = pick_choice(isolate(input$rel_x), choices, s1))
+    updateSelectInput(session, "rel_y",           choices = choices, selected = pick_choice(isolate(input$rel_y), choices, s2))
+  }, ignoreInit = TRUE)
 
-    list_saved_datasets <- function() {
-      sort(list.files(
-        DATA_DIR,
-        pattern = "\\.(csv|tsv|xlsx|xls)$",
-        ignore.case = TRUE,
-        full.names = FALSE
-      ))
-    }
-
-    saved_datasets      <- reactiveVal(list_saved_datasets())
-    active_dataset_file <- reactiveVal(NULL)
-
-    output$saved_datasets_ui <- renderUI({
-      files <- saved_datasets()
-
-      if (length(files) == 0) {
-        return(tags$small("S’ka dataset të ruajtur te folderi data.", style="opacity:.75;"))
-      }
-
-      sel <- isolate(input$saved_dataset_select)
-      if (is.null(sel) || !nzchar(sel) || !(sel %in% files)) {
-        sel <- active_dataset_file() %||% files[1]
-        if (!(sel %in% files)) sel <- files[1]
-      }
-
-      tagList(
-        div(class="section-box",
-          h4("Datasetet e ruajtura"),
-          selectInput("saved_dataset_select", label = NULL, choices = files, selected = sel),
-          div(style="display:flex; gap:10px; align-items:center; margin-top:10px;",
-            actionButton("btn_activate_saved", "Aktivo", class="glass-btn"),
-            actionButton("btn_refresh_saved", "Rifresko", class="btn btn-light btn-sm")
-          ),
-          tags$small(
-            paste0("Aktiv: ", active_dataset_file() %||% "(asnjë)"),
-            style="opacity:.75;display:block;margin-top:10px;"
-          )
-        )
-      )
-    })
-
-  observeEvent(input$btn_refresh_saved, {
-    saved_datasets(list_saved_datasets())
-  })
-
-  observeEvent(input$btn_activate_saved, {
-    req(input$saved_dataset_select)
-
-    path <- file.path(DATA_DIR, input$saved_dataset_select)
-    if (!file.exists(path)) {
-      showNotification("Dataset-i s’u gjet në /data.", type="error", duration=6)
-      return()
-    }
-
-    d <- tryCatch(
-      read_data_safe(path, input$saved_dataset_select),
-      error = function(e) {
-        showNotification(paste0("Gabim gjatë leximit: ", e$message), type="error", duration=8)
-        NULL
-      }
-    )
-    if (is.null(d)) return()
-
-    df_raw(d)
-    updateTextInput(session, "data_source", value = input$saved_dataset_select)
-    active_dataset_file(input$saved_dataset_select)
-
-    showNotification(paste0("Dataset aktiv: ", input$saved_dataset_select), type="message", duration=4)
-  })
-
+  # =========================================================
+  # 8) rest of app
+  # =========================================================
   server_plots(input, output, session, df)
 }
 
