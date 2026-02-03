@@ -121,7 +121,6 @@
             jQuery(document).on("click", selectors, function () {
                 const sel = "#" + this.id;
 
-                // Settings button (tags$button) -> dërgo event në Shiny
                 if (this.id === "go_settings" && window.Shiny) {
                     Shiny.setInputValue("go_settings_click", Date.now(), { priority: "event" });
                 }

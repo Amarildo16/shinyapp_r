@@ -67,6 +67,178 @@ server_plots <- function(input, output, session, df) {
     d
   })
 
+  # =========================================================
+  # Slider DINAMIK: roll_k (EDA) + model_h + h (Forecast)
+  # =========================================================
+
+
+  .h_step <- function(Time) {
+    tt <- Time[!is.na(Time)]
+    if (length(tt) < 2) return("period")
+
+    info <- tryCatch(infer_step_from_time(tt), error = function(e) NULL)
+    if (!is.null(info) && identical(info$type, "date")) {
+      return(info$step)
+    }
+
+    if (is.numeric(tt) && all(tt >= 1500 & tt <= 3000, na.rm = TRUE)) return("year")
+
+    "period"
+  }
+
+  .h_unit <- function(Time) {
+    step <- .h_step(Time)
+    switch(step,
+      year    = "vite",
+      quarter = "tremujor",
+      month   = "muaj",
+      week    = "javë",
+      day     = "ditë",
+      "periudha"
+    )
+  }
+
+  .h_cap_by_step <- function(step) {
+    switch(step,
+      day     = 90L,
+      week    = 26L,
+      month   = 24L,
+      quarter = 12L,
+      year    = 10L,
+      120L
+    )
+  }
+
+  .h_bounds <- function(n_real, Time) {
+    n_real <- as.integer(n_real)
+    if (is.na(n_real) || n_real < 2L) return(list(min = 1L, max = 1L, step = "period"))
+
+    step <- .h_step(Time)
+    cap  <- .h_cap_by_step(step)
+
+    hmax <- min(as.integer(n_real - 1L), cap)
+    hmax <- max(1L, hmax)
+
+    hmin <- if (hmax <= 8L) 2L else 1L
+    hmin <- min(hmin, hmax)
+
+    list(min = hmin, max = hmax, step = step)
+  }
+
+  .roll_cap_by_step <- function(step) {
+    switch(step,
+      day     = 30L,
+      week    = 12L,
+      month   = 12L,
+      quarter = 8L,
+      year    = 5L,
+      60L
+    )
+  }
+
+  # -------- roll_k dinamik (EDA) --------
+  observeEvent(list(df_dyn(), input$eda_series), {
+    req(df_dyn(), input$eda_series)
+
+    d0 <- df_dyn()
+    if (is.null(d0) || nrow(d0) == 0) return()
+    if (!(input$eda_series %in% names(d0))) return()
+
+    y <- d0[[input$eda_series]]
+    n_non_na <- sum(!is.na(y))
+
+    step <- .h_step(d0$Time)
+    unit <- .h_unit(d0$Time)
+
+    k_min <- 3L
+
+    capk <- .roll_cap_by_step(step)
+    k_max_raw <- if (is.finite(n_non_na) && n_non_na >= 2L) as.integer(n_non_na - 1L) else k_min
+
+    k_max <- min(k_max_raw, capk, max(k_min, as.integer(floor(n_non_na / 2))))
+    k_max <- max(k_min, k_max)
+
+    cur <- isolate(input$roll_k)
+    if (is.null(cur) || is.na(cur)) cur <- min(5L, k_max)
+    cur <- as.integer(cur)
+    val <- max(k_min, min(cur, k_max))
+
+    updateSliderInput(
+      session,
+      "roll_k",
+      label = paste0("Dritarja lëvizëse (", unit, ")"),
+      min = k_min,
+      max = k_max,
+      value = val,
+      step = 1
+    )
+
+    if (n_non_na < 3) shinyjs::disable("roll_k") else shinyjs::enable("roll_k")
+  }, ignoreInit = FALSE)
+
+
+  # -------- model_h dinamik (Modelimi) --------
+  observeEvent(list(df_dyn(), input$model_series, input$data_freq), {
+    d0 <- df_dyn()
+    if (is.null(d0) || nrow(d0) == 0) return()
+
+    ser <- input$model_series %||% NULL
+    if (is.null(ser) || !nzchar(ser) || !(ser %in% names(d0))) return()
+
+    y <- d0[[ser]]
+    n_real <- sum(!is.na(y))
+
+    b <- .h_bounds(n_real, d0$Time)
+    unit <- .h_unit(d0$Time)
+
+    cur <- isolate(input$model_h)
+    if (is.null(cur) || is.na(cur)) cur <- min(5L, b$max)
+    val <- max(b$min, min(as.integer(cur), b$max))
+
+    updateSliderInput(
+      session, "model_h",
+      label = paste0("Horizonti i parashikimit (", unit, ")"),
+      min = b$min,
+      max = b$max,
+      value = val,
+      step = 1
+    )
+
+    if (n_real < 2L) shinyjs::disable("model_h") else shinyjs::enable("model_h")
+  }, ignoreInit = FALSE)
+
+
+  # -------- h dinamik (Parashikimi) --------
+  observeEvent(list(df_dyn(), input$forecast_series, input$data_freq), {
+    d0 <- df_dyn()
+    if (is.null(d0) || nrow(d0) == 0) return()
+
+    ser <- input$forecast_series %||% NULL
+    if (is.null(ser) || !nzchar(ser) || !(ser %in% names(d0))) return()
+
+    y <- d0[[ser]]
+    n_real <- sum(!is.na(y))
+
+    b <- .h_bounds(n_real, d0$Time)
+    unit <- .h_unit(d0$Time)
+
+    cur <- isolate(input$h)
+    if (is.null(cur) || is.na(cur)) cur <- min(5L, b$max)
+    val <- max(b$min, min(as.integer(cur), b$max))
+
+    updateSliderInput(
+      session, "h",
+      label = paste0("Horizonti i parashikimit (", unit, ")"),
+      min = b$min,
+      max = b$max,
+      value = val,
+      step = 1
+    )
+
+    if (n_real < 2L) shinyjs::disable("h") else shinyjs::enable("h")
+  }, ignoreInit = FALSE)
+
+
   time_range_txt <- reactive({
     req(df_dyn())
     tt <- df_dyn()$Time
@@ -601,8 +773,17 @@ server_plots <- function(input, output, session, df) {
   output$stat_diff_plot <- renderPlotly({
     req(df_dyn(), input$stat_series)
 
-    m  <- var_meta(input$stat_series, meta())
     d0 <- df_dyn()
+    req("Time" %in% names(d0))
+
+    validate(
+      need(!is.null(input$stat_series) && nzchar(input$stat_series),
+          "Zgjidh një seri për analizën e stacionaritetit."),
+      need(input$stat_series %in% names(d0),
+          paste0("Kolona '", input$stat_series, "' nuk ekziston në dataset. Ndrysho serinë te dropdown-i."))
+    )
+
+    m    <- var_meta(input$stat_series, meta())
     xlab <- time_axis_label(d0$Time)
 
     dd <- d0 %>%
@@ -672,8 +853,17 @@ server_plots <- function(input, output, session, df) {
   output$stat_acf_pacf <- renderPlotly({
     req(df_dyn(), input$stat_series)
 
-    m  <- var_meta(input$stat_series, meta())
     d0 <- df_dyn()
+    req("Time" %in% names(d0))
+
+    validate(
+      need(!is.null(input$stat_series) && nzchar(input$stat_series),
+          "Zgjidh një seri për ACF/PACF."),
+      need(input$stat_series %in% names(d0),
+          paste0("Kolona '", input$stat_series, "' nuk ekziston në dataset. Ndrysho serinë te dropdown-i."))
+    )
+
+    m <- var_meta(input$stat_series, meta())
 
     dd <- d0 %>%
       dplyr::select(Time, y = dplyr::all_of(input$stat_series)) %>%
@@ -759,6 +949,15 @@ server_plots <- function(input, output, session, df) {
   output$stat_adf_tbl <- renderTable({
     req(df_dyn(), input$stat_series)
 
+    d0 <- df_dyn()
+
+    validate(
+      need(!is.null(input$stat_series) && nzchar(input$stat_series),
+          "Zgjidh një seri për ADF."),
+      need(input$stat_series %in% names(d0),
+          paste0("Kolona '", input$stat_series, "' nuk ekziston në dataset. Ndrysho serinë te dropdown-i."))
+    )
+
     if (!requireNamespace("tseries", quietly = TRUE)) {
       return(data.frame(
         Serie = c("Original (niveli)", "First difference (Δ)"),
@@ -769,8 +968,7 @@ server_plots <- function(input, output, session, df) {
       ))
     }
 
-    d0 <- df_dyn()
-    y  <- as.numeric(d0[[input$stat_series]])
+    y  <- suppressWarnings(as.numeric(d0[[input$stat_series]]))
     y  <- y[!is.na(y)]
 
     if (length(y) < 20) {
@@ -822,6 +1020,15 @@ server_plots <- function(input, output, session, df) {
   output$stat_adf_note <- renderUI({
     req(df_dyn(), input$stat_series)
 
+    d0 <- df_dyn()
+
+    validate(
+      need(!is.null(input$stat_series) && nzchar(input$stat_series),
+          "Zgjidh një seri për interpretimin ADF."),
+      need(input$stat_series %in% names(d0),
+          paste0("Kolona '", input$stat_series, "' nuk ekziston në dataset. Ndrysho serinë te dropdown-i."))
+    )
+
     if (!requireNamespace("tseries", quietly = TRUE)) {
       return(HTML(
         "<p style='margin-top:10px; font-size: 13px; line-height: 1.45;'>
@@ -832,9 +1039,8 @@ server_plots <- function(input, output, session, df) {
     }
 
     m <- var_meta(input$stat_series, meta())
-    d0 <- df_dyn()
 
-    y <- as.numeric(d0[[input$stat_series]])
+    y <- suppressWarnings(as.numeric(d0[[input$stat_series]]))
     y <- y[!is.na(y)]
 
     alpha <- 0.05
@@ -892,15 +1098,20 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================
-  # Modelimi – ETS & ARIMA
+  # Modelimi – ETS & ARIMA (FAST: cache fit, forecast only on h)
   # =========================
 
-  output$model_plot <- renderPlotly({
-    req(df_dyn(), input$model_series, input$model_h)
+  # debounce per slider (mos rifill sa here e leviz)
+  model_h_db <- shiny::debounce(reactive({input$model_h}), millis = 350)
 
-    m  <- var_meta(input$model_series, meta())
+  # cache per fit-et (qe mos i rifitosh kot)
+  .model_cache_key <- reactiveVal(NULL)
+  .model_cache_val <- reactiveVal(NULL)
+
+  .model_fits <- reactive({
+    req(df_dyn(), input$model_series)
+
     d0 <- df_dyn()
-    xlab <- time_axis_label(d0$Time)
 
     dd <- d0 %>%
       dplyr::select(Time, y = dplyr::all_of(input$model_series)) %>%
@@ -909,53 +1120,99 @@ server_plots <- function(input, output, session, df) {
 
     n <- nrow(dd)
     if (n < 20) {
-      showNotification("Për ETS/ARIMA rekomandohen ≥ 20 pika reale (jo-NA).", type = "warning")
-      return(NULL)
-    }
-
-    h <- as.integer(input$model_h)
-    if (is.na(h) || h < 1) h <- 1
-    if (h > floor(n/2)) {
-      showNotification("Kujdes: h është i madh krahasuar me të dhënat (h > n/2).", type = "message")
+      return(list(ok = FALSE, msg = "Për ETS/ARIMA rekomandohen ≥ 20 pika reale (jo-NA)."))
     }
 
     y_raw <- as.numeric(dd$y)
 
     spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
     y_ts <- stats::ts(y_raw, frequency = spec$freq, start = spec$start)
-
     y_mod <- if (anyNA(y_ts)) forecast::na.interp(y_ts) else y_ts
 
-    fast_arima <- length(y_mod) > 5000
-    arima_stepwise <- if (fast_arima) TRUE else FALSE
-    arima_approx   <- if (fast_arima) TRUE else FALSE
-
-    fit_ets <- try(forecast::ets(y_mod), silent = TRUE)
-
-    seasonal_flag <- stats::frequency(y_mod) %in% c(4, 12)
-    fit_arima <- try(
-      forecast::auto.arima(
-        y_mod,
-        seasonal = seasonal_flag,
-        stepwise = arima_stepwise,
-        approximation = arima_approx
-      ),
-      silent = TRUE
+    # key i thjeshte per cache (mjafton praktikisht)
+    key <- paste0(
+      input$model_series, "|", (input$data_freq %||% "auto"), "|",
+      n, "|", fmt_time(tail(dd$Time, 1)), "|",
+      sprintf("%.6f", sum(y_raw, na.rm = TRUE)), "|",
+      sprintf("%.6f", stats::sd(y_raw, na.rm = TRUE))
     )
 
-    if (inherits(fit_ets, "try-error") || inherits(fit_arima, "try-error")) {
-      showNotification("Modelimi dështoi për ETS ose ARIMA (kontrollo të dhënat / NA / seri konstante).", type="error")
-      return(NULL)
+    if (identical(.model_cache_key(), key)) {
+      return(.model_cache_val())
     }
 
-    fc_ets   <- forecast::forecast(fit_ets,   h = h)
-    fc_arima <- forecast::forecast(fit_arima, h = h)
+    out <- shiny::withProgress(message = "Duke ndërtu ETS & ARIMA...", value = 0, {
+      shiny::incProgress(0.2)
 
-    future_time <- make_future_time(dd$Time, h)
+      fit_ets <- try(forecast::ets(y_mod), silent = TRUE)
+      shiny::incProgress(0.55)
+
+      fq <- stats::frequency(y_mod)
+
+      # sezonalitet praktik: 4/12/52
+      seasonal_flag <- fq %in% c(4, 12, 52)
+
+      # approximation per seri me te gjata ose freq te madhe
+      fastish <- length(y_mod) > 800 || fq > 12
+
+      fit_arima <- try(
+        forecast::auto.arima(
+          y_mod,
+          seasonal = seasonal_flag,
+          stepwise = TRUE,
+          approximation = if (fastish) TRUE else FALSE
+        ),
+        silent = TRUE
+      )
+
+      shiny::incProgress(0.95)
+
+      if (inherits(fit_ets, "try-error") || inherits(fit_arima, "try-error")) {
+        return(list(ok = FALSE, msg = "Modelimi dështoi për ETS ose ARIMA (kontrollo NA / seri konstante / freq)."))
+      }
+
+      list(
+        ok = TRUE,
+        dd = dd,
+        y_raw = y_raw,
+        fit_ets = fit_ets,
+        fit_arima = fit_arima,
+        xlab = time_axis_label(d0$Time),
+        m = var_meta(input$model_series, meta())
+      )
+    })
+
+    .model_cache_key(key)
+    .model_cache_val(out)
+    out
+  })
+
+  output$model_plot <- renderPlotly({
+    req(df_dyn(), input$model_series)
+
+    x <- .model_fits()
+    validate(need(!is.null(x) && isTRUE(x$ok), x$msg %||% "Modelimi s’u krijua."))
+
+    # h i debounced (me shume smooth)
+    h0 <- model_h_db()
+    if (is.null(h0)) h0 <- input$model_h
+    h <- as.integer(h0)
+    if (is.na(h) || h < 1) h <- 1
+
+    n <- nrow(x$dd)
+    if (h > floor(n/2)) {
+      showNotification("Kujdes: h është i madh krahasuar me të dhënat (h > n/2).", type = "message")
+    }
+
+    # KETU eshte fit i cache, bejme vetem forecast (shpejt)
+    fc_ets   <- forecast::forecast(x$fit_ets,   h = h)
+    fc_arima <- forecast::forecast(x$fit_arima, h = h)
+
+    future_time <- make_future_time(x$dd$Time, h)
 
     obs_df <- data.frame(
-      Time  = dd$Time,
-      Vlera = y_raw,
+      Time  = x$dd$Time,
+      Vlera = x$y_raw,
       Tipi  = "Vëzhguar",
       stringsAsFactors = FALSE
     )
@@ -977,7 +1234,7 @@ server_plots <- function(input, output, session, df) {
     plot_df <- rbind(obs_df, ets_df, arima_df) %>%
       dplyr::mutate(
         hover = paste0(
-          xlab, ": ", fmt_time(Time),
+          x$xlab, ": ", fmt_time(Time),
           "<br>", Tipi, ": ", fmt_unit(Vlera, input$model_series, meta())
         )
       )
@@ -990,11 +1247,11 @@ server_plots <- function(input, output, session, df) {
         "ARIMA"    = "#ff3b30"
       )) +
       labs(
-        title = paste0("Krahasimi i parashikimeve – ", m$label),
-        x = xlab,
-        y = if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")") else m$label
+        title = paste0("Krahasimi i parashikimeve – ", x$m$label),
+        x = x$xlab,
+        y = if (nzchar(x$m$unit)) paste0(x$m$label, " (", x$m$unit, ")") else x$m$label
       ) +
-      scale_y_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
+      scale_y_continuous(labels = function(z) fmt_by_series(z, for_axis = TRUE)) +
       theme_minimal(base_size = 13) +
       theme(
         plot.background   = element_rect(fill = "transparent", color = NA),
@@ -1035,16 +1292,8 @@ server_plots <- function(input, output, session, df) {
   output$model_acc_tbl <- renderTable({
     req(df_dyn(), input$model_series)
 
-    m  <- var_meta(input$model_series, meta())
-    d0 <- df_dyn()
-
-    dd <- d0 %>%
-      dplyr::select(Time, y = dplyr::all_of(input$model_series)) %>%
-      dplyr::arrange(Time) %>%
-      dplyr::filter(!is.na(y))
-
-    n <- nrow(dd)
-    if (n < 20) {
+    x <- .model_fits()
+    if (is.null(x) || !isTRUE(x$ok)) {
       return(data.frame(
         Modeli = c("ETS", "ARIMA"),
         RMSE = NA_character_,
@@ -1054,39 +1303,10 @@ server_plots <- function(input, output, session, df) {
       ))
     }
 
-    y_raw <- as.numeric(dd$y)
+    m <- x$m
 
-    spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
-    y_ts <- stats::ts(y_raw, frequency = spec$freq, start = spec$start)
-    y_mod <- if (anyNA(y_ts)) forecast::na.interp(y_ts) else y_ts
-
-    fit_ets <- try(forecast::ets(y_mod), silent = TRUE)
-
-    seasonal_flag <- stats::frequency(y_mod) %in% c(4, 12)
-    fast_arima <- length(y_mod) > 5000
-
-    fit_arima <- try(
-      forecast::auto.arima(
-        y_mod,
-        seasonal = seasonal_flag,
-        stepwise = if (fast_arima) TRUE else FALSE,
-        approximation = if (fast_arima) TRUE else FALSE
-      ),
-      silent = TRUE
-    )
-
-    if (inherits(fit_ets, "try-error") || inherits(fit_arima, "try-error")) {
-      return(data.frame(
-        Modeli = c("ETS", "ARIMA"),
-        RMSE = NA_character_,
-        MAE  = NA_character_,
-        MAPE = NA_character_,
-        check.names = FALSE
-      ))
-    }
-
-    acc_ets   <- forecast::accuracy(fit_ets)
-    acc_arima <- forecast::accuracy(fit_arima)
+    acc_ets   <- forecast::accuracy(x$fit_ets)
+    acc_arima <- forecast::accuracy(x$fit_arima)
 
     get_metric <- function(acc, metric) {
       val <- if ("Training set" %in% rownames(acc)) acc["Training set", metric] else acc[1, metric]
@@ -1112,7 +1332,7 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================================================
-  # Parashikimi – Objekte reaktive
+  # Parashikimi – Objekte reaktive (FAST)
   # =========================================================
 
   series_dat <- reactive({
@@ -1137,7 +1357,6 @@ server_plots <- function(input, output, session, df) {
         dplyr::arrange(Time)
 
       dd$y[is.nan(dd$y)] <- NA_real_
-
       showNotification("U gjetën duplikate në kohë; u agreguan me mesatare (mean).", type = "message")
     }
 
@@ -1161,66 +1380,115 @@ server_plots <- function(input, output, session, df) {
     spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
     yts  <- stats::ts(as.numeric(dd$y), frequency = spec$freq, start = spec$start)
 
-    if (anyNA(yts)) {
-      yts <- forecast::na.interp(yts)
-    }
-
+    if (anyNA(yts)) yts <- forecast::na.interp(yts)
     yts
   })
 
-  fitted_model <- reactive({
-    req(series_ts(), series_dat(), input$method, input$h)
+  # debounce per slider h (mos e rifill sa here e leviz)
+  h_db <- shiny::debounce(reactive({input$h}), millis = 350)
+
+  # cache per ARIMA fit
+  .arima_cache_key <- reactiveVal(NULL)
+  .arima_cache_val <- reactiveVal(NULL)
+
+  arima_fit <- reactive({
+    req(series_ts(), series_dat())
+
+    # vetem kur metoda eshte ARIMA
+    if ((input$method %||% "") != "arima") return(NULL)
 
     y  <- series_ts()
     dd <- series_dat()
 
     n_real <- sum(!is.na(dd$y))
-    n <- length(y)
+    if (n_real < 30) {
+      return(list(ok = FALSE, msg = "Për ARIMA rekomandohen ≥ 30 pika reale. Zgjidh SES/Holt ose shto të dhëna."))
+    }
 
-    h <- as.integer(input$h)
+    fq <- stats::frequency(y)
+
+    # key i thjeshte per cache
+    key <- paste0(
+      "n=", length(y),
+      "|fq=", fq,
+      "|last=", fmt_time(tail(dd$Time, 1)),
+      "|sum=", sprintf("%.6f", sum(as.numeric(dd$y), na.rm = TRUE)),
+      "|sd=",  sprintf("%.6f", stats::sd(as.numeric(dd$y), na.rm = TRUE)),
+      "|freqopt=", (input$data_freq %||% "auto")
+    )
+
+    if (identical(.arima_cache_key(), key)) {
+      return(.arima_cache_val())
+    }
+
+    out <- shiny::withProgress(message = "Duke ndërtu ARIMA...", value = 0, {
+      shiny::incProgress(0.2)
+
+      # sezonalitet praktik
+      seasonal_flag <- fq %in% c(4, 12, 52)
+
+      # approximation kur eshte e rende
+      fastish <- length(y) > 800 || fq > 12
+
+      fit <- try(
+        forecast::auto.arima(
+          y,
+          seasonal = seasonal_flag,
+          stepwise = TRUE,                            # zakonisht me shpejt
+          approximation = if (fastish) TRUE else FALSE
+        ),
+        silent = TRUE
+      )
+
+      shiny::incProgress(0.95)
+
+      if (inherits(fit, "try-error")) {
+        return(list(ok = FALSE, msg = "ARIMA dështoi (kontrollo të dhënat / missing / seri konstante / freq)."))
+      }
+
+      list(ok = TRUE, fit = fit)
+    })
+
+    .arima_cache_key(key)
+    .arima_cache_val(out)
+    out
+  })
+
+  forecast_obj <- reactive({
+    req(series_ts(), series_dat(), input$method)
+
+    y  <- series_ts()
+    dd <- series_dat()
+
+    # h i debounced
+    h0 <- h_db()
+    if (is.null(h0)) h0 <- input$h
+    h <- as.integer(h0)
     if (is.na(h) || h < 1) h <- 1
 
+    n_real <- sum(!is.na(dd$y))
     if (h > floor(n_real / 2)) {
       showNotification("Kujdes: h është i madh krahasuar me të dhënat (h > n/2).", type = "message")
     }
 
-    if (input$method %in% c("ses", "holt") && n_real < 2) {
-      showNotification("SES/Holt kërkojnë ≥ 2 pika reale.", type = "warning")
-      return(NULL)
-    }
-
+    # validim metode
     if (!(input$method %in% c("ses", "holt", "arima"))) {
       showNotification("Metodë e panjohur. Lejohen: ses, holt, arima.", type = "error")
       return(NULL)
     }
 
-    if (input$method == "ses")  return(forecast::ses(y, h = h))
+    # SES / Holt jane te lehta
+    if (input$method == "ses")  return(forecast::ses(y,  h = h))
     if (input$method == "holt") return(forecast::holt(y, h = h))
 
-    if (n_real < 30) {
-      showNotification("Për ARIMA rekomandohen ≥ 30 pika reale. Zgjidh SES/Holt ose shto të dhëna.", type = "warning")
+    # ARIMA: fit 1 here, forecast shpejt sa her ndryshon h
+    af <- arima_fit()
+    if (is.null(af) || !isTRUE(af$ok)) {
+      showNotification(af$msg %||% "ARIMA s’u krijua.", type="error")
       return(NULL)
     }
 
-    fast_arima <- n > 5000
-    seasonal_flag <- stats::frequency(y) %in% c(4, 12)
-
-    fit <- try(
-      forecast::auto.arima(
-        y,
-        seasonal = seasonal_flag,
-        stepwise = if (fast_arima) TRUE else FALSE,
-        approximation = if (fast_arima) TRUE else FALSE
-      ),
-      silent = TRUE
-    )
-
-    if (inherits(fit, "try-error")) {
-      showNotification("ARIMA dështoi (kontrollo të dhënat / missing / seri konstante).", type = "error")
-      return(NULL)
-    }
-
-    forecast::forecast(fit, h = h)
+    forecast::forecast(af$fit, h = h)
   })
 
   # =========================================================
@@ -1228,12 +1496,13 @@ server_plots <- function(input, output, session, df) {
   # =========================================================
 
   output$forecast_plot <- renderPlotly({
-    req(series_dat(), fitted_model(), input$forecast_series, input$h, input$method)
+    req(series_dat(), input$forecast_series, input$method)
+
+    dd <- series_dat()
+    fc <- forecast_obj()
+    validate(need(!is.null(fc), "Nuk u krijua parashikimi (kontrollo kushtet / të dhënat)."))
 
     m  <- var_meta(input$forecast_series, meta())
-    dd <- series_dat()
-    fc <- fitted_model()
-
     xlab <- time_axis_label(dd$Time)
 
     obs_df <- data.frame(
@@ -1242,13 +1511,13 @@ server_plots <- function(input, output, session, df) {
       stringsAsFactors = FALSE
     )
 
-    h <- as.integer(input$h)
+    # perdor te njejtin h si forecast_obj (debounced)
+    h0 <- h_db()
+    if (is.null(h0)) h0 <- input$h
+    h <- as.integer(h0)
     if (is.na(h) || h < 1) h <- 1
 
-    fut_time <- tryCatch(
-      make_future_time(obs_df$Time, h, freq = input$data_freq %||% "auto"),
-      error = function(e) make_future_time(obs_df$Time, h)
-    )
+    fut_time <- make_future_time(obs_df$Time, h)
 
     fc_mean <- as.numeric(fc$mean)
 
@@ -1364,11 +1633,11 @@ server_plots <- function(input, output, session, df) {
   acc_obj <- reactive({
     req(input$forecast_series)
 
-    fm <- fitted_model()
-    if (is.null(fm)) return(NULL)
+    fc <- forecast_obj()
+    if (is.null(fc)) return(NULL)
 
     tryCatch(
-      forecast::accuracy(fm),
+      forecast::accuracy(fc),
       error = function(e) NULL
     )
   })
@@ -1376,10 +1645,10 @@ server_plots <- function(input, output, session, df) {
   output$forecast_metrics <- renderUI({
     req(input$forecast_series)
 
-    fm  <- fitted_model()
+    fc  <- forecast_obj()
     acc <- acc_obj()
 
-    if (is.null(fm)) {
+    if (is.null(fc)) {
       return(div(
         class = "section-box",
         h4("Saktësia në setin e trajnimit"),

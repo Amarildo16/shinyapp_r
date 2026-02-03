@@ -250,10 +250,10 @@ ui <- fluidPage(
 
                 sliderInput(
                   "roll_k",
-                  "Dritarja lëvizëse (vite)",
+                  "Dritarja lëvizëse",
                   min = 3,
-                  max = 10,
-                  value = 5,
+                  max = 3,
+                  value = 3,
                   step = 1
                 )
               ),
@@ -417,10 +417,10 @@ ui <- fluidPage(
 
                 sliderInput(
                   "model_h",
-                  "Horizonti i parashikimit (vite)",
+                  "Horizonti i parashikimit",
                   min = 1,
-                  max = 10,
-                  value = 5,
+                  max = 1,
+                  value = 1,
                   step = 1
                 )
               ),
@@ -474,10 +474,17 @@ ui <- fluidPage(
                   )
                 ),
 
-                sliderInput("h", "Horizonti i parashikimit (vite)", 1, 10, 5),
+                sliderInput(
+                  "h",
+                  "Horizonti i parashikimit", 
+                  min = 1, 
+                  max =1, 
+                  value = 1,
+                  step = 1
+                  ),
 
                 hr(),
-                p("Grafiku paraqet vlerat e vëzhguara dhe parashikimet për vitet pasuese, së bashku me intervalet e pasigurisë.")
+                p("Grafiku paraqet vlerat e vëzhguara dhe parashikimet për periudhat pasuese, së bashku me intervalet e pasigurisë.")
               ),
 
               mainPanel(

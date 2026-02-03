@@ -457,6 +457,11 @@ apply_dup_policy <- function(d, vc, method = "mean") {
 
   out <- stats::aggregate(d[vc], by = list(Time = d$Time), FUN = fun)
   out <- out[order(out$Time), , drop = FALSE]
+
+  for (v in vc) {
+    if (is.numeric(out[[v]])) out[[v]][is.nan(out[[v]])] <- NA_real_
+  }
+
   out
 }
 
@@ -574,14 +579,22 @@ make_future_time <- function(Time, h) {
 
   if (info$type == "date") {
     by <- info$step
+
+    if (is.null(by) || is.na(by) || by == "") {
+      by <- "day"
+    }
+
     rby <- switch(by,
       "quarter" = "3 months",
       "week"    = "7 days",
       by
     )
-    return(seq.Date(from = as.Date(last_t), by = by, length.out = req_h + 1)[-1])
+
+    return(seq.Date(from = as.Date(last_t), by = rby, length.out = req_h + 1)[-1])
+
   } else {
-    st <- as.numeric(info$step)
+    st <- suppressWarnings(as.numeric(info$step))
+    if (is.na(st) || st == 0) st <- 1
     return(last_t + st * seq_len(req_h))
   }
 }
@@ -589,25 +602,6 @@ make_future_time <- function(Time, h) {
 # =========================================================
 # Future time builder
 # =========================================================
-detect_freq_from_time <- function(Time) {
-  if (inherits(Time, "Date")) {
-    dt <- sort(unique(Time))
-    if (length(dt) < 2) return("day")
-    md <- as.integer(stats::median(diff(dt), na.rm = TRUE))
-    if (md >= 350) return("year")
-    if (md >= 80)  return("quarter")
-    if (md >= 25)  return("month")
-    return("day")
-  }
-
-  if (is.numeric(Time)) {
-    if (all(Time >= 1500 & Time <= 3000, na.rm = TRUE)) return("year")
-    return("index")
-  }
-
-  "index"
-}
-
 ts_spec_from_time <- function(Time, freq_choice = "auto") {
   tt <- Time[!is.na(Time)]
   if (length(tt) == 0) return(list(key="index", freq=1, start=c(1,1)))

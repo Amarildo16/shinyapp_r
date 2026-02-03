@@ -661,23 +661,16 @@ select,
 }
 
 .settings-icon-btn {
-    /* hiq kutinë */
     width: auto;
     height: auto;
     border-radius: 0;
     border: none;
     background: transparent;
     box-shadow: none;
-
-    /* hiq blur/backdrop */
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-
-    /* vetëm ikonë */
     color: rgba(255, 255, 255, 0.92);
     cursor: pointer;
-
-    /* rregullo klikimin */
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -685,12 +678,10 @@ select,
     padding: 0;
     margin: 0;
 
-    /* mos e leviz */
     transition: color .16s ease;
 }
 
 .settings-icon-btn:hover {
-    /* vetëm ngjyrë, pa background/border */
     background: transparent;
     border: none;
     transform: none;
@@ -701,7 +692,6 @@ select,
     transform: none;
 }
 
-/* hiq outline i browser-it */
 .settings-icon-btn:focus,
 .settings-icon-btn:focus-visible {
     outline: none;
@@ -717,11 +707,9 @@ select,
 /* =========================================================
 
 /* =========================================================
-   MODALS (Bootstrap 3) + FilePond + DataTables + Saved datasets
-   (refactor: removed duplicates / kept behavior)
+   MODALS – GLASS STYLE
    ========================================================= */
 
-/* ===== MODAL BACKDROP: blur + glass overlay (Bootstrap 3) ===== */
 .modal-backdrop.in {
     opacity: 1 !important;
     background: rgba(0, 0, 0, 0.38) !important;
@@ -729,7 +717,6 @@ select,
     -webkit-backdrop-filter: blur(10px);
 }
 
-/* ===== kur e levizim fileInput nga wrapper-i i Shiny, fshi UI-n e vjeter ===== */
 .shiny-fileinput-hidden {
     display: none !important;
 }
@@ -775,7 +762,6 @@ select,
     padding: 22px 22px 26px;
 }
 
-/* close button (BS3) */
 #main_modal_sm .close {
     color: rgba(255, 255, 255, 0.90);
     opacity: 1;
@@ -786,7 +772,6 @@ select,
     opacity: 0.85;
 }
 
-/* FilePond look (global) */
 .filepond--panel-root {
     background: rgba(255, 255, 255, 0.06) !important;
     border: 1px dashed rgba(255, 255, 255, 0.22) !important;
@@ -800,7 +785,6 @@ select,
     text-decoration: underline;
 }
 
-/* ===== host ku vendoset FilePond ===== */
 #csv_file_modal_pond_host {
     width: 100%;
 }
@@ -810,7 +794,6 @@ select,
     margin-top: 6px;
 }
 
-/* Ikona brenda FilePond */
 .pond-icon {
     font-size: 26px;
     margin-right: 10px;
@@ -818,7 +801,6 @@ select,
     opacity: .9;
 }
 
-/* ===== FilePond: big centered idle ===== */
 #csv_upload_modal .filepond--root,
 #main_modal_sm .filepond--root {
     min-height: 170px;
@@ -832,7 +814,6 @@ select,
     justify-content: center;
 }
 
-/* panel/border (mbaje si të duash) */
 #csv_upload_modal .filepond--panel-root,
 #main_modal_sm .filepond--panel-root {
     border: 2px dashed rgba(255, 255, 255, 0.25);
@@ -840,7 +821,6 @@ select,
     border-radius: 14px;
 }
 
-/* layout vertikal i label */
 #csv_upload_modal .pond-idle,
 #main_modal_sm .pond-idle {
     display: flex;
@@ -850,7 +830,6 @@ select,
     text-align: center;
 }
 
-/* ikona e madhe */
 #csv_upload_modal .pond-idle i,
 #main_modal_sm .pond-idle i {
     font-size: 48px;
@@ -858,7 +837,6 @@ select,
     line-height: 1;
 }
 
-/* teksti */
 #csv_upload_modal .pond-text,
 #main_modal_sm .pond-text {
     font-size: 16px;
@@ -926,7 +904,6 @@ select,
     opacity: 0.85;
 }
 
-/* ===== Topbar layout (FS) ===== */
 .app-topbar {
     display: flex;
     align-items: center;
@@ -934,7 +911,6 @@ select,
     padding: 18px 18px 10px;
 }
 
-/* hiq marginat që e shtyjnë poshtë/majtas */
 .app-topbar .hamburger-btn {
     margin: 0 !important;
 }
@@ -982,14 +958,12 @@ select,
     flex-wrap: wrap;
 }
 
-/* labelat (Show entries / Search / info) */
 #main_modal_fs .dataTables_length label,
 #main_modal_fs .dataTables_filter label,
 #main_modal_fs .dataTables_info {
     color: rgba(255, 255, 255, 0.70) !important;
 }
 
-/* INPUT + SELECT dark */
 #main_modal_fs .dataTables_filter input,
 #main_modal_fs .dataTables_length select {
     background: rgba(255, 255, 255, 0.08) !important;
@@ -1004,7 +978,6 @@ select,
     color: rgba(255, 255, 255, 0.55) !important;
 }
 
-/* tabela: dark glass */
 #main_modal_fs table.dataTable {
     width: 100% !important;
     background: rgba(255, 255, 255, 0.06) !important;
@@ -1013,20 +986,17 @@ select,
     overflow: hidden !important;
 }
 
-/* header */
 #main_modal_fs table.dataTable thead th {
     background: rgba(255, 255, 255, 0.08) !important;
     color: rgba(255, 255, 255, 0.88) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
 }
 
-/* qelizat */
 #main_modal_fs table.dataTable tbody td {
     color: rgba(255, 255, 255, 0.82) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-/* zebra striping (butë) */
 #main_modal_fs table.dataTable tbody tr {
     background: transparent !important;
 }
@@ -1035,12 +1005,10 @@ select,
     background: rgba(255, 255, 255, 0.03) !important;
 }
 
-/* hover */
 #main_modal_fs table.dataTable tbody tr:hover {
     background: rgba(255, 255, 255, 0.07) !important;
 }
 
-/* pagination */
 #main_modal_fs .dataTables_paginate .paginate_button {
     color: rgba(255, 255, 255, 0.72) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
@@ -1059,14 +1027,12 @@ select,
     color: rgba(255, 255, 255, 0.92) !important;
 }
 
-/* sort arrows që të mos duken shumë “hard” */
 #main_modal_fs table.dataTable thead .sorting:after,
 #main_modal_fs table.dataTable thead .sorting_asc:after,
 #main_modal_fs table.dataTable thead .sorting_desc:after {
     opacity: 0.45 !important;
 }
 
-/* butonat e DT (Buttons extension) */
 #main_modal_fs .dt-buttons button {
     margin-left: 6px;
     padding: 6px 10px;
@@ -1125,7 +1091,6 @@ select,
     outline: 1px solid rgba(255, 255, 255, .35);
 }
 
-/* 2 datasets per row */
 .saved-ds-grid-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1139,7 +1104,6 @@ select,
     }
 }
 
-/* Apple-green “Aktiv” badge */
 .saved-ds-item.is-active .saved-ds-badge {
     background: rgba(52, 199, 89, .20);
     border: 1px solid rgba(52, 199, 89, .45);
