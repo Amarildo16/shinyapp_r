@@ -683,11 +683,9 @@ server <- function(input, output, session) {
       )
     }
 
-    st <- sync_state(files)
+    st <- tryCatch(read_state(), error = function(e) list(active = NULL))
 
     active <- act_mem %||% st$active %||% files[1]
-
-    if (!(active %in% files)) active <- st$active %||% files[1]
     if (!(active %in% files)) active <- files[1]
 
     js_val <- function(x) jsonlite::toJSON(x, auto_unbox = TRUE)
@@ -734,6 +732,20 @@ server <- function(input, output, session) {
     )
   })
 
+  observeEvent(saved_datasets(), {
+    files <- saved_datasets()
+
+    st <- tryCatch(sync_state(files), error = function(e) list(active = NULL))
+
+    cur <- active_dataset_file() %||% st$active
+    if (!is.null(cur) && !(cur %in% files)) cur <- NULL
+
+    if (is.null(cur) && length(files)) cur <- files[1]
+
+    active_dataset_file(cur)
+
+  }, ignoreInit = FALSE)
+
   observeEvent(input$activate_dataset, {
     sel <- input$activate_dataset
     req(sel)
@@ -744,6 +756,43 @@ server <- function(input, output, session) {
       return()
     }
 
+    st <- set_active_dataset(sel)
+    active_dataset_file(st$active %||% sel)
+
+    showNotification(paste0("Dataset aktiv u bë: ", sel), type = "message", duration = 4)
+
+  }, ignoreInit = TRUE)
+
+  observeEvent(active_dataset_file(), {
+    sel   <- active_dataset_file()
+    files <- saved_datasets()
+
+    if (is.null(sel) && length(files)) {
+      st2 <- set_active_dataset(files[1])
+      active_dataset_file(st2$active %||% files[1])
+      return()
+    }
+
+    if (is.null(sel) && !length(files)) {
+      if (!is.null(DATA_PATH) && file.exists(DATA_PATH)) {
+        d <- tryCatch(read_data_safe(DATA_PATH, basename(DATA_PATH)), error = function(e) NULL)
+        df_raw(d)
+        updateTextInput(session, "data_source", value = "")
+      } else {
+        df_raw(NULL)
+        updateTextInput(session, "data_source", value = "")
+        showNotification("S’ka dataset demo te data/ (DATA_PATH mungon).", type = "warning", duration = 6)
+      }
+      return()
+    }
+
+    path <- file.path(DATA_DIR, sel)
+    if (!file.exists(path)) {
+      showNotification("Dataset aktiv s’u gjet (mund të jetë fshirë).", type = "warning", duration = 6)
+      active_dataset_file(NULL)
+      return()
+    }
+
     d <- tryCatch(
       read_data_safe(path, sel),
       error = function(e) {
@@ -751,16 +800,13 @@ server <- function(input, output, session) {
         NULL
       }
     )
-    if (is.null(d)) return()
 
-    st <- set_active_dataset(sel)
-    active_dataset_file(st$active)
+    if (is.null(d)) return()
 
     df_raw(d)
     updateTextInput(session, "data_source", value = sel)
 
-    showNotification(paste0("Dataset aktiv u bë: ", sel), type = "message", duration = 4)
-  }, ignoreInit = TRUE)
+  }, ignoreInit = FALSE)
 
   observeEvent(input$delete_dataset, {
     sel <- input$delete_dataset
@@ -788,53 +834,25 @@ server <- function(input, output, session) {
     target <- file.path(DATA_DIR, sel)
     if (!file.exists(target)) {
       showNotification("File s’u gjet (ndoshta u fshi më parë).", type = "warning", duration = 5)
+      pending_delete_file(NULL)
       return()
     }
 
     ok <- file.remove(target)
     if (!isTRUE(ok)) {
       showNotification("S’u fshi dot file-i. Kontrollo lejet / nëse është i hapur diku.", type = "error", duration = 7)
+      pending_delete_file(NULL)
       return()
     }
 
     files <- list_saved_datasets()
     saved_datasets(files)
 
-    st <- sync_state(files)
-    active_dataset_file(st$active)
-
-    if (!is.null(st$active) && nzchar(st$active) && st$active %in% files &&
-        file.exists(file.path(DATA_DIR, st$active))) {
-
-      d <- tryCatch(read_data_safe(file.path(DATA_DIR, st$active), st$active), error = function(e) NULL)
-      if (!is.null(d)) {
-        df_raw(d)
-        updateTextInput(session, "data_source", value = st$active)
-      }
-
-    } else if (length(files) == 0) {
-
-      if (!is.null(DATA_PATH) && file.exists(DATA_PATH)) {
-        df_raw(read_data_safe(DATA_PATH, basename(DATA_PATH)))
-        updateTextInput(session, "data_source", value = "")
-      } else {
-        df_raw(NULL)
-        updateTextInput(session, "data_source", value = "")
-        showNotification("S’ka dataset demo te data/ (DATA_PATH mungon).", type = "warning", duration = 6)
-      }
-
-    } else {
-
-      pick <- files[1]
-      st2  <- set_active_dataset(pick)
-      active_dataset_file(st2$active)
-
-      d <- tryCatch(read_data_safe(file.path(DATA_DIR, st2$active), st2$active), error = function(e) NULL)
-      if (!is.null(d)) {
-        df_raw(d)
-        updateTextInput(session, "data_source", value = st2$active)
-      }
+    if (identical(active_dataset_file(), sel)) {
+      active_dataset_file(NULL)
     }
+
+    pending_delete_file(NULL)
 
     showNotification("Dataset u fshi me sukses.", type = "message", duration = 4)
   }, ignoreInit = TRUE)

@@ -157,15 +157,35 @@ read_data_safe <- function(path, filename = NULL) {
 
   ext <- tolower(tools::file_ext(filename %||% path))
 
-  if (ext %in% c("csv")) {
-    d <- readr::read_csv(path, show_col_types = FALSE)
-  } else if (ext %in% c("tsv")) {
-    d <- readr::read_tsv(path, show_col_types = FALSE)
+  if (ext == "csv") {
+    d <- readr::read_csv(
+      path,
+      show_col_types = FALSE,
+      na = c("", "NA", "N/A", "null", "NULL"),
+      col_types = readr::cols(.default = readr::col_character())
+    )
+
+  } else if (ext == "tsv") {
+    d <- readr::read_tsv(
+      path,
+      show_col_types = FALSE,
+      na = c("", "NA", "N/A", "null", "NULL"),
+      col_types = readr::cols(.default = readr::col_character())
+    )
+
   } else if (ext %in% c("xlsx", "xls")) {
     if (!has_readxl) stop("Për Excel duhet paketa 'readxl' (instaloje).")
-    d <- readxl::read_excel(path)
+    d <- readxl::read_excel(path, .name_repair = "unique_quiet")
+
+    d <- dplyr::mutate(dplyr::as_tibble(d), dplyr::across(dplyr::everything(), as.character))
+
   } else {
-    d <- readr::read_csv(path, show_col_types = FALSE)
+    d <- readr::read_csv(
+      path,
+      show_col_types = FALSE,
+      na = c("", "NA", "N/A", "null", "NULL"),
+      col_types = readr::cols(.default = readr::col_character())
+    )
   }
 
   as.data.frame(d, stringsAsFactors = FALSE)
@@ -233,23 +253,59 @@ parse_time_safe <- function(x) {
 # 3) Numeric normalization (1 234,56 -> 1234.56 etc.)
 # =========================================================
 to_numeric_safe <- function(x) {
-  if (is.numeric(x)) return(x)
-  if (is.integer(x)) return(as.numeric(x))
+  if (is.numeric(x))  return(as.numeric(x))
+  if (is.integer(x))  return(as.numeric(x))
 
   s <- trimws(as.character(x))
   s[s == ""] <- NA_character_
 
-  s <- gsub("[^0-9,\\.\\- ]", "", s)
+  s <- gsub("^\\((.*)\\)$", "-\\1", s)
 
-  s <- gsub(" ", "", s)
+  s <- gsub("[^0-9., -]", "", s)
+
+  s <- gsub("\\s+", "", s)
+
+  s <- ifelse(is.na(s), NA_character_,
+              paste0(ifelse(grepl("-", s, fixed = TRUE), "-", ""),
+                     gsub("-", "", s, fixed = TRUE)))
+  s <- ifelse(is.na(s), NA_character_, sub("^--+", "-", s))
+
   has_comma <- grepl(",", s, fixed = TRUE)
   has_dot   <- grepl("\\.", s)
+
   both <- has_comma & has_dot
-  s[both] <- gsub("\\.", "", s[both])
-  s[both] <- sub(",", ".", s[both], fixed = TRUE)
+
+  if (any(both, na.rm = TRUE)) {
+    idx <- which(both & !is.na(s))
+
+    for (i in idx) {
+      si <- s[i]
+      last_comma <- max(unlist(gregexpr(",", si, fixed = TRUE)))
+      last_dot   <- max(unlist(gregexpr(".", si, fixed = TRUE)))
+
+      if (last_comma > last_dot) {
+        si <- gsub("\\.", "", si)
+        si <- sub(",", ".", si, fixed = TRUE)
+      } else {
+        si <- gsub(",", "", si, fixed = TRUE)
+      }
+      s[i] <- si
+    }
+  }
 
   only_comma <- has_comma & !has_dot
   s[only_comma] <- sub(",", ".", s[only_comma], fixed = TRUE)
+
+  has_multi_dot <- !is.na(s) & lengths(regmatches(s, gregexpr("\\.", s))) > 1
+  if (any(has_multi_dot)) {
+    idx <- which(has_multi_dot)
+    for (i in idx) {
+      si <- s[i]
+      parts <- strsplit(si, "\\.", fixed = FALSE)[[1]]
+      si2 <- paste0(paste(parts[-length(parts)], collapse = ""), ".", parts[length(parts)])
+      s[i] <- si2
+    }
+  }
 
   suppressWarnings(as.numeric(s))
 }

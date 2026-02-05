@@ -118,16 +118,19 @@
         if (window.jQuery) {
             const selectors = Object.values(MAP).join(",");
 
-            jQuery(document).on("click", selectors, function () {
+            jQuery(document).on("click", selectors, function (e) {
+                e.preventDefault(); // mos bo scroll n’krye prej href="#"
                 const sel = "#" + this.id;
 
-                if (this.id === "go_settings" && window.Shiny) {
-                    Shiny.setInputValue("go_settings_click", Date.now(), { priority: "event" });
+                const tabVal = BTN_TO_TAB[sel];
+                if (tabVal && window.Shiny) {
+                    Shiny.setInputValue(this.id, Date.now(), { priority: "event" });
                 }
 
-                if (BTN_TO_TAB[sel]) {
+                if (tabVal) {
                     setActiveByButton(sel);
                     closeSidebar();
+                    setTimeout(resizePlotlyVisible, 250);
                 }
             });
 
