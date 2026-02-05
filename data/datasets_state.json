@@ -1,10 +1,10 @@
 {
-  "active": "albania_agriculture_timeseries_1998_2024.csv",
+  "active": "Digjitalizimi_Financiar_Shqiperi_data_DAILY_20000rows_nonlinear.csv",
   "datasets": [
     {
       "file": "albania_agriculture_timeseries_1998_2024.csv",
       "added_at": "2026-02-02 23:09:42.96632",
-      "is_active": true
+      "is_active": false
     },
     {
       "file": "airpas.csv",
@@ -20,6 +20,21 @@
       "file": "Digjitalizimi_Financiar_Shqiperi_data.csv",
       "added_at": "2026-02-05 11:12:04.583516",
       "is_active": false
+    },
+    {
+      "file": "Digjitalizimi_Financiar_Shqiperi_data_BIG_720rows_v2.csv",
+      "added_at": "2026-02-05 17:37:55.511643",
+      "is_active": false
+    },
+    {
+      "file": "Digjitalizimi_Financiar_Shqiperi_data_BIG_1800rows.csv",
+      "added_at": "2026-02-05 17:45:23.814582",
+      "is_active": false
+    },
+    {
+      "file": "Digjitalizimi_Financiar_Shqiperi_data_DAILY_20000rows_nonlinear.csv",
+      "added_at": "2026-02-05 18:04:29.018431",
+      "is_active": true
     }
   ]
 }
