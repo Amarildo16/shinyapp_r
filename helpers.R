@@ -76,7 +76,6 @@ read_state <- function() {
 }
 
 write_state <- function(st) {
-  # siguro vetëm 1 aktiv
   if (!is.null(st$active) && nzchar(st$active)) {
     st$datasets$is_active <- st$datasets$file == st$active
   } else {
