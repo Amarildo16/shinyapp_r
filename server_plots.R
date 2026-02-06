@@ -136,7 +136,14 @@ server_plots <- function(input, output, session, df) {
     )
   }
 
-  # -------- roll_k dinamik (EDA) --------
+  .slider_once <- reactiveValues(roll_k = FALSE, model_h = FALSE, h = FALSE)
+
+  observeEvent(df(), {
+    .slider_once$roll_k  <- FALSE
+    .slider_once$model_h <- FALSE
+    .slider_once$h       <- FALSE
+  }, ignoreInit = TRUE)
+
   observeEvent(list(df_dyn(), input$eda_series), {
     req(df_dyn(), input$eda_series)
 
@@ -163,15 +170,17 @@ server_plots <- function(input, output, session, df) {
     cur <- as.integer(cur)
     val <- max(k_min, min(cur, k_max))
 
-    updateSliderInput(
-      session,
-      "roll_k",
-      label = paste0("Dritarja lëvizëse (", unit, ")"),
-      min = k_min,
-      max = k_max,
-      value = val,
-      step = 1
-    )
+    if (isTRUE(.slider_once$roll_k)) return()
+      updateSliderInput(
+        session,
+        "roll_k",
+        label = paste0("Dritarja lëvizëse (", unit, ")"),
+        min = k_min,
+        max = k_max,
+        value = val,
+        step = 1
+      )
+    .slider_once$roll_k <- TRUE
 
     if (n_non_na < 3) shinyjs::disable("roll_k") else shinyjs::enable("roll_k")
   }, ignoreInit = FALSE)
@@ -195,14 +204,16 @@ server_plots <- function(input, output, session, df) {
     if (is.null(cur) || is.na(cur)) cur <- min(5L, b$max)
     val <- max(b$min, min(as.integer(cur), b$max))
 
-    updateSliderInput(
-      session, "model_h",
-      label = paste0("Horizonti i parashikimit (", unit, ")"),
-      min = b$min,
-      max = b$max,
-      value = val,
-      step = 1
-    )
+    if (isTRUE(.slider_once$model_h)) return()
+      updateSliderInput(
+        session, "model_h",
+        label = paste0("Horizonti i parashikimit (", unit, ")"),
+        min = b$min,
+        max = b$max,
+        value = val,
+        step = 1
+      )
+    .slider_once$model_h <- TRUE
 
     if (n_real < 2L) shinyjs::disable("model_h") else shinyjs::enable("model_h")
   }, ignoreInit = FALSE)
@@ -226,14 +237,16 @@ server_plots <- function(input, output, session, df) {
     if (is.null(cur) || is.na(cur)) cur <- min(5L, b$max)
     val <- max(b$min, min(as.integer(cur), b$max))
 
-    updateSliderInput(
-      session, "h",
-      label = paste0("Horizonti i parashikimit (", unit, ")"),
-      min = b$min,
-      max = b$max,
-      value = val,
-      step = 1
-    )
+    if (isTRUE(.slider_once$h)) return()
+      updateSliderInput(
+        session, "h",
+        label = paste0("Horizonti i parashikimit (", unit, ")"),
+        min = b$min,
+        max = b$max,
+        value = val,
+        step = 1
+      )
+    .slider_once$h <- TRUE
 
     if (n_real < 2L) shinyjs::disable("h") else shinyjs::enable("h")
   }, ignoreInit = FALSE)
@@ -946,7 +959,10 @@ server_plots <- function(input, output, session, df) {
       plotly_cfg()
   })
 
-  output$stat_adf_tbl <- renderTable({
+  # =========================
+  # ADF computed ONCE
+  # =========================
+  adf_res <- reactive({
     req(df_dyn(), input$stat_series)
 
     d0 <- df_dyn()
@@ -958,78 +974,84 @@ server_plots <- function(input, output, session, df) {
           paste0("Kolona '", input$stat_series, "' nuk ekziston në dataset. Ndrysho serinë te dropdown-i."))
     )
 
-    if (!requireNamespace("tseries", quietly = TRUE)) {
-      return(data.frame(
-        Serie = c("Original (niveli)", "First difference (Δ)"),
-        Statistic = NA_real_,
-        `p-value` = NA_real_,
-        Method = "Paketa 'tseries' mungon — instalo: install.packages('tseries')",
-        check.names = FALSE
-      ))
-    }
+    y <- suppressWarnings(as.numeric(d0[[input$stat_series]]))
+    y <- y[!is.na(y)]
 
-    y  <- suppressWarnings(as.numeric(d0[[input$stat_series]]))
-    y  <- y[!is.na(y)]
-
-    if (length(y) < 20) {
-      return(data.frame(
-        Serie = c("Original (niveli)", "First difference (Δ)"),
-        Statistic = NA_real_,
-        `p-value` = NA_real_,
-        Method = "ADF (tseries::adf.test) — kërkon ≥ 20 pika",
-        check.names = FALSE
-      ))
-    }
-
-    adf_lvl  <- try(tseries::adf.test(y), silent = TRUE)
-    dy <- diff(y)
-    adf_diff <- if (length(dy) >= 20) try(tseries::adf.test(dy), silent = TRUE) else "try-error"
-
-    extract_adf <- function(obj, label) {
-      if (inherits(obj, "try-error")) {
-        return(data.frame(
-          Serie = label,
-          Statistic = NA_real_,
-          `p-value` = NA_real_,
-          Method = "ADF (tseries::adf.test)",
-          stringsAsFactors = FALSE,
-          check.names = FALSE
-        ))
-      }
-      data.frame(
-        Serie = label,
-        Statistic = as.numeric(obj$statistic),
-        `p-value` = as.numeric(obj$p.value),
-        Method = obj$method,
-        stringsAsFactors = FALSE,
-        check.names = FALSE
-      )
-    }
-
-    out <- rbind(
-      extract_adf(adf_lvl,  "Original (niveli)"),
-      extract_adf(adf_diff, "First difference (Δ)")
+    base_tbl <- data.frame(
+      Serie     = c("Original (niveli)", "First difference (Δ)"),
+      Statistic = NA_real_,
+      `p-value` = NA_real_,
+      Method    = NA_character_,
+      check.names = FALSE,
+      stringsAsFactors = FALSE
     )
 
-    out$Statistic <- round(out$Statistic, 4)
-    out$`p-value` <- formatC(out$`p-value`, format = "f", digits = 4)
+    if (!requireNamespace("tseries", quietly = TRUE)) {
+      base_tbl$Method <- "Paketa 'tseries' mungon — instalo: install.packages('tseries')"
+      return(list(
+        ok = FALSE, reason = "no_pkg",
+        y_len = length(y),
+        table = base_tbl,
+        p_lvl = NA_real_, p_diff = NA_real_
+      ))
+    }
 
-    out
+    if (length(y) < 20) {
+      base_tbl$Method <- "ADF (tseries::adf.test) — kërkon ≥ 20 pika"
+      return(list(
+        ok = FALSE, reason = "too_short",
+        y_len = length(y),
+        table = base_tbl,
+        p_lvl = NA_real_, p_diff = NA_real_
+      ))
+    }
+
+    adf_lvl <- try(tseries::adf.test(y), silent = TRUE)
+    dy      <- diff(y)
+    adf_diff <- if (length(dy) >= 20) try(tseries::adf.test(dy), silent = TRUE) else "try-error"
+
+    fill_row <- function(tbl, row_idx, obj) {
+      if (!inherits(obj, "try-error")) {
+        tbl$Statistic[row_idx] <- as.numeric(obj$statistic)
+        tbl$`p-value`[row_idx] <- as.numeric(obj$p.value)
+        tbl$Method[row_idx]    <- obj$method
+      } else {
+        tbl$Method[row_idx]    <- "ADF (tseries::adf.test)"
+      }
+      tbl
+    }
+
+    out_tbl <- base_tbl
+    out_tbl <- fill_row(out_tbl, 1, adf_lvl)
+    out_tbl <- fill_row(out_tbl, 2, adf_diff)
+
+    out_tbl$Statistic <- round(out_tbl$Statistic, 4)
+    out_tbl$`p-value` <- formatC(out_tbl$`p-value`, format = "f", digits = 4)
+
+    p_lvl  <- if (!inherits(adf_lvl,  "try-error")) as.numeric(adf_lvl$p.value)  else NA_real_
+    p_diff <- if (!inherits(adf_diff, "try-error")) as.numeric(adf_diff$p.value) else NA_real_
+
+    list(
+      ok = TRUE, reason = "ok",
+      y_len = length(y),
+      table = out_tbl,
+      p_lvl = p_lvl, p_diff = p_diff
+    )
+  })
+
+  # =========================
+  # OUTPUTS (use adf_res())
+  # =========================
+  output$stat_adf_tbl <- renderTable({
+    adf_res()$table
   }, striped = FALSE, bordered = TRUE, spacing = "s")
 
   output$stat_adf_note <- renderUI({
     req(df_dyn(), input$stat_series)
 
-    d0 <- df_dyn()
+    res <- adf_res()
 
-    validate(
-      need(!is.null(input$stat_series) && nzchar(input$stat_series),
-          "Zgjidh një seri për interpretimin ADF."),
-      need(input$stat_series %in% names(d0),
-          paste0("Kolona '", input$stat_series, "' nuk ekziston në dataset. Ndrysho serinë te dropdown-i."))
-    )
-
-    if (!requireNamespace("tseries", quietly = TRUE)) {
+    if (identical(res$reason, "no_pkg")) {
       return(HTML(
         "<p style='margin-top:10px; font-size: 13px; line-height: 1.45;'>
           <b>Interpretim (ADF):</b> Paketa <b>tseries</b> mungon.
@@ -1038,14 +1060,7 @@ server_plots <- function(input, output, session, df) {
       ))
     }
 
-    m <- var_meta(input$stat_series, meta())
-
-    y <- suppressWarnings(as.numeric(d0[[input$stat_series]]))
-    y <- y[!is.na(y)]
-
-    alpha <- 0.05
-
-    if (length(y) < 20) {
+    if (identical(res$reason, "too_short")) {
       return(HTML(
         "<p style='margin-top:10px; font-size: 13px; line-height: 1.45;'>
           <b>Interpretim (ADF):</b> Seria ka shumë pak pika (duhen ≥ 20) për test të besueshëm.
@@ -1053,17 +1068,11 @@ server_plots <- function(input, output, session, df) {
       ))
     }
 
-    adf_lvl  <- try(tseries::adf.test(y), silent = TRUE)
-    dy <- diff(y)
-    adf_diff <- if (length(dy) >= 20) try(tseries::adf.test(dy), silent = TRUE) else "try-error"
+    m <- var_meta(input$stat_series, meta())
 
-    get_p <- function(obj) {
-      if (inherits(obj, "try-error")) return(NA_real_)
-      as.numeric(obj$p.value)
-    }
-
-    p_lvl  <- get_p(adf_lvl)
-    p_diff <- get_p(adf_diff)
+    alpha <- 0.05
+    p_lvl  <- res$p_lvl
+    p_diff <- res$p_diff
 
     concl_lvl <- if (!is.na(p_lvl) && p_lvl < alpha) {
       "refuzohet hipoteza zero dhe seria në nivel vlerësohet stacionare"
@@ -1098,13 +1107,11 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================
-  # Modelimi – ETS & ARIMA (FAST: cache fit, forecast only on h)
+  # Modelimi – ETS & ARIMA
   # =========================
 
-  # debounce per slider (mos rifill sa here e leviz)
   model_h_db <- shiny::debounce(reactive({input$model_h}), millis = 350)
 
-  # cache per fit-et (qe mos i rifitosh kot)
   .model_cache_key <- reactiveVal(NULL)
   .model_cache_val <- reactiveVal(NULL)
 
@@ -1129,7 +1136,6 @@ server_plots <- function(input, output, session, df) {
     y_ts <- stats::ts(y_raw, frequency = spec$freq, start = spec$start)
     y_mod <- if (anyNA(y_ts)) forecast::na.interp(y_ts) else y_ts
 
-    # key i thjeshte per cache (mjafton praktikisht)
     key <- paste0(
       input$model_series, "|", (input$data_freq %||% "auto"), "|",
       n, "|", fmt_time(tail(dd$Time, 1)), "|",
@@ -1149,10 +1155,8 @@ server_plots <- function(input, output, session, df) {
 
       fq <- stats::frequency(y_mod)
 
-      # sezonalitet praktik: 4/12/52
       seasonal_flag <- fq %in% c(4, 12, 52)
 
-      # approximation per seri me te gjata ose freq te madhe
       fastish <- length(y_mod) > 800 || fq > 12
 
       fit_arima <- try(
@@ -1193,7 +1197,6 @@ server_plots <- function(input, output, session, df) {
     x <- .model_fits()
     validate(need(!is.null(x) && isTRUE(x$ok), x$msg %||% "Modelimi s’u krijua."))
 
-    # h i debounced (me shume smooth)
     h0 <- model_h_db()
     if (is.null(h0)) h0 <- input$model_h
     h <- as.integer(h0)
@@ -1204,7 +1207,6 @@ server_plots <- function(input, output, session, df) {
       showNotification("Kujdes: h është i madh krahasuar me të dhënat (h > n/2).", type = "message")
     }
 
-    # KETU eshte fit i cache, bejme vetem forecast (shpejt)
     fc_ets   <- forecast::forecast(x$fit_ets,   h = h)
     fc_arima <- forecast::forecast(x$fit_arima, h = h)
 
@@ -1384,17 +1386,14 @@ server_plots <- function(input, output, session, df) {
     yts
   })
 
-  # debounce per slider h (mos e rifill sa here e leviz)
   h_db <- shiny::debounce(reactive({input$h}), millis = 350)
 
-  # cache per ARIMA fit
   .arima_cache_key <- reactiveVal(NULL)
   .arima_cache_val <- reactiveVal(NULL)
 
   arima_fit <- reactive({
     req(series_ts(), series_dat())
 
-    # vetem kur metoda eshte ARIMA
     if ((input$method %||% "") != "arima") return(NULL)
 
     y  <- series_ts()
@@ -1407,7 +1406,6 @@ server_plots <- function(input, output, session, df) {
 
     fq <- stats::frequency(y)
 
-    # key i thjeshte per cache
     key <- paste0(
       "n=", length(y),
       "|fq=", fq,
@@ -1424,17 +1422,15 @@ server_plots <- function(input, output, session, df) {
     out <- shiny::withProgress(message = "Duke ndërtu ARIMA...", value = 0, {
       shiny::incProgress(0.2)
 
-      # sezonalitet praktik
       seasonal_flag <- fq %in% c(4, 12, 52)
 
-      # approximation kur eshte e rende
       fastish <- length(y) > 800 || fq > 12
 
       fit <- try(
         forecast::auto.arima(
           y,
           seasonal = seasonal_flag,
-          stepwise = TRUE,                            # zakonisht me shpejt
+          stepwise = TRUE,
           approximation = if (fastish) TRUE else FALSE
         ),
         silent = TRUE
@@ -1460,7 +1456,6 @@ server_plots <- function(input, output, session, df) {
     y  <- series_ts()
     dd <- series_dat()
 
-    # h i debounced
     h0 <- h_db()
     if (is.null(h0)) h0 <- input$h
     h <- as.integer(h0)
@@ -1471,20 +1466,18 @@ server_plots <- function(input, output, session, df) {
       showNotification("Kujdes: h është i madh krahasuar me të dhënat (h > n/2).", type = "message")
     }
 
-    # validim metode
     if (!(input$method %in% c("ses", "holt", "arima"))) {
       showNotification("Metodë e panjohur. Lejohen: ses, holt, arima.", type = "error")
       return(NULL)
     }
 
-    # SES / Holt jane te lehta
     if (input$method == "ses")  return(forecast::ses(y,  h = h))
     if (input$method == "holt") return(forecast::holt(y, h = h))
 
-    # ARIMA: fit 1 here, forecast shpejt sa her ndryshon h
     af <- arima_fit()
     if (is.null(af) || !isTRUE(af$ok)) {
-      showNotification(af$msg %||% "ARIMA s’u krijua.", type="error")
+      msg <- if (is.null(af)) "ARIMA s’u krijua." else (af$msg %||% "ARIMA s’u krijua.")
+      showNotification(msg, type="error")
       return(NULL)
     }
 
@@ -1511,7 +1504,6 @@ server_plots <- function(input, output, session, df) {
       stringsAsFactors = FALSE
     )
 
-    # perdor te njejtin h si forecast_obj (debounced)
     h0 <- h_db()
     if (is.null(h0)) h0 <- input$h
     h <- as.integer(h0)

@@ -1112,3 +1112,101 @@ select,
     letter-spacing: .2px;
     box-shadow: 0 0 0 1px rgba(52, 199, 89, .10) inset;
 }
+
+/* container që futet brenda FilePond item */
+#main_modal_sm .pond-inline-preview {
+    margin-top: 8px;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: max-height .28s ease, opacity .28s ease, transform .28s ease;
+    width: 100%;
+}
+
+#main_modal_sm .filepond--item.pond-inline-open .pond-inline-preview {
+    max-height: 320px;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* karta */
+#main_modal_sm .pond-preview-card {
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, .10);
+    background: rgba(10, 14, 16, .65);
+    padding: 10px 10px 8px 10px;
+}
+
+/* header si te ChatGPT */
+#main_modal_sm .pond-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+#main_modal_sm .pond-preview-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: rgba(255, 255, 255, .95);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#main_modal_sm .pond-preview-actions {
+    display: flex;
+    gap: 10px;
+    opacity: .9;
+}
+
+#main_modal_sm .pond-preview-actions i {
+    font-size: 16px;
+    cursor: default;
+    color: rgba(255, 255, 255, .85);
+}
+
+#main_modal_sm .pond-preview-meta {
+    font-size: 12px;
+    opacity: .8;
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+
+/* tabela me scroll si preview */
+#main_modal_sm .pond-preview-table-wrap {
+    max-height: 200px;
+    overflow: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, .08);
+}
+
+#main_modal_sm table.pond-preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+#main_modal_sm table.pond-preview-table th,
+#main_modal_sm table.pond-preview-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+    color: rgba(255, 255, 255, .88);
+    white-space: nowrap;
+}
+
+#main_modal_sm table.pond-preview-table th {
+    position: sticky;
+    top: 0;
+    background: rgba(16, 24, 28, .92);
+    z-index: 2;
+}
+
+/* row number column pak më e zbehtë */
+#main_modal_sm table.pond-preview-table td:first-child,
+#main_modal_sm table.pond-preview-table th:first-child {
+    opacity: .75;
+}

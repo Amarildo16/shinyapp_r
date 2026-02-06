@@ -148,7 +148,7 @@ has_vars   <- requireNamespace("vars", quietly = TRUE)
 has_rugarch <- requireNamespace("rugarch", quietly = TRUE)
 
 # =========================================================
-# 1) Read data safe (CSV/TSV/Excel optional)
+# 1) Read data safe
 # =========================================================
 read_data_safe <- function(path, filename = NULL) {
   if (!file.exists(path)) {
@@ -192,7 +192,7 @@ read_data_safe <- function(path, filename = NULL) {
 }
 
 # =========================================================
-# 2) Time parsing (YYYY, YYYY-MM, YYYYQ#, Date)
+# 2) Time parsing
 # =========================================================
 parse_time_safe <- function(x) {
   if (inherits(x, "Date")) return(x)
@@ -250,7 +250,7 @@ parse_time_safe <- function(x) {
 }
 
 # =========================================================
-# 3) Numeric normalization (1 234,56 -> 1234.56 etc.)
+# 3) Numeric normalization
 # =========================================================
 to_numeric_safe <- function(x) {
   if (is.numeric(x))  return(as.numeric(x))
@@ -311,7 +311,7 @@ to_numeric_safe <- function(x) {
 }
 
 # =========================================================
-# 4) Detect candidate time columns (scoring)
+# 4) Detect candidate time columns
 # =========================================================
 detect_time_candidates <- function(df) {
   nm <- names(df)
@@ -498,6 +498,11 @@ apply_dup_policy <- function(d, vc, method = "mean") {
 
   method <- tolower(method %||% "mean")
 
+  if (method == "first") {
+    keep <- !duplicated(d$Time)
+    return(d[keep, , drop = FALSE])
+  }
+
   if (method == "last") {
     keep <- !duplicated(d$Time, fromLast = TRUE)
     return(d[keep, , drop = FALSE])
@@ -588,10 +593,6 @@ fmt_time <- function(x) {
 }
 
 infer_step_from_time <- function(Time) {
-  # kthen list(type=..., step=...) ku:
-  # type: "date" ose "numeric"
-  # step: për date -> "day"/"month"/"quarter"/"year"
-  #       për numeric -> numeric step (p.sh. 1)
   tt <- Time[!is.na(Time)]
   if (length(tt) < 3) {
     if (inherits(Time, "Date")) return(list(type="date", step="day"))
@@ -762,3 +763,46 @@ detect_freq_from_time <- function(Time) {
 }
 
 
+make_inline_preview_html <- function(d, title = "Dataset", max_rows = 10, max_cols = 6) {
+  df <- utils::head(d, max_rows)
+
+  if (ncol(df) > max_cols) df <- df[, seq_len(max_cols), drop = FALSE]
+
+  # row numbers si preview
+  df <- cbind(`#` = seq_len(nrow(df)), df)
+
+  # shkurtim + text
+  df <- as.data.frame(lapply(df, function(x) {
+    x <- as.character(x)
+    x[nchar(x) > 28] <- paste0(substr(x[nchar(x) > 28], 1, 28), "…")
+    x
+  }), stringsAsFactors = FALSE)
+
+  esc <- function(x) htmltools::htmlEscape(x)
+
+  header <- paste0("<tr>", paste0("<th>", esc(names(df)), "</th>", collapse=""), "</tr>")
+  rows <- vapply(seq_len(nrow(df)), function(i) {
+    paste0("<tr>", paste0("<td>", esc(df[i, ]), "</td>", collapse=""), "</tr>")
+  }, character(1))
+
+  meta <- paste0("Preview: ", nrow(d), " rreshta × ", ncol(d), " kolona")
+
+  paste0(
+    "<div class='pond-preview-card'>",
+      "<div class='pond-preview-head'>",
+        "<div class='pond-preview-title'>", esc(title), "</div>",
+        "<div class='pond-preview-actions'>",
+          "<i class='ri-download-2-line'></i>",
+          "<i class='ri-external-link-line'></i>",
+        "</div>",
+      "</div>",
+      "<div class='pond-preview-meta'>", esc(meta), "</div>",
+      "<div class='pond-preview-table-wrap'>",
+        "<table class='pond-preview-table'>",
+          "<thead>", header, "</thead>",
+          "<tbody>", paste0(rows, collapse=""), "</tbody>",
+        "</table>",
+      "</div>",
+    "</div>"
+  )
+}

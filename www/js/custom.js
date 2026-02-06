@@ -28,6 +28,7 @@
 // 2) FilePond init
 // ===============================
 (function () {
+    let lastInlineMsg = null;
 
     function getHost(inputId) {
         return (
@@ -36,6 +37,85 @@
         );
     }
 
+    function getCurrentItemEl(host) {
+        if (!host) return null;
+        return host.querySelector(".filepond--item");
+    }
+
+    function ensureInlineBox(itemEl) {
+        if (!itemEl) return null;
+
+        const fileRoot = itemEl.querySelector(".filepond--file") || itemEl;
+        const info = itemEl.querySelector(".filepond--file-info");
+
+        let box = itemEl.querySelector(".pond-inline-preview");
+        if (!box) {
+            box = document.createElement("div");
+            box.className = "pond-inline-preview";
+
+            if (info && info.parentElement) {
+                info.parentElement.insertAdjacentElement("afterend", box); // ✅ poshtë info-s
+            } else {
+                fileRoot.appendChild(box);
+            }
+        }
+        return box;
+    }
+
+    function openInline(itemEl) {
+        if (!itemEl) return;
+        itemEl.classList.add("pond-inline-open");
+    }
+
+    function closeInline(itemEl) {
+        if (!itemEl) return;
+        itemEl.classList.remove("pond-inline-open");
+    }
+
+    function setInlineLoading(host) {
+        const itemEl = getCurrentItemEl(host);
+        if (!itemEl) return;
+        const box = ensureInlineBox(itemEl);
+        if (!box) return;
+
+        box.innerHTML = "<div class='pond-inline-loading'>Po përgatis preview…</div>";
+        openInline(itemEl);
+    }
+
+    function clearInline(host) {
+        const itemEl = getCurrentItemEl(host);
+        if (!itemEl) return;
+
+        const box = itemEl.querySelector(".pond-inline-preview");
+        if (box) box.remove();
+        closeInline(itemEl);
+    }
+
+    function applyInlineFromMsg(msg) {
+        const inputId = (msg && msg.inputId) ? msg.inputId : "csv_file_modal";
+        const host = getHost(inputId);
+        if (!host) return;
+
+        const itemEl = getCurrentItemEl(host);
+        if (!itemEl) {
+            // s’ka item akoma, e ruajmë dhe e aplikojmë kur të shtohet file
+            lastInlineMsg = msg;
+            return;
+        }
+
+        const box = ensureInlineBox(itemEl);
+        if (!box) return;
+
+        const html = (msg && msg.html) ? msg.html : "";
+        box.innerHTML = html;
+
+        if (html && html.trim().length > 0) openInline(itemEl);
+        else closeInline(itemEl);
+    }
+
+    // =========================
+    // FilePond init
+    // =========================
     function initFilePondInput(inputId) {
         const shinyInput = document.getElementById(inputId);
         if (!shinyInput) return false;
@@ -62,6 +142,7 @@
         }
 
         if (proxy._pond) return true;
+
         if (window.FilePondPluginFileValidateType) FilePond.registerPlugin(FilePondPluginFileValidateType);
         if (window.FilePondPluginFileValidateSize) FilePond.registerPlugin(FilePondPluginFileValidateSize);
 
@@ -75,21 +156,14 @@
                 revert: null,
                 restore: null,
                 fetch: null,
-
                 load: (source, load, error, progress, abort) => {
                     console.log("POND server.load BLOCKED:", source);
                     abort();
                 }
             },
 
-            acceptedFileTypes: [
-                "text/csv",
-                "application/csv",
-                "text/plain",
-                "application/vnd.ms-excel",
-                "application/octet-stream"
-            ],
-            allowFileTypeValidation: false,
+            acceptedFileTypes: ["text/csv"],
+            allowFileTypeValidation: true,
 
             fileValidateTypeDetectType: (source, type) =>
                 new Promise((resolve) => {
@@ -109,10 +183,10 @@
                 <div class="pond-idle">
                     <i class="ri-upload-cloud-2-fill"></i>
                     <div class="pond-text">
-                    Drop files here or <span class="filepond--label-action">click to upload</span>.
+                        Drop files here or <span class="filepond--label-action">click to upload</span>.
                     </div>
                 </div>
-                `,
+            `,
             labelFileTypeNotAllowed: "Ky fajll s'pranohet",
             fileValidateTypeLabelExpectedTypes: "Lejohet vetëm: .csv",
             credits: false
@@ -121,6 +195,9 @@
         pond.on("addfile", (err, item) => {
             console.log("POND addfile err:", err);
             if (err) return;
+
+            // sapo shtohet file -> hap inline box me loading (animacion)
+            setInlineLoading(host);
 
             try {
                 try { shinyInput.value = ""; } catch (e) { }
@@ -135,9 +212,17 @@
             } catch (e) {
                 console.warn("Proxy -> Shiny DataTransfer failed:", e);
             }
+
+            // nëse serveri na ka dërgu msg më herët, aplikoje tani
+            if (lastInlineMsg) {
+                applyInlineFromMsg(lastInlineMsg);
+                lastInlineMsg = null;
+            }
         });
 
         pond.on("removefile", () => {
+            clearInline(host);
+
             try { shinyInput.value = ""; } catch (e) { }
             shinyInput.dispatchEvent(new Event("change", { bubbles: true }));
         });
@@ -153,8 +238,27 @@
         setTimeout(function () { initWithRetry(inputId, tries - 1); }, 120);
     }
 
+    // =========================
+    // Shiny custom message: inline preview
+    // =========================
+    if (window.Shiny && Shiny.addCustomMessageHandler) {
+        Shiny.addCustomMessageHandler("csv_inline_preview", function (msg) {
+            applyInlineFromMsg(msg);
+        });
+    }
+
+    // =========================
+    // Modal hooks
+    // =========================
     $(document).on("shown.bs.modal", "#main_modal_sm", function () {
         initWithRetry("csv_file_modal", 25);
+    });
+
+    $(document).on("hidden.bs.modal", "#main_modal_sm", function () {
+        // pastro preview kur mbyllet modali
+        const host = getHost("csv_file_modal");
+        if (host) clearInline(host);
+        lastInlineMsg = null;
     });
 
     $(document).on('shown.bs.modal', '#main_modal_fs', function () {

@@ -859,7 +859,7 @@ server <- function(input, output, session) {
 
 
   # =========================================================
-  # 4) DATA SOURCE (demo + upload) + startup load from state
+  # 4) DATA SOURCE
   # =========================================================
   df_raw <- reactiveVal(NULL)
   pending_data <- reactiveVal(NULL)
@@ -946,7 +946,7 @@ server <- function(input, output, session) {
   }, ignoreInit = FALSE)
 
   # =========================================================
-  # 6) MODAL FLOW (sm -> fs)
+  # 6) MODAL FLOW
   # =========================================================
   observeEvent(input$ajax_modal_open, {
     req(input$ajax_modal_open$modal)
@@ -960,7 +960,7 @@ server <- function(input, output, session) {
         tagList(
           tags$div(id = "csv_file_modal_pond_host"),
           fileInput("csv_file_modal", label = NULL, accept = c(".csv")),
-          tags$small("Hidh CSV këtu (drag & drop) ose Browse.")
+          session$sendCustomMessage("csv_inline_preview", list(ok = FALSE, html = ""))
         )
       })
       session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "show"))
@@ -1015,6 +1015,13 @@ server <- function(input, output, session) {
       time_choices = time_choices,
       time_default = time_default,
       value_default = value_default
+    ))
+
+    title <- tools::file_path_sans_ext(input$csv_file_modal$name)
+
+    session$sendCustomMessage("csv_inline_preview", list(
+      inputId = "csv_file_modal",
+      html = make_inline_preview_html(d, title = title, max_rows = 10, max_cols = 6)
     ))
 
     if (nzchar(input$csv_file_modal$name)) {
@@ -1211,14 +1218,11 @@ server <- function(input, output, session) {
     updateSelectInput(session, "rel_y",           choices = choices, selected = pick_choice(isolate(input$rel_y), choices, s2))
   }, ignoreInit = TRUE)
 
-  # =========================================================
-  # 8) rest of app
-  # =========================================================
-  server_plots(input, output, session, df)
-}
-
   #================================
   # Backround settings
   #================================
+
+  server_plots(input, output, session, df)
+}
 
 shinyApp(ui, server)
