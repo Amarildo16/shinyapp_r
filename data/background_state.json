@@ -1,6 +1,6 @@
 {
-  "active_mode": "image",
-  "version": 1770633800,
+  "active_mode": "none",
+  "version": 1770638436,
   "modes": {
     "none": [],
     "color": {
@@ -14,12 +14,7 @@
       },
       "scopes": {
         "custom": {
-          "per_tab": {
-            "tab_stationary": "images/image3.jpeg",
-            "tab_eda_rel": "images/image11.jpeg",
-            "tab_modeling": "images/image9.jpeg",
-            "tab_forecast": "images/image3.jpeg"
-          }
+          "per_tab": {}
         },
         "global": {}
       }
