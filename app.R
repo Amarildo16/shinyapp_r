@@ -1333,6 +1333,11 @@ server <- function(input, output, session) {
   }, ignoreInit = TRUE)
 
   observeEvent(input$btn_save_config, {
+    if (length(input$modal_value_cols) == 0) {
+      showNotification("Zgjidh të paktën 1 seri numerike!", type="error")
+      return()
+    }
+
     req(input$modal_time_col, input$modal_value_cols, pending_data())
 
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "hide"))
@@ -1392,11 +1397,6 @@ server <- function(input, output, session) {
           st <- set_active_dataset(safe)
           active_dataset_file(st$active)
           final_file <- st$active
-
-          try(updateRadioButtons(session, "saved_dataset_radio",
-            choices = files,
-            selected = st$active
-          ), silent = TRUE)
 
           showNotification(paste0("Dataset u ruajt te data/", safe), type="message", duration=6)
         } else {

@@ -808,61 +808,77 @@ server_plots <- function(input, output, session, df) {
     d0 <- df_dyn()
 
     num_df <- d0 %>%
-    dplyr::select(where(is.numeric)) %>%
-    dplyr::select(-dplyr::any_of("Time"))
+      dplyr::select(where(is.numeric)) %>%
+      dplyr::select(-dplyr::any_of("Time"))
 
     if (ncol(num_df) < 2) {
-      showNotification("Duhet të paktën 2 kolona numerike për korrelacion.", type = "warning")
+      shiny::showNotification("Duhet të paktën 2 kolona numerike për korrelacion.", type = "warning")
       return(NULL)
     }
 
     if (ncol(num_df) > 20) {
       num_df <- num_df[, 1:20, drop = FALSE]
-      showNotification("U përdorën vetëm 20 kolonat e para numerike për heatmap.", type = "message")
+      shiny::showNotification("U përdorën vetëm 20 kolonat e para numerike për heatmap.", type = "message")
     }
 
     num_df <- num_df %>%
-    dplyr::select(where(~ stats::sd(.x, na.rm = TRUE) > 0))
+      dplyr::select(where(~ {
+        s <- stats::sd(.x, na.rm = TRUE)
+        is.finite(s) && s > 0
+      }))
 
-    corr_mat <- cor(num_df, use = "pairwise.complete.obs")
+    if (ncol(num_df) < 2) {
+      shiny::showNotification("Pas filtrit (sd>0) s’mbetën të paktën 2 kolona numerike.", type = "warning")
+      return(NULL)
+    }
 
-    corr_df <- as.data.frame(as.table(corr_mat))
+    corr_mat <- stats::cor(num_df, use = "pairwise.complete.obs")
+
+    corr_df <- as.data.frame(as.table(corr_mat), stringsAsFactors = FALSE)
     colnames(corr_df) <- c("Var1", "Var2", "Korrelacioni")
 
     vars <- colnames(num_df)
-    corr_df$Var1 <- factor(as.character(corr_df$Var1), levels = vars)
-    corr_df$Var2 <- factor(as.character(corr_df$Var2), levels = vars)
+    corr_df$Var1 <- factor(corr_df$Var1, levels = vars)
+    corr_df$Var2 <- factor(corr_df$Var2, levels = vars)
 
-    p <- ggplot(corr_df, aes(x = Var1, y = Var2, fill = Korrelacioni)) +
-      geom_tile(color = scales::alpha("white", 0.35), linewidth = 0.4) +
-      scale_fill_gradient2(
+    corr_df <- corr_df %>%
+      dplyr::mutate(
+        text = paste0(
+          as.character(Var1), " × ", as.character(Var2),
+          "<br>Korrelacioni: ", fmt_fixed(Korrelacioni, digits = 2)
+        )
+      )
+
+    p <- ggplot2::ggplot(corr_df, ggplot2::aes(x = Var1, y = Var2, fill = Korrelacioni, text = text)) +
+      ggplot2::geom_tile(color = scales::alpha("white", 0.35), linewidth = 0.4) +
+      ggplot2::scale_fill_gradient2(
         low = "#0a84ff",
         mid = "white",
         high = "#ff3b30",
         midpoint = 0
       ) +
-      geom_text(
-        aes(label = fmt_fixed(Korrelacioni, digits = 2)),
+      ggplot2::geom_text(
+        ggplot2::aes(label = fmt_fixed(Korrelacioni, digits = 2)),
         color = scales::alpha("white", 0.75),
         size = 4.2
       ) +
-      labs(
+      ggplot2::labs(
         title = "Matrica e korrelacionit",
         x = NULL,
         y = NULL
       ) +
-      theme_minimal(base_size = 13) +
-      theme(
-        panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background  = element_rect(fill = "transparent", color = NA),
-        panel.grid = element_blank(),
-        axis.text.x = element_text(color = scales::alpha("white", 0.92), size = 12),
-        axis.text.y = element_text(color = scales::alpha("white", 0.92), size = 12),
-        plot.title  = element_text(face = "bold", size = 15, color = scales::alpha("white", 0.95))
+      ggplot2::theme_minimal(base_size = 13) +
+      ggplot2::theme(
+        panel.background = ggplot2::element_rect(fill = "transparent", color = NA),
+        plot.background  = ggplot2::element_rect(fill = "transparent", color = NA),
+        panel.grid = ggplot2::element_blank(),
+        axis.text.x = ggplot2::element_text(color = scales::alpha("white", 0.92), size = 12),
+        axis.text.y = ggplot2::element_text(color = scales::alpha("white", 0.92), size = 12),
+        plot.title  = ggplot2::element_text(face = "bold", size = 15, color = scales::alpha("white", 0.95))
       )
 
-    ggplotly(p, tooltip = "Korrelacioni") %>%
-      layout(
+    plotly::ggplotly(p, tooltip = "text") %>%
+      plotly::layout(
         paper_bgcolor = "rgba(0,0,0,0)",
         plot_bgcolor  = "rgba(0,0,0,0)",
         margin = list(t = 60, l = 80, r = 20, b = 60)

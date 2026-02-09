@@ -12,7 +12,6 @@ suppressPackageStartupMessages({
   library(DT)
   library(jsonlite)
   library(zoo)
-  library(scales)
 })
 
 options(scipen = 999)
