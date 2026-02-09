@@ -176,13 +176,13 @@
             allowFileSizeValidation: true,
 
             labelIdle: `
-        <div class="pond-idle">
-          <i class="ri-upload-cloud-2-fill"></i>
-          <div class="pond-text">
-            Drop files here or <span class="filepond--label-action">click to upload</span>.
-          </div>
-        </div>
-      `,
+                <div class="pond-idle">
+                <i class="ri-upload-cloud-2-fill"></i>
+                <div class="pond-text">
+                    Drop files here or <span class="filepond--label-action">click to upload</span>.
+                </div>
+                </div>
+            `,
             labelFileTypeNotAllowed: "Ky fajll s'pranohet",
             fileValidateTypeLabelExpectedTypes: cfg.expectedLabel,
             credits: false
@@ -318,23 +318,20 @@ $(document).on("hidden.bs.modal", "#main_modal_sm", function () {
         }
     }
 
-    // përdoret nga swatch click
     function applyFromSwatch(hex) {
         const input = document.getElementById("bg_color");
-        if (input) input.value = hex;          // vetëm e vendos value (pa dispatch input)
+        if (input) input.value = hex;
         highlightSwatch(hex);
         updateHexText(hex);
         pushToShiny(hex);
     }
 
-    // përdoret kur user zgjedh manualisht në color picker
     function applyFromPicker(hex) {
         highlightSwatch(hex);
         updateHexText(hex);
         pushToShiny(hex);
     }
 
-    // click në swatch
     document.addEventListener("click", function (e) {
         const btn = e.target.closest(".bg-color-swatch");
         if (!btn) return;
@@ -342,14 +339,12 @@ $(document).on("hidden.bs.modal", "#main_modal_sm", function () {
         if (hex) applyFromSwatch(hex);
     });
 
-    // ndryshim manual në picker
     document.addEventListener("input", function (e) {
         if (e.target && e.target.id === "bg_color") {
             applyFromPicker(e.target.value);
         }
     }, true);
 
-    // sync kur hapet/ndryshohet UI (nëse ekziston input)
     function syncOnce() {
         const input = document.getElementById("bg_color");
         if (!input) return;
@@ -358,7 +353,6 @@ $(document).on("hidden.bs.modal", "#main_modal_sm", function () {
 
     document.addEventListener("DOMContentLoaded", syncOnce);
 
-    // kur Shiny rifreskon UI (conditionalPanel), e provojmë prap pas pak
     document.addEventListener("shiny:value", function () {
         setTimeout(syncOnce, 50);
     });

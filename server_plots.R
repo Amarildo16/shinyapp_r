@@ -1,4 +1,6 @@
 server_plots <- function(input, output, session, df) {
+  need     <- shiny::need
+  validate <- shiny::validate
   # =========================================================
   # 0) Dynamic selectors
   # =========================================================
@@ -385,6 +387,64 @@ server_plots <- function(input, output, session, df) {
     if (x < 0)  return(paste0("-", s, "% / vit"))
     "0,00% / vit"
   }
+
+  # =========================
+  # Captions
+  # =========================
+
+  output$cap_eda_ts_raw <- renderText({
+    req(input$eda_series)
+    m <- var_meta(input$eda_series, meta())
+    paste0("Seria origjinale për ", m$label, ".")
+  })
+
+  output$cap_eda_ts_roll <- renderText({
+    req(input$eda_series, input$roll_k)
+    m <- var_meta(input$eda_series, meta())
+    paste0("Mesatare lëvizëse (k = ", input$roll_k, ") për ", m$label, ".")
+  })
+
+  output$cap_eda_ts_dist <- renderText({
+    req(input$eda_series)
+    m <- var_meta(input$eda_series, meta())
+    paste0("Shpërndarja e vlerave për ", m$label, ".")
+  })
+
+  output$cap_eda_rel_scatter <- renderText({
+    req(input$rel_x, input$rel_y)
+    mx <- var_meta(input$rel_x, meta())
+    my <- var_meta(input$rel_y, meta())
+    paste0("Grafik shpërndarjeje: ", mx$label, " kundrejt ", my$label, ".")
+  })
+
+  output$cap_eda_rel_corr <- renderText({
+    "Matrica e korrelacionit (Pearson) për variablat numerike."
+  })
+
+  output$cap_stat_diff_plot <- renderText({
+    req(input$stat_series)
+    m <- var_meta(input$stat_series, meta())
+    paste0("Diferenca e parë (Δyₜ = yₜ − yₜ₋₁) për ", m$label, ".")
+  })
+
+  output$cap_stat_acf_pacf <- renderText({
+    req(input$stat_series)
+    m <- var_meta(input$stat_series, meta())
+    paste0("ACF/PACF mbi diferencën e parë të ", m$label, ".")
+  })
+
+  output$cap_model_plot <- renderText({
+    req(input$model_series, input$model_h)
+    m <- var_meta(input$model_series, meta())
+    paste0("Krahasim ETS vs ARIMA për ", m$label, " (h = ", input$model_h, ").")
+  })
+
+  output$cap_forecast_plot <- renderText({
+    req(input$forecast_series, input$method, input$h)
+    m <- var_meta(input$forecast_series, meta())
+    paste0("Parashikim me metodën ", toupper(input$method), " për ", m$label, " (h = ", input$h, ").")
+  })
+
   
   # ========================= 
   # EDA – Seri kohore 
@@ -481,7 +541,7 @@ server_plots <- function(input, output, session, df) {
     }
 
     # -------------------------
-    # Rolling mean NA-friendly
+    # Rolling mean
     # -------------------------
     d <- d0 %>%
       dplyr::arrange(Time) %>%
@@ -641,74 +701,105 @@ server_plots <- function(input, output, session, df) {
   output$eda_rel_scatter <- renderPlotly({
     req(df_dyn(), input$rel_x, input$rel_y)
 
+    d0 <- df_dyn()
+    req(input$rel_x %in% names(d0), input$rel_y %in% names(d0))
+
     mx <- var_meta(input$rel_x, meta())
     my <- var_meta(input$rel_y, meta())
 
-    d0 <- df_dyn()
-    xlab_time <- time_axis_label(d0$Time)
+    has_time  <- "Time" %in% names(d0)
+    xlab_time <- if (has_time) time_axis_label(d0$Time) else "Rreshti"
 
     d <- d0 %>%
       dplyr::mutate(
         xval = .data[[input$rel_x]],
         yval = .data[[input$rel_y]],
-        hover = paste0(
-          xlab_time, ": ", fmt_time(Time),
-          "<br>", mx$label, ": ", fmt_unit(xval, input$rel_x, meta()),
-          "<br>", my$label, ": ", fmt_unit(yval, input$rel_y, meta())
-        )
-      )
-    d <- d %>% dplyr::filter(!is.na(xval), !is.na(yval))
+        rowi = dplyr::row_number(),
+        hover = if (has_time) {
+          paste0(
+            xlab_time, ": ", fmt_time(.data$Time),
+            "<br>", mx$label, ": ", fmt_unit(xval, input$rel_x, meta()),
+            "<br>", my$label, ": ", fmt_unit(yval, input$rel_y, meta())
+          )
+        } else {
+          paste0(
+            "Rreshti: ", rowi,
+            "<br>", mx$label, ": ", fmt_unit(xval, input$rel_x, meta()),
+            "<br>", my$label, ": ", fmt_unit(yval, input$rel_y, meta())
+          )
+        }
+      ) %>%
+      dplyr::filter(!is.na(xval), !is.na(yval))
 
-    p <- ggplot(d, aes(x = xval, y = yval)) +
-      geom_point(
+    shiny::validate(shiny::need(nrow(d) > 1, "S’ka mjaft pika (pas heqjes së NA)."))
+
+    p <- ggplot2::ggplot(d, ggplot2::aes(x = xval, y = yval, text = hover)) +
+      ggplot2::geom_point(
         size = 2.6,
         alpha = 0.55,
-        color = scales::alpha("#0a84ff", 0.55)
+        color = scales::alpha("white", 0.90)
       ) +
-      geom_smooth(
+      ggplot2::geom_smooth(
         method = "lm",
         se = FALSE,
         linewidth = 1.4,
-        color = "#ff3b30"
+        color = scales::alpha("white", 0.95)
       ) +
-      labs(
+      ggplot2::labs(
         title = "Marrëdhënia ndërmjet variablave",
         subtitle = paste0(mx$label, " kundrejt ", my$label),
         x = if (nzchar(mx$unit)) paste0(mx$label, " (", mx$unit, ")") else mx$label,
         y = if (nzchar(my$unit)) paste0(my$label, " (", my$unit, ")") else my$label
       ) +
-      scale_x_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
-      scale_y_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
-      theme_minimal(base_size = 13) +
-      theme(
-        panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background  = element_rect(fill = "transparent", color = NA),
-        panel.grid.major = element_line(color = scales::alpha("black", 0.08), linewidth = 0.3),
-        panel.grid.minor = element_blank(),
-        axis.text        = element_text(color = scales::alpha("black", 0.65)),
-        plot.title       = element_text(face = "bold", size = 15),
-        plot.subtitle    = element_text(color = scales::alpha("black", 0.55), size = 12)
+      ggplot2::theme_minimal(base_size = 13) +
+      ggplot2::theme(
+        panel.background = ggplot2::element_rect(fill = "transparent", color = NA),
+        plot.background  = ggplot2::element_rect(fill = "transparent", color = NA),
+
+        text       = ggplot2::element_text(color = scales::alpha("white", 0.85)),
+        plot.title = ggplot2::element_text(face = "bold", size = 15, color = scales::alpha("white", 0.95)),
+        plot.subtitle = ggplot2::element_text(color = scales::alpha("white", 0.70), size = 12),
+
+        axis.title = ggplot2::element_text(color = scales::alpha("white", 0.90)),
+        axis.text  = ggplot2::element_text(color = scales::alpha("white", 0.75)),
+        axis.ticks = ggplot2::element_line(color = scales::alpha("white", 0.35)),
+
+        panel.grid.major = ggplot2::element_line(color = scales::alpha("white", 0.10), linewidth = 0.3),
+        panel.grid.minor = ggplot2::element_blank()
       )
 
-    pl <- ggplotly(p, tooltip = NULL) %>%
-      layout(
+    pl <- plotly::ggplotly(p, tooltip = "text") %>%
+      plotly::layout(
         paper_bgcolor = "rgba(0,0,0,0)",
         plot_bgcolor  = "rgba(0,0,0,0)",
         margin = list(t = 60, l = 50, r = 20, b = 60),
-        hovermode = "closest"
+        hovermode = "closest",
+
+        font = list(color = "rgba(255,255,255,0.85)"),
+
+        xaxis = list(
+          tickfont  = list(color = "rgba(255,255,255,0.75)"),
+          titlefont = list(color = "rgba(255,255,255,0.90)"),
+          gridcolor = "rgba(255,255,255,0.10)",
+          zerolinecolor = "rgba(255,255,255,0.10)"
+        ),
+        yaxis = list(
+          tickfont  = list(color = "rgba(255,255,255,0.75)"),
+          titlefont = list(color = "rgba(255,255,255,0.90)"),
+          gridcolor = "rgba(255,255,255,0.10)",
+          zerolinecolor = "rgba(255,255,255,0.10)"
+        )
       )
 
-    marker_idx <- find_traces(pl, function(tr) grepl("markers", tr$mode %||% ""))
-    line_idx   <- find_traces(pl, function(tr) grepl("lines", tr$mode %||% ""))
-
-    if (length(marker_idx) >= 1) {
-      pl <- set_trace_text(pl, marker_idx[1], d$hover)
-    }
-    if (length(line_idx) >= 1) {
-      pl <- skip_trace_hover(pl, line_idx)
+    if (!is.null(pl$x$layout$annotations)) {
+      pl$x$layout$annotations <- lapply(pl$x$layout$annotations, function(a) {
+        if (is.null(a$font)) a$font <- list()
+        a$font$color <- "rgba(255,255,255,0.90)"
+        a
+      })
     }
 
-    plotly_cfg(pl)
+    plotly::config(pl, displaylogo = FALSE, responsive = TRUE)
   })
 
   output$eda_rel_corr <- renderPlotly({
@@ -960,7 +1051,7 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================
-  # ADF computed ONCE
+  # ADF
   # =========================
   adf_res <- reactive({
     req(df_dyn(), input$stat_series)
@@ -1040,7 +1131,7 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================
-  # OUTPUTS (use adf_res())
+  # OUTPUTS
   # =========================
   output$stat_adf_tbl <- renderTable({
     adf_res()$table
@@ -1334,7 +1425,7 @@ server_plots <- function(input, output, session, df) {
   })
 
   # =========================================================
-  # Parashikimi – Objekte reaktive (FAST)
+  # Parashikimi
   # =========================================================
 
   series_dat <- reactive({

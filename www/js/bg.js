@@ -124,7 +124,7 @@
             setLayerFilter("none");
             const { bgCurrent, bgNext } = getLayers();
             if (bgCurrent && bgNext) {
-                bgCurrent.style.backgroundColor = "#0b1c24"; // ndryshoje po do transparent
+                bgCurrent.style.backgroundColor = "#0b1c24";
                 bgNext.style.backgroundColor = "#0b1c24";
             }
             return;

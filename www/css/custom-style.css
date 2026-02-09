@@ -206,7 +206,7 @@ html.sidebar-open .sidebar-backdrop {
 }
 
 /* =========================
-   SIDEBAR CONTENT (WRAPPERS)
+   SIDEBAR CONTENT
 ========================= */
 .app-sidebar .sidebar-main {
     flex: 1 1 auto;
@@ -458,7 +458,6 @@ select,
     background: rgba(255, 255, 255, 0.18) !important;
 }
 
-/* Fix: background i brendshëm i dropdown-it (selectize) */
 .selectize-dropdown-content {
     background: rgba(20, 20, 20, 0.65) !important;
 }
@@ -473,12 +472,10 @@ select,
     background: rgba(255, 255, 255, 0.18) !important;
 }
 
-/* bonus: mos u fut posht elementëve tjerë */
 .selectize-dropdown {
     z-index: 2000 !important;
 }
 
-/* Fix: opsionet e select-it të DataTables (dalin të bardha) */
 #main_modal_fs .dataTables_length select option {
     background: rgba(16, 24, 28, 0.95) !important;
     color: rgba(255, 255, 255, 0.92) !important;
@@ -565,7 +562,6 @@ select,
     }
 }
 
-/* === Preloader overlay (global) === */
 #preloader {
     position: fixed;
     inset: 0;
@@ -573,7 +569,6 @@ select,
     background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(3px);
     display: none;
-    /* e kontrollojmë nga serveri */
 }
 
 #status {
@@ -583,7 +578,6 @@ select,
     transform: translate(-50%, -50%);
 }
 
-/* === Loader që na dhe ti === */
 .loading {
     display: flex;
     justify-content: center;
@@ -729,8 +723,6 @@ select,
     margin-bottom: 18px;
     line-height: 1;
 }
-
-/* =========================================================
 
 /* =========================================================
    MODALS – GLASS STYLE
@@ -959,7 +951,7 @@ select,
 }
 
 /* =========================================================
-   DataTables DARK GLASS – vetëm brenda #main_modal_fs
+   DataTables DARK GLASS
    ========================================================= */
 
 #main_modal_fs .dataTables_wrapper {
@@ -967,7 +959,6 @@ select,
     color: rgba(255, 255, 255, 0.78) !important;
 }
 
-/* dt-top/dt-bottom layout */
 #main_modal_fs .dt-top {
     display: flex;
     justify-content: space-between;
@@ -1075,7 +1066,7 @@ select,
 }
 
 /* =========================================================
-   Saved datasets list (UI)
+   Saved datasets list
    ========================================================= */
 
 .saved-ds-row {
@@ -1431,7 +1422,6 @@ html.bg-none #bg-overlay {
 /* ===== BG Upload: make FilePond fill fullscreen modal ===== */
 .bg-upload-fill {
     height: calc(100vh - 220px);
-    /* rregulloje pak nëse do */
     min-height: 420px;
     display: flex;
     flex-direction: column;
@@ -1448,7 +1438,6 @@ html.bg-none #bg-overlay {
     min-height: 320px;
 }
 
-/* FilePond container to fill */
 .bg-pond-host .filepond--root {
     height: 100%;
     min-height: 320px;
@@ -1460,7 +1449,6 @@ html.bg-none #bg-overlay {
     border-radius: 14px;
 }
 
-/* Center the idle label vertically */
 .bg-pond-host .filepond--drop-label {
     height: 100%;
     min-height: 320px;
@@ -1475,7 +1463,6 @@ html.bg-none #bg-overlay {
     padding: 18px;
 }
 
-/* Optional: make dashed outline nicer */
 .bg-pond-host .filepond--panel-root {
     border: 1px dashed rgba(255, 255, 255, .22);
     background: rgba(255, 255, 255, .04);

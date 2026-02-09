@@ -10,6 +10,9 @@ suppressPackageStartupMessages({
   library(scales)
   library(tseries)
   library(DT)
+  library(jsonlite)
+  library(zoo)
+  library(scales)
 })
 
 options(scipen = 999)
@@ -89,23 +92,18 @@ read_state <- function(path = STATE_FILE) {
     }
   )
 
-  # Siguro strukturën
   if (is.null(st$active)) st$active <- NULL
 
   if (is.null(st$datasets) || !is.data.frame(st$datasets)) {
     st$datasets <- default_state()$datasets
   }
 
-  # Migrim nga format i vjetër (pa time_col / value_cols)
   if (!("time_col" %in% names(st$datasets))) st$datasets$time_col <- NA_character_
   if (!("value_cols" %in% names(st$datasets))) st$datasets$value_cols <- I(vector("list", nrow(st$datasets)))
-
-  # Siguro list-column si duhet
   if (!is.list(st$datasets$value_cols)) {
     st$datasets$value_cols <- as.list(st$datasets$value_cols)
   }
 
-  # Siguro kolonat bazë
   needed <- c("file","added_at","is_active","time_col","value_cols")
   for (k in needed) if (!(k %in% names(st$datasets))) st$datasets[[k]] <- NA
 
@@ -129,7 +127,6 @@ write_state <- function(obj, path = STATE_FILE) {
     null = "null"
   )
 
-  # atomic write: shkruaj tmp -> rename
   writeLines(json, tmp, useBytes = TRUE)
 
   if (file.exists(path)) file.remove(path)
@@ -146,7 +143,6 @@ write_state <- function(obj, path = STATE_FILE) {
 sync_state <- function(files) {
   st <- read_state()
 
-  # filtro vetëm file-at që ekzistojnë
   if (nrow(st$datasets) > 0) {
     st$datasets <- st$datasets[st$datasets$file %in% files, , drop = FALSE]
   }
@@ -166,7 +162,6 @@ sync_state <- function(files) {
     st$datasets <- rbind(st$datasets, add_df)
   }
 
-  # active validim
   if (is.null(st$active) || !nzchar(st$active) || !(st$active %in% files)) {
     if (nrow(st$datasets) > 0 && any(st$datasets$is_active)) {
       st$active <- st$datasets$file[which(st$datasets$is_active)[1]]
@@ -194,7 +189,7 @@ set_active_dataset <- function(file) {
   st
 }
 
-# ---- NEW: config helpers (time_col + value_cols) ----
+# ---- config helpers (time_col + value_cols) ----
 
 get_ds_idx <- function(st, file) {
   if (is.null(st$datasets) || nrow(st$datasets) == 0) return(NA_integer_)
@@ -209,7 +204,6 @@ update_dataset_config <- function(st, file, time_col, value_cols) {
 
   st$datasets$time_col[i] <- as.character(time_col)
 
-  # value_cols si list-column
   value_cols <- as.character(value_cols %||% character(0))
   st$datasets$value_cols[[i]] <- value_cols
 
@@ -238,9 +232,6 @@ list_saved_datasets <- function() {
   ))
 }
 
-# -------------------------
-# Optional packages checks
-# -------------------------
 has_zoo    <- requireNamespace("zoo", quietly = TRUE)
 has_readxl <- requireNamespace("readxl", quietly = TRUE)
 has_vars   <- requireNamespace("vars", quietly = TRUE)
@@ -249,41 +240,84 @@ has_rugarch <- requireNamespace("rugarch", quietly = TRUE)
 # =========================================================
 # 1) Read data safe
 # =========================================================
+detect_csv_delim <- function(path) {
+  lines <- readLines(path, n = 50, warn = FALSE, encoding = "UTF-8")
+  lines <- lines[nzchar(trimws(lines))]
+  if (length(lines) == 0) return(",")
+
+  lines <- lines[1:min(10, length(lines))]
+
+  cands <- c(";", ",", "\t")
+
+  score_one <- function(d) {
+    lens <- vapply(strsplit(lines, d, fixed = TRUE), length, integer(1))
+
+    if (max(lens) <= 1) return(-Inf)
+
+    med <- stats::median(lens)
+    sdv <- stats::sd(lens)
+
+    penalty <- 0
+    if (is.finite(med) && med > 80) penalty <- (med - 80) * 0.25
+
+    (med - sdv) - penalty
+  }
+
+  scores <- vapply(cands, score_one, numeric(1))
+
+  if (!any(is.finite(scores))) return(",")
+  cands[which.max(scores)]
+}
+
 read_data_safe <- function(path, filename = NULL) {
   if (!file.exists(path)) {
     stop("Dataset nuk u gjet në shtegun: ", normalizePath(path, winslash = "/", mustWork = FALSE))
   }
 
-  ext <- tolower(tools::file_ext(filename %||% path))
+  nm <- if (!is.null(filename) && nzchar(filename)) filename else path
+  ext <- tolower(tools::file_ext(nm))
+
+  char_cols <- readr::cols(.default = readr::col_character())
 
   if (ext == "csv") {
-    d <- readr::read_csv(
-      path,
+    delim <- detect_csv_delim(path)
+
+    d <- readr::read_delim(
+      file = path,
+      delim = delim,
       show_col_types = FALSE,
       na = c("", "NA", "N/A", "null", "NULL"),
-      col_types = readr::cols(.default = readr::col_character())
+      col_types = char_cols,
+      trim_ws = TRUE
     )
 
   } else if (ext == "tsv") {
     d <- readr::read_tsv(
-      path,
+      file = path,
       show_col_types = FALSE,
       na = c("", "NA", "N/A", "null", "NULL"),
-      col_types = readr::cols(.default = readr::col_character())
+      col_types = char_cols,
+      trim_ws = TRUE
     )
 
   } else if (ext %in% c("xlsx", "xls")) {
+    has_readxl <- requireNamespace("readxl", quietly = TRUE)
     if (!has_readxl) stop("Për Excel duhet paketa 'readxl' (instaloje).")
-    d <- readxl::read_excel(path, .name_repair = "unique_quiet")
 
-    d <- dplyr::mutate(dplyr::as_tibble(d), dplyr::across(dplyr::everything(), as.character))
+    d <- readxl::read_excel(path, .name_repair = "unique_quiet")
+    d <- dplyr::as_tibble(d)
+    d <- dplyr::mutate(d, dplyr::across(dplyr::everything(), as.character))
 
   } else {
-    d <- readr::read_csv(
-      path,
+    delim <- detect_csv_delim(path)
+
+    d <- readr::read_delim(
+      file = path,
+      delim = delim,
       show_col_types = FALSE,
       na = c("", "NA", "N/A", "null", "NULL"),
-      col_types = readr::cols(.default = readr::col_character())
+      col_types = char_cols,
+      trim_ws = TRUE
     )
   }
 
@@ -885,7 +919,6 @@ default_bg_state <- function() {
   )
 }
 
-# ensure per_tab is a named list so JSON becomes {} when empty (not [])
 normalize_per_tab <- function(x) {
   if (is.null(x)) return(setNames(list(), character()))
   if (!is.list(x)) return(setNames(list(), character()))
@@ -893,9 +926,7 @@ normalize_per_tab <- function(x) {
   x
 }
 
-# Migration: old schema -> new schema
 migrate_bg_state_if_needed <- function(st) {
-  # Old schema had: mode, scope, blur_on, blur, color, global, per_tab, version
   if (!is.null(st$mode) && is.null(st$active_mode)) {
     d <- default_bg_state()
 
@@ -904,11 +935,7 @@ migrate_bg_state_if_needed <- function(st) {
 
     d$active_mode <- active_mode
     d$version     <- as.integer(st$version %||% d$version)
-
-    # remember color even if active_mode != color
     d$modes$color$value <- st$color %||% d$modes$color$value
-
-    # image settings
     d$modes$image$active_scope <- st$scope %||% d$modes$image$active_scope
     if (!d$modes$image$active_scope %in% c("custom","global")) d$modes$image$active_scope <- "custom"
 
@@ -933,34 +960,24 @@ read_bg_state <- function() {
   if (!file.exists(BG_STATE_FILE)) return(d)
 
   st <- jsonlite::fromJSON(BG_STATE_FILE)
-
-  # migrate if old schema
   st <- migrate_bg_state_if_needed(st)
 
-  # normalize + fill defaults (NEW schema)
   st$active_mode <- st$active_mode %||% d$active_mode
   if (!st$active_mode %in% c("image","color","none")) st$active_mode <- d$active_mode
 
   st$version <- as.integer(st$version %||% d$version)
 
   if (is.null(st$modes) || !is.list(st$modes)) st$modes <- d$modes
-
-  # none
   if (is.null(st$modes$none) || !is.list(st$modes$none)) st$modes$none <- d$modes$none
-
-  # color
   if (is.null(st$modes$color) || !is.list(st$modes$color)) st$modes$color <- d$modes$color
   st$modes$color$value <- st$modes$color$value %||% d$modes$color$value
 
-  # image
   if (is.null(st$modes$image) || !is.list(st$modes$image)) st$modes$image <- d$modes$image
   st$modes$image$active_scope <- st$modes$image$active_scope %||% d$modes$image$active_scope
   if (!st$modes$image$active_scope %in% c("custom","global")) st$modes$image$active_scope <- d$modes$image$active_scope
-
   if (is.null(st$modes$image$blur) || !is.list(st$modes$image$blur)) st$modes$image$blur <- d$modes$image$blur
   st$modes$image$blur$on     <- isTRUE(st$modes$image$blur$on %||% d$modes$image$blur$on)
   st$modes$image$blur$amount <- as.integer(st$modes$image$blur$amount %||% d$modes$image$blur$amount)
-
   if (is.null(st$modes$image$scopes) || !is.list(st$modes$image$scopes)) st$modes$image$scopes <- d$modes$image$scopes
   if (is.null(st$modes$image$scopes$custom) || !is.list(st$modes$image$scopes$custom)) st$modes$image$scopes$custom <- d$modes$image$scopes$custom
   if (is.null(st$modes$image$scopes$global) || !is.list(st$modes$image$scopes$global)) st$modes$image$scopes$global <- d$modes$image$scopes$global

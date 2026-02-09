@@ -234,7 +234,6 @@ ui <- fluidPage(
 
                 tags$label("Ngjyra bazë"),
 
-                # ✅ Swatches grid
                 tags$div(
                   id = "bg_color_grid",
                   class = "bg-color-grid",
@@ -254,7 +253,6 @@ ui <- fluidPage(
                   })
                 ),
 
-                # ✅ Manual picker (mbetet për nuanca)
                 tags$div(
                   class = "bg-color-row",
                   tags$input(
@@ -729,7 +727,7 @@ server <- function(input, output, session) {
   })
 
   # =========================================================
-  # 1) PATHS (safe fallbacks)
+  # 1) PATHS
   # =========================================================
   DATA_DIR  <- get0("DATA_DIR",  inherits = TRUE)
 
@@ -737,7 +735,7 @@ server <- function(input, output, session) {
   if (!dir.exists(DATA_DIR)) dir.create(DATA_DIR, recursive = TRUE)
 
   # =========================================================
-  # 2) HELPERS (avoid dplyr::pick conflict)
+  # 2) HELPERS
   # =========================================================
   pick_choice <- function(cur, choices, fallback) {
     if (!is.null(cur) && length(cur) == 1 && nzchar(cur) && cur %in% choices) cur else fallback
@@ -884,7 +882,6 @@ server <- function(input, output, session) {
       df_raw(NULL)
       updateTextInput(session, "data_source", value = "")
 
-      # (opsionale po e bukur) pastro edhe selectors
       updateSelectInput(session, "data_time_col", choices = character(0), selected = character(0))
       updateSelectizeInput(session, "data_value_cols", choices = character(0), selected = character(0), server = TRUE)
 
@@ -919,7 +916,6 @@ server <- function(input, output, session) {
     f <- input$edit_dataset
     req(f)
 
-    # DEBUG i shpejt: me pa a po kapet klikimi
     showNotification(paste0("Edit: ", f), type = "message", duration = 2)
 
     path <- file.path(DATA_DIR, f)
@@ -939,11 +935,9 @@ server <- function(input, output, session) {
 
     nm <- names(d)
 
-    # config nga state (JSON)
     st  <- read_state()
     cfg <- get_dataset_config(st, f)
 
-    # time choices + default (prefero JSON)
     cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
     time_choices <- unique(cand$col)
     if (length(time_choices) == 0) time_choices <- nm
@@ -951,7 +945,6 @@ server <- function(input, output, session) {
     tc <- cfg$time_col %||% time_choices[1]
     if (!(tc %in% time_choices)) tc <- time_choices[1]
 
-    # num cols bazuar në tc
     cols <- setdiff(nm, tc)
     num_cols <- cols[vapply(d[cols], function(x) {
       xn <- to_numeric_safe(x)
@@ -964,7 +957,6 @@ server <- function(input, output, session) {
     vals <- vals[vals %in% num_cols]
     if (!length(vals)) vals <- head(num_cols, min(3, length(num_cols)))
 
-    # vendos "edit mode" + pending
     editing_file(f)
     pending_data(d)
     pending_cfg(list(
@@ -974,10 +966,8 @@ server <- function(input, output, session) {
       value_default = vals
     ))
 
-    # titulli i modalit (opsional)
     output$modal_fs_title <- renderUI(tags$h5(class="modal-title", paste0("Edit dataset: ", f)))
 
-    # body i modalit (njësoj si Proceed)
     output$modal_fs_body <- renderUI(tagList(
       tags$div(class="cfg-top",
         fluidRow(
@@ -1004,10 +994,8 @@ server <- function(input, output, session) {
       DT::datatable(head(d, 200), rownames = FALSE, options = list(scrollX = TRUE))
     })
 
-    # hape modalin e madh
     session$sendCustomMessage("toggle_modal", list(id="main_modal_fs", action="show"))
 
-    # sigurim ekstra që select-at të “ngulen” tamam
     session$onFlushed(function() {
       updateSelectInput(session, "modal_time_col", choices = time_choices, selected = tc)
       updateSelectizeInput(session, "modal_value_cols",
@@ -1098,7 +1086,7 @@ server <- function(input, output, session) {
     df_raw(NULL)
   })
 
-  df <- reactive(df_raw())
+  df <- reactive({ df_raw() })
 
   active_cfg <- reactive({
     f <- active_dataset_file()
@@ -1119,7 +1107,11 @@ server <- function(input, output, session) {
 
     cfg <- active_cfg()
 
-    cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
+    cand <- tryCatch(
+      detect_time_candidates(d),
+      error = function(e) data.frame(col = nm, score = 0)
+    )
+
     time_choices <- unique(cand$col)
     if (length(time_choices) == 0) time_choices <- nm
 
@@ -1132,10 +1124,12 @@ server <- function(input, output, session) {
     updateSelectInput(session, "data_time_col", choices = time_choices, selected = tc_sel)
 
     cols <- setdiff(nm, tc_sel)
+
     num_cols <- cols[vapply(d[cols], function(x) {
       xn <- to_numeric_safe(x)
       mean(!is.na(xn)) >= 0.70
     }, logical(1))]
+
     if (length(num_cols) == 0) num_cols <- cols
 
     vc_sel <- cfg$value_cols %||% character(0)
@@ -1161,10 +1155,30 @@ server <- function(input, output, session) {
     s1 <- choices[1]
     s2 <- if (length(choices) >= 2) choices[2] else choices[1]
 
-    updateSelectInput(session, "eda_series",      choices = choices, selected = pick_choice(isolate(input$eda_series), choices, s1))
-    updateSelectInput(session, "stat_series",     choices = choices, selected = pick_choice(isolate(input$stat_series), choices, s1))
-    updateSelectInput(session, "model_series",    choices = choices, selected = pick_choice(isolate(input$model_series), choices, s1))
-    updateSelectInput(session, "forecast_series", choices = choices, selected = pick_choice(isolate(input$forecast_series), choices, s1))
+    updateSelectInput(session, "eda_series",
+      choices = choices,
+      selected = pick_choice(isolate(input$eda_series), choices, s1)
+    )
+    updateSelectInput(session, "stat_series",
+      choices = choices,
+      selected = pick_choice(isolate(input$stat_series), choices, s1)
+    )
+    updateSelectInput(session, "model_series",
+      choices = choices,
+      selected = pick_choice(isolate(input$model_series), choices, s1)
+    )
+    updateSelectInput(session, "forecast_series",
+      choices = choices,
+      selected = pick_choice(isolate(input$forecast_series), choices, s1)
+    )
+    updateSelectInput(session, "rel_x",
+      choices = choices,
+      selected = pick_choice(isolate(input$rel_x), choices, s1)
+    )
+    updateSelectInput(session, "rel_y",
+      choices = choices,
+      selected = pick_choice(isolate(input$rel_y), choices, s2)
+    )
   }, ignoreInit = FALSE)
 
   # =========================================================
@@ -1386,8 +1400,10 @@ server <- function(input, output, session) {
 
           showNotification(paste0("Dataset u ruajt te data/", safe), type="message", duration=6)
         } else {
-          showNotification("S’u arrit me ruajt datasetin te /data (permissions).", type="error", duration=8)
-        }
+            showNotification("S’u arrit me ruajt datasetin te /data (permissions).", type="error", duration=8)
+            session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "show"))
+            return()
+          }
       } else {
         if (!is.null(final_file) && nzchar(final_file)) {
           st <- set_active_dataset(final_file)
@@ -1484,7 +1500,7 @@ server <- function(input, output, session) {
     list(id="tab_stationary", label="Stacionariteti"),
     list(id="tab_modeling",   label="Modelimi"),
     list(id="tab_forecast",   label="Parashikimi")
-  ) # tab_wrapup (Përfundime) nuk futet
+  )
 
   BG_DEFAULTS <- c(
     tab_settings   = "images/image7.jpeg",
@@ -1496,13 +1512,11 @@ server <- function(input, output, session) {
     tab_forecast   = "images/image5.jpeg"
   )
 
-  # Lexo state 1 herë në start
   BG_STATE <- read_bg_state()
 
   bg_saved <- reactiveVal(BG_STATE)
   bg_dirty <- reactiveVal(FALSE)
 
-  # Siguri për path (mos le NULL)
   APP_DIR <- get0("APP_DIR", inherits = TRUE) %||% getwd()
 
   bg_ver_src <- function(path, st) {
@@ -1512,7 +1526,6 @@ server <- function(input, output, session) {
     paste0(path, "?v=", v)
   }
 
-  # mark dirty on changes (pa ruajtje)
   observeEvent(
     list(input$bg_mode, input$bg_scope, input$bg_blur_on, input$bg_blur, input$bg_color),
     { bg_dirty(TRUE) },
@@ -1586,22 +1599,20 @@ server <- function(input, output, session) {
   })
 
   # ===========================
-  # Drafts for selections (apply only on Save)
+  # Drafts for selections
   # ===========================
-  draft_global_path <- reactiveVal(NULL)                          # string: "images/xxx.jpg"
-  draft_per_tab     <- reactiveVal(setNames(list(), character())) # list(tabid = "images/..")
+  draft_global_path <- reactiveVal(NULL)
+  draft_per_tab     <- reactiveVal(setNames(list(), character()))
 
   # ===========================
-  # SAVE (vetëm këtu ruajmë)
+  # SAVE
   # ===========================
   observeEvent(input$bg_save, {
     st <- bg_saved()
 
-    # safety: struktura minimale
     if (is.null(st$modes) || !is.list(st$modes)) st$modes <- list()
     if (is.null(st$modes$color) || !is.list(st$modes$color)) st$modes$color <- list(value = "#0b1c24")
     if (is.null(st$modes$image) || !is.list(st$modes$image)) st$modes$image <- list()
-
     if (is.null(st$modes$image$blur) || !is.list(st$modes$image$blur)) st$modes$image$blur <- list(on = TRUE, amount = 10L)
     if (is.null(st$modes$image$scopes) || !is.list(st$modes$image$scopes)) st$modes$image$scopes <- list()
     if (is.null(st$modes$image$scopes$custom) || !is.list(st$modes$image$scopes$custom)) {
@@ -1614,29 +1625,23 @@ server <- function(input, output, session) {
       st$modes$image$scopes$custom$per_tab <- setNames(list(), character())
     }
 
-    # mode
     st$active_mode <- input$bg_mode %||% st$active_mode %||% "image"
     if (!st$active_mode %in% c("image", "color", "none")) st$active_mode <- "image"
 
-    # MODE: COLOR
     if (identical(st$active_mode, "color")) {
       if (!is.null(input$bg_color) && nzchar(input$bg_color)) {
         st$modes$color$value <- input$bg_color
       }
     }
 
-    # MODE: IMAGE
     if (identical(st$active_mode, "image")) {
 
-      # blur
       st$modes$image$blur$on     <- isTRUE(input$bg_blur_on %||% st$modes$image$blur$on)
       st$modes$image$blur$amount <- as.integer(input$bg_blur %||% st$modes$image$blur$amount %||% 10)
 
-      # scope
       st$modes$image$active_scope <- input$bg_scope %||% st$modes$image$active_scope %||% "custom"
       if (!st$modes$image$active_scope %in% c("custom", "global")) st$modes$image$active_scope <- "custom"
 
-      # GLOBAL scope: apply ONLY draft_global_path
       if (identical(st$modes$image$active_scope, "global")) {
         dp <- draft_global_path()
         if (!is.null(dp) && nzchar(dp)) {
@@ -1645,7 +1650,6 @@ server <- function(input, output, session) {
         }
       }
 
-      # CUSTOM scope: apply ONLY drafts for tabs edited
       if (identical(st$modes$image$active_scope, "custom")) {
         dpt <- draft_per_tab()
         if (!is.null(dpt) && length(dpt) > 0) {
@@ -1668,20 +1672,18 @@ server <- function(input, output, session) {
 
   }, ignoreInit = TRUE)
 
-  # apliko state n’start
   session$onFlushed(function() {
     st0 <- isolate(bg_saved())
     session$sendCustomMessage("bg_apply", st0)
   }, once = TRUE)
 
   # ===========================
-  # Media Library (Fullscreen modal) - Background picker
+  # Media Library
   # ===========================
-  bg_fs_ctx <- reactiveVal(NULL)        # list(type="bg_picker", target="global") OR (target="tab", tabid="tab_overview")
+  bg_fs_ctx <- reactiveVal(NULL)
   bg_media_selected <- reactiveVal(NULL)
   media_refresh <- reactiveVal(0L)
 
-  # Helper JS for BS5 / jQuery modal show/hide (BG MODAL)
   modal_show_bg <- function() {
     shinyjs::runjs("
       (function(){
@@ -1709,7 +1711,6 @@ server <- function(input, output, session) {
     ")
   }
 
-  # Open modal for GLOBAL
   observeEvent(input$bg_edit_global_btn, {
     bg_media_selected(NULL)
     bg_fs_ctx(list(type = "bg_picker", target = "global"))
@@ -1718,7 +1719,6 @@ server <- function(input, output, session) {
     modal_show_bg()
   }, ignoreInit = TRUE)
 
-  # Open modal for EACH TAB
   lapply(BG_TABS, function(t) {
     tabid <- t$id
     observeEvent(input[[paste0("bg_edit__", tabid)]], {
@@ -1730,14 +1730,12 @@ server <- function(input, output, session) {
     }, ignoreInit = TRUE)
   })
 
-  # Close BG modal (NEW BUTTON ID)
   observeEvent(input$bg_btn_close, {
     modal_hide_bg()
     bg_fs_ctx(NULL)
     bg_media_selected(NULL)
   }, ignoreInit = TRUE)
 
-  # Modal title (BG MODAL)
   output$bg_modal_fs_title <- renderUI({
     ctx <- bg_fs_ctx()
     if (is.null(ctx) || !identical(ctx$type, "bg_picker")) return(tags$h5(""))
@@ -1756,7 +1754,6 @@ server <- function(input, output, session) {
     tags$h5("Media Library")
   })
 
-  # Modal body (BG MODAL)
   output$bg_modal_fs_body <- renderUI({
     ctx <- bg_fs_ctx()
     if (is.null(ctx) || !identical(ctx$type, "bg_picker")) return(NULL)
@@ -1788,7 +1785,6 @@ server <- function(input, output, session) {
     )
   })
 
-  # Gallery UI: list all images inside www/images (recursive)
   output$bg_media_gallery <- renderUI({
     media_refresh()
 
@@ -1812,7 +1808,6 @@ server <- function(input, output, session) {
 
     sel <- bg_media_selected()
 
-    # ✅ ACTIVE image (tick + highlight)
     active_src <- NULL
     if (!is.null(ctx) && identical(ctx$type, "bg_picker")) {
       if (identical(ctx$target, "global")) {
@@ -1845,7 +1840,6 @@ server <- function(input, output, session) {
           class = cls,
           onclick = sprintf("Shiny.setInputValue('bg_media_pick','%s',{priority:'event'});", src),
 
-          # tick sipër për active
           if (is_active) tags$div(class = "media-tick", tags$i(class = "ri-check-line")),
 
           tags$div(class = "media-thumb", tags$img(src = src)),
@@ -1854,7 +1848,6 @@ server <- function(input, output, session) {
             class = "media-meta",
             tags$div(class = "name", basename(src)),
 
-            # delete button (mos ta ndezë select)
             tags$button(
               type  = "button",
               class = "media-delete-btn",
@@ -1870,7 +1863,6 @@ server <- function(input, output, session) {
     )
   })
 
-  # Selecting an image from library
   observeEvent(input$bg_media_pick, {
     bg_media_selected(input$bg_media_pick)
   }, ignoreInit = TRUE)
@@ -1905,20 +1897,17 @@ server <- function(input, output, session) {
 
     if (!nzchar(src)) return()
 
-    # ✅ security: lejo vetëm images/
     if (!startsWith(src, "images/")) {
       showNotification("S’lejohet fshirja jashtë images/.", type="error", duration=4)
       return()
     }
 
-    # ✅ mos lejo file jo-image
     ext <- tolower(tools::file_ext(src))
     if (!ext %in% c("png","jpg","jpeg","webp","gif","svg")) {
       showNotification("Ky s’është file foto.", type="error", duration=4)
       return()
     }
 
-    # ✅ mos lejo me fshi default / aktive / në përdorim
     st <- bg_saved()
 
     in_use <- character(0)
@@ -1966,7 +1955,6 @@ server <- function(input, output, session) {
     }
   }, ignoreInit = TRUE)
 
-  # Safe file name helper
   safe_name <- function(x) {
     x <- gsub("[^A-Za-z0-9_-]+", "_", x)
     x <- gsub("^_+|_+$", "", x)
@@ -2029,7 +2017,6 @@ server <- function(input, output, session) {
 
   }, ignoreInit = TRUE)
 
-  # Use selected image (store draft based on ctx, mark dirty, close BG modal)
   observeEvent(input$bg_btn_use, {
     ctx <- bg_fs_ctx()
     if (is.null(ctx) || !identical(ctx$type, "bg_picker")) return()
@@ -2048,7 +2035,6 @@ server <- function(input, output, session) {
     modal_hide_bg()
 
     bg_fs_ctx(NULL)
-    # bg_media_selected(NULL)  # po deshe e pastrojm dhe selection kur mbyllet
   }, ignoreInit = TRUE)
 
   server_plots(input, output, session, df)

@@ -1,12 +1,19 @@
 {
   "datasets": [
     {
-      "file": "Digjitalizimi_Financiar_Shqiperi_data_BIG_720rows_v2.csv",
-      "added_at": "2026-02-09 10:58:07.438015",
-      "is_active": true,
-      "value_cols": ["Internet_Pct", "Transaksionet_Online"],
+      "file": "Digjitalizimi_Financiar_Shqiperi_data.csv",
+      "added_at": "2026-02-09 13:47:50.335392",
+      "is_active": false,
+      "value_cols": ["Internet_Pct", "Transaksionet_Online", "Blerje_Online_Karte"],
       "time_col": "Data"
+    },
+    {
+      "file": "albania_agriculture_timeseries_1998_2024.csv",
+      "added_at": "2026-02-09 14:10:57.316778",
+      "is_active": true,
+      "value_cols": ["Production_ton", "Area_ha", "Rainfall_mm", "Yield_ton_per_ha"],
+      "time_col": "Year"
     }
   ],
-  "active": "Digjitalizimi_Financiar_Shqiperi_data_BIG_720rows_v2.csv"
+  "active": "albania_agriculture_timeseries_1998_2024.csv"
 }

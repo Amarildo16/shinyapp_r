@@ -3,7 +3,6 @@
 
     /* ======================================================
        1) SINGLE SOURCE OF TRUTH
-       tab value (Shiny)  <->  button selector
     ====================================================== */
     const MAP = {
         tab_settings: "#go_settings",
@@ -13,7 +12,6 @@
         tab_stationary: "#go_stationary",
         tab_modeling: "#go_modeling",
         tab_forecast: "#go_forecast",
-        tab_wrapup: "#go_wrapup",
     };
 
     const BTN_TO_TAB = Object.fromEntries(
@@ -119,7 +117,7 @@
             const selectors = Object.values(MAP).join(",");
 
             jQuery(document).on("click", selectors, function (e) {
-                e.preventDefault(); // mos bo scroll n’krye prej href="#"
+                e.preventDefault();
                 const sel = "#" + this.id;
 
                 const tabVal = BTN_TO_TAB[sel];
