@@ -1,0 +1,28 @@
+{
+  "active_mode": "color",
+  "version": 1770588662,
+  "modes": {
+    "none": [],
+    "color": {
+      "value": "#1f2937"
+    },
+    "image": {
+      "active_scope": "global",
+      "blur": {
+        "on": true,
+        "amount": 20
+      },
+      "scopes": {
+        "custom": {
+          "per_tab": {
+            "tab_settings": "images/image9.jpeg",
+            "tab_stationary": "images/image3.jpeg"
+          }
+        },
+        "global": {
+          "global": "images/image4.jpeg"
+        }
+      }
+    }
+  }
+}

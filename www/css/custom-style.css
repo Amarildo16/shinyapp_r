@@ -61,7 +61,7 @@ body>.container-fluid {
     inset: 0;
     background-size: cover;
     background-position: center;
-    filter: blur(9px) brightness(0.85);
+    filter: blur(var(--bg-blur, 9px)) brightness(0.85);
     transform: scale(1.1);
 }
 
@@ -349,7 +349,7 @@ html.sidebar-open .app-content {
 }
 
 .plot-wrap {
-    margin-top: 8px;
+    margin: 0 0 8px 0;
     padding: 14px 16px 18px;
     border-radius: 14px;
     background: rgba(255, 255, 255, .06);
@@ -456,6 +456,32 @@ select,
 
 .selectize-dropdown .option:hover {
     background: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Fix: background i brendshëm i dropdown-it (selectize) */
+.selectize-dropdown-content {
+    background: rgba(20, 20, 20, 0.65) !important;
+}
+
+.selectize-dropdown [data-selectable] {
+    background: transparent !important;
+    color: #fff !important;
+}
+
+.selectize-dropdown [data-selectable].active,
+.selectize-dropdown [data-selectable]:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* bonus: mos u fut posht elementëve tjerë */
+.selectize-dropdown {
+    z-index: 2000 !important;
+}
+
+/* Fix: opsionet e select-it të DataTables (dalin të bardha) */
+#main_modal_fs .dataTables_length select option {
+    background: rgba(16, 24, 28, 0.95) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
 }
 
 .irs--shiny .irs-line {
@@ -1113,100 +1139,433 @@ select,
     box-shadow: 0 0 0 1px rgba(52, 199, 89, .10) inset;
 }
 
-/* container që futet brenda FilePond item */
-#main_modal_sm .pond-inline-preview {
-    margin-top: 8px;
-    overflow: hidden;
-    max-height: 0;
-    opacity: 0;
-    transform: translateY(-4px);
-    transition: max-height .28s ease, opacity .28s ease, transform .28s ease;
-    width: 100%;
-}
-
-#main_modal_sm .filepond--item.pond-inline-open .pond-inline-preview {
-    max-height: 320px;
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* karta */
-#main_modal_sm .pond-preview-card {
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, .10);
-    background: rgba(10, 14, 16, .65);
-    padding: 10px 10px 8px 10px;
-}
-
-/* header si te ChatGPT */
-#main_modal_sm .pond-preview-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, .08);
-}
-
-#main_modal_sm .pond-preview-title {
-    font-weight: 700;
-    font-size: 14px;
-    color: rgba(255, 255, 255, .95);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-#main_modal_sm .pond-preview-actions {
-    display: flex;
-    gap: 10px;
+.bg-tabs-title {
+    margin-top: 12px;
+    font-weight: 600;
     opacity: .9;
 }
 
-#main_modal_sm .pond-preview-actions i {
-    font-size: 16px;
-    cursor: default;
-    color: rgba(255, 255, 255, .85);
+.bg-tabs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
 }
 
-#main_modal_sm .pond-preview-meta {
-    font-size: 12px;
-    opacity: .8;
-    margin-top: 6px;
-    margin-bottom: 6px;
+.bg-tab-card {
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .04);
 }
 
-/* tabela me scroll si preview */
-#main_modal_sm .pond-preview-table-wrap {
-    max-height: 200px;
-    overflow: auto;
+.bg-tab-name {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.bg-tab-card .form-group {
+    margin-bottom: 0;
+}
+
+.bg-tabs-title {
+    margin-top: 12px;
+    font-weight: 600;
+    opacity: .9;
+}
+
+.bg-tabs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.bg-tab-card {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .04);
+}
+
+.bg-tab-thumb {
+    width: 140px;
+    height: 78px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, .08);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: rgba(0, 0, 0, .15);
+    flex: 0 0 auto;
 }
 
-#main_modal_sm table.pond-preview-table {
+.bg-tab-thumb img {
     width: 100%;
-    border-collapse: collapse;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.bg-tab-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.bg-tab-name {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.bg-tab-status {
+    opacity: .75;
     font-size: 12px;
 }
 
-#main_modal_sm table.pond-preview-table th,
-#main_modal_sm table.pond-preview-table td {
-    padding: 8px 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, .06);
-    color: rgba(255, 255, 255, .88);
+.bg-tab-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#bg-wrapper {
+    background: var(--bg-color, #0b1c24);
+}
+
+html.bg-color .bg-layer {
+    display: none;
+}
+
+html.bg-none .bg-layer {
+    display: none;
+}
+
+html.bg-none #bg-overlay {
+    display: none;
+}
+
+.bg-tabs-title {
+    margin-top: 12px;
+    font-weight: 600;
+    opacity: .9;
+}
+
+.bg-tabs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.bg-tab-card {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .04);
+}
+
+.bg-tab-thumb {
+    width: 140px;
+    height: 78px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: rgba(0, 0, 0, .15);
+    flex: 0 0 auto;
+}
+
+.bg-tab-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.bg-tab-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.bg-tab-name {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.bg-tab-status {
+    opacity: .75;
+    font-size: 12px;
+}
+
+.bg-tab-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bg-save-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.bg-badge {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .06);
+    opacity: .9;
+}
+
+.bg-hidden-fileinput {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.media-card {
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .06);
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.media-card.selected {
+    border-color: rgba(255, 255, 255, .55);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .12) inset;
+}
+
+.media-thumb {
+    height: 110px;
+}
+
+.media-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.media-meta {
+    padding: 10px;
+    font-size: 12px;
+    opacity: .9;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.media-meta .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-#main_modal_sm table.pond-preview-table th {
-    position: sticky;
-    top: 0;
-    background: rgba(16, 24, 28, .92);
+.media-card {
+    position: relative;
+}
+
+.media-delete-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.media-delete-btn i {
+    font-size: 18px;
+}
+
+.media-tick {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .22);
+    background: rgba(0, 0, 0, .35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 2;
 }
 
-/* row number column pak më e zbehtë */
-#main_modal_sm table.pond-preview-table td:first-child,
-#main_modal_sm table.pond-preview-table th:first-child {
-    opacity: .75;
+.media-tick i {
+    font-size: 18px;
+}
+
+.media-card.is-active {
+    border-color: rgba(255, 255, 255, .55);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .12) inset;
+}
+
+/* ===== BG Upload: make FilePond fill fullscreen modal ===== */
+.bg-upload-fill {
+    height: calc(100vh - 220px);
+    /* rregulloje pak nëse do */
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+}
+
+.bg-upload-hint {
+    display: block;
+    margin-bottom: 10px;
+    opacity: .85;
+}
+
+.bg-pond-host {
+    flex: 1 1 auto;
+    min-height: 320px;
+}
+
+/* FilePond container to fill */
+.bg-pond-host .filepond--root {
+    height: 100%;
+    min-height: 320px;
+    margin: 0;
+}
+
+.bg-pond-host .filepond--panel-root {
+    height: 100%;
+    border-radius: 14px;
+}
+
+/* Center the idle label vertically */
+.bg-pond-host .filepond--drop-label {
+    height: 100%;
+    min-height: 320px;
+}
+
+.bg-pond-host .filepond--drop-label label {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 18px;
+}
+
+/* Optional: make dashed outline nicer */
+.bg-pond-host .filepond--panel-root {
+    border: 1px dashed rgba(255, 255, 255, .22);
+    background: rgba(255, 255, 255, .04);
+}
+
+.bg-color-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0 14px 0;
+}
+
+.bg-color-swatch {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+    cursor: pointer;
+    outline: none;
+    padding: 0;
+}
+
+.bg-color-swatch.is-selected {
+    border-color: rgba(255, 255, 255, .7);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, .12);
+    transform: translateY(-1px);
+}
+
+.bg-color-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bg-color-hex {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    opacity: .85;
+}
+
+.sidebar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.footer-by small {
+    opacity: .85;
+}
+
+.footer-social {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.social-link {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .06);
+    color: rgba(255, 255, 255, .9);
+    text-decoration: none;
+    transition: transform .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.social-link:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, .10);
+    border-color: rgba(255, 255, 255, .28);
+}
+
+.social-link i {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.saved-ds-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.saved-ds-edit,
+.saved-ds-trash {
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    opacity: .85;
+}
+
+.saved-ds-edit:hover,
+.saved-ds-trash:hover {
+    opacity: 1;
 }

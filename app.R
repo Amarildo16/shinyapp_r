@@ -1,6 +1,8 @@
 source("helpers.R")
 source("server_plots.R")
 
+  BG_STATE <- read_bg_state()
+
 ui <- fluidPage(
   shinyjs::useShinyjs(),
 
@@ -86,24 +88,43 @@ ui <- fluidPage(
         actionButton("go_eda_rel",        "Analiza eksploruese – Marrëdhënie",   class = "btn btn-light nav-btn"),
         actionButton("go_stationary",     "Stacionariteti",                      class = "btn btn-light nav-btn"),
         actionButton("go_modeling",       "Modelimi",                            class = "btn btn-light nav-btn"),
-        actionButton("go_forecast",       "Parashikimi",                         class = "btn btn-light nav-btn"),
-        actionButton("go_wrapup",         "Përfundime",                          class = "btn btn-light nav-btn")
+        actionButton("go_forecast",       "Parashikimi",                         class = "btn btn-light nav-btn")
       ),
 
+      div(class = "glass-divider"),
+
       div(
-        class = "sidebar-footer-wrap",
-        div(class = "glass-divider"),
-        div(
-          class = "sidebar-footer",
-          tags$small(
-            "By ",
-            tags$a(
-              "Amarildo Alla",
-              href = "https://github.com/Amarildo16",
-              target = "_blank",
-              rel = "noopener noreferrer",
-              class = "github-link"
-            )
+        class = "sidebar-footer",
+        tags$small(class = "footer-by", "By Amarildo Alla"),
+
+        tags$div(
+          class = "footer-social",
+
+          tags$a(
+            href   = "https://instagram.com/amarildo__alla",
+            target = "_blank",
+            rel    = "noopener noreferrer",
+            class  = "social-link",
+            `aria-label` = "Instagram",
+            tags$i(class = "ri-instagram-line")
+          ),
+
+          tags$a(
+            href   = "https://al.linkedin.com/in/amarildo-alla-49a793316",
+            target = "_blank",
+            rel    = "noopener noreferrer",
+            class  = "social-link",
+            `aria-label` = "LinkedIn",
+            tags$i(class = "ri-linkedin-box-line")
+          ),
+
+          tags$a(
+            href   = "https://github.com/Amarildo16",
+            target = "_blank",
+            rel    = "noopener noreferrer",
+            class  = "social-link",
+            `aria-label` = "GitHub",
+            tags$i(class = "ri-github-line")
           )
         )
       )
@@ -160,26 +181,97 @@ ui <- fluidPage(
               radioButtons(
                 "bg_mode",
                 "Zgjidh mënyrën",
-                choices = c("Foto" = "image", "Vetëm ngjyrë" = "color", "Pa background" = "none"),
-                selected = "image",
-                inline = TRUE
+                choices  = c("Foto" = "image", "Vetëm ngjyrë" = "color", "Pa background" = "none"),
+                selected = BG_STATE$active_mode %||% "image",
+                inline   = TRUE
               ),
 
               conditionalPanel(
                 condition = "input.bg_mode == 'image'",
-                fileInput("bg_image", "Ngarko foto background", accept = c("image/png", "image/jpeg", "image/jpg")),
-                checkboxInput("bg_blur_on", "Blur", value = TRUE),
-                sliderInput("bg_blur", "Blur strength", min = 0, max = 20, value = 10, step = 1)
+
+                radioButtons(
+                  "bg_scope",
+                  "Zgjidh foto",
+                  choices  = c("Global" = "global", "Custom për faqe" = "custom"),
+                  selected = BG_STATE$modes$image$active_scope %||% "custom",
+                  inline   = TRUE
+                ),
+
+                conditionalPanel(
+                  condition = "input.bg_scope == 'global'",
+                  tags$div(class = "bg-tabs-title", "Foto globale"),
+                  uiOutput("bg_global_card"),
+                  div(
+                    class = "bg-hidden-fileinput",
+                    fileInput("bg_global_upload", label = NULL, accept = c("image/png", "image/jpeg", "image/jpg"))
+                  )
+                ),
+
+                conditionalPanel(
+                  condition = "input.bg_scope == 'custom'",
+                  tags$div(class = "bg-tabs-title", "Foto për çdo tab"),
+                  uiOutput("bg_tab_cards")
+                ),
+
+                checkboxInput(
+                  "bg_blur_on",
+                  "Blur",
+                  value = isTRUE(BG_STATE$modes$image$blur$on)
+                ),
+
+                sliderInput(
+                  "bg_blur",
+                  "Blur strength",
+                  min   = 0,
+                  max   = 20,
+                  value = as.numeric(BG_STATE$modes$image$blur$amount %||% 10),
+                  step  = 1
+                )
               ),
 
               conditionalPanel(
-                condition = "input.bg_mode != 'image'",
-                tags$label("Ngjyra e background-it"),
-                tags$input(id="bg_color", type="color", value="#0b1c24",
-                          style="width:120px;height:42px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:transparent;")
+                condition = "input.bg_mode == 'color'",
+
+                tags$label("Ngjyra bazë"),
+
+                # ✅ Swatches grid
+                tags$div(
+                  id = "bg_color_grid",
+                  class = "bg-color-grid",
+                  lapply(c(
+                    "#0b1c24", "#111827", "#1f2937", "#374151", "#6b7280",
+                    "#ef4444", "#f97316", "#f59e0b", "#eab308",
+                    "#22c55e", "#10b981", "#06b6d4", "#3b82f6",
+                    "#6366f1", "#8b5cf6", "#ec4899"
+                  ), function(hex) {
+                    tags$button(
+                      type = "button",
+                      class = "bg-color-swatch",
+                      `data-color` = hex,
+                      style = paste0("background:", hex, ";"),
+                      title = hex
+                    )
+                  })
+                ),
+
+                # ✅ Manual picker (mbetet për nuanca)
+                tags$div(
+                  class = "bg-color-row",
+                  tags$input(
+                    id    = "bg_color",
+                    type  = "color",
+                    value = BG_STATE$modes$color$value %||% "#0b1c24",
+                    style = "width:140px;height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:transparent;"
+                  ),
+                  tags$span(id="bg_color_hex_txt", class="bg-color-hex", "")
+                )
               ),
 
-              tags$small("Ndryshimet aplikohen menjëherë (live).", style="opacity:.8;display:block;margin-top:10px;")
+              div(
+                class = "bg-save-row",
+                actionButton("bg_save", "Save", class = "glass-btn"),
+                uiOutput("bg_dirty_badge")
+              ),
             )
           ),
 
@@ -510,39 +602,6 @@ ui <- fluidPage(
                 )
               )
             )
-          ),
-
-          tabPanel(
-            title = "Përfundime",
-            value = "tab_wrapup",
-
-            div(class = "glass-divider"),
-
-            div(
-              class = "section-box",
-              h3("Përfundime"),
-              tags$ul(
-                tags$li("Prodhimi bujqësor në Shqipëri shfaq prirje afatgjatë rritëse, shoqëruar me variabilitet vjetor."),
-                tags$li("Testet e stacionaritetit sugjerojnë nevojën për transformime (p.sh. diferencim) përpara modelimit ARIMA, kur seria nuk është stacionare."),
-                tags$li("Metodat SES dhe Holt rezultojnë të përshtatshme për parashikime afatshkurtra, sidomos kur struktura e serisë është e qëndrueshme."),
-                tags$li("ARIMA ofron fleksibilitet më të lartë për modelim dhe parashikim, veçanërisht kur struktura kërkon përfshirje të komponentëve autoregresivë dhe mesatares lëvizëse."),
-                tags$li("Aplikacioni Shiny shërben si mjet eksplorues dhe demonstrues; analiza e plotë dokumentohet në raportin përkatës Rmd.")
-              )
-            ),
-
-            div(
-              class = "section-box",
-              tags$details(
-                open = FALSE,
-                tags$summary(tags$strong("Shënim metodologjik: dekompozimi i serive kohore")),
-                p("Dekompozimi sezonal u vlerësua si pjesë e rrjedhës së analizës."),
-                p(strong("Përfundim: "), "Nuk është i zbatueshëm për këtë dataset."),
-                tags$ul(
-                  tags$li("Të dhënat janë vjetore (frequency = 1); rrjedhimisht nuk mund të identifikohet komponent sezonal."),
-                  tags$li("Analiza fokusohet në trendin afatgjatë, variabilitetin, stacionaritetin dhe parashikimin.")
-                )
-              )
-            )
           )
         )
       )
@@ -624,7 +683,6 @@ server <- function(input, output, session) {
   observeEvent(input$go_stationary, { updateTabsetPanel(session, "main_tabs", "tab_stationary") })
   observeEvent(input$go_modeling,   { updateTabsetPanel(session, "main_tabs", "tab_modeling") })
   observeEvent(input$go_forecast,   { updateTabsetPanel(session, "main_tabs", "tab_forecast") })
-  observeEvent(input$go_wrapup,     { updateTabsetPanel(session, "main_tabs", "tab_wrapup") })
 
   uploaded_tmp_path <- reactiveVal(NULL)
   uploaded_tmp_name <- reactiveVal(NULL)
@@ -668,6 +726,7 @@ server <- function(input, output, session) {
   saved_datasets      <- reactiveVal(list_saved_datasets())
   active_dataset_file <- reactiveVal(NULL)
   pending_delete_file <- reactiveVal(NULL)
+  editing_file <- reactiveVal(NULL)
 
   output$saved_datasets_ui <- renderUI({
     files   <- saved_datasets()
@@ -701,6 +760,7 @@ server <- function(input, output, session) {
 
             div(
               class = paste("section-box saved-ds-item", if (is_active) "is-active" else ""),
+
               tags$div(
                 class = "saved-ds-row",
                 onclick = sprintf(
@@ -715,14 +775,28 @@ server <- function(input, output, session) {
                   if (is_active) tags$span(class = "saved-ds-badge", "Aktiv") else NULL
                 ),
 
-                tags$button(
-                  type  = "button",
-                  class = "saved-ds-trash",
-                  onclick = sprintf(
-                    "event.stopPropagation(); Shiny.setInputValue('delete_dataset', %s, {priority:'event'});",
-                    js_val(f)
+                tags$div(
+                  class = "saved-ds-actions",
+
+                  tags$button(
+                    type  = "button",
+                    class = "saved-ds-edit",
+                    onclick = sprintf(
+                      "event.stopPropagation(); Shiny.setInputValue('edit_dataset', %s, {priority:'event'});",
+                      js_val(f)
+                    ),
+                    icon("pen")
                   ),
-                  icon("trash")
+
+                  tags$button(
+                    type  = "button",
+                    class = "saved-ds-trash",
+                    onclick = sprintf(
+                      "event.stopPropagation(); Shiny.setInputValue('delete_dataset', %s, {priority:'event'});",
+                      js_val(f)
+                    ),
+                    icon("trash")
+                  )
                 )
               )
             )
@@ -733,20 +807,29 @@ server <- function(input, output, session) {
   })
 
   observeEvent(saved_datasets(), {
-    files <- saved_datasets()
+    files <- saved_datasets() %||% character(0)
 
     st <- tryCatch(sync_state(files), error = function(e) list(active = NULL))
 
-    cur <- active_dataset_file() %||% st$active
-    if (!is.null(cur) && !(cur %in% files)) cur <- NULL
+    if (length(files) == 0) {
+      active_dataset_file(NULL)
+      return()
+    }
 
-    if (is.null(cur) && length(files)) cur <- files[1]
+    cur <- active_dataset_file() %||% st$active %||% files[1]
 
-    active_dataset_file(cur)
+    if (is.null(cur) || !nzchar(cur) || !(cur %in% files)) {
+      cur <- st$active %||% files[1]
+    }
+
+    if (!identical(active_dataset_file(), cur)) {
+      active_dataset_file(cur)
+    }
 
   }, ignoreInit = FALSE)
 
   observeEvent(input$activate_dataset, {
+    editing_file(NULL)
     sel <- input$activate_dataset
     req(sel)
 
@@ -774,15 +857,15 @@ server <- function(input, output, session) {
     }
 
     if (is.null(sel) && !length(files)) {
-      if (!is.null(DATA_PATH) && file.exists(DATA_PATH)) {
-        d <- tryCatch(read_data_safe(DATA_PATH, basename(DATA_PATH)), error = function(e) NULL)
-        df_raw(d)
-        updateTextInput(session, "data_source", value = "")
-      } else {
-        df_raw(NULL)
-        updateTextInput(session, "data_source", value = "")
-        showNotification("S’ka dataset demo te data/ (DATA_PATH mungon).", type = "warning", duration = 6)
-      }
+      df_raw(NULL)
+      updateTextInput(session, "data_source", value = "")
+
+      # (opsionale po e bukur) pastro edhe selectors
+      updateSelectInput(session, "data_time_col", choices = character(0), selected = character(0))
+      updateSelectizeInput(session, "data_value_cols", choices = character(0), selected = character(0), server = TRUE)
+
+      showNotification("S’ka databazë. Ngarko një dataset.", type = "warning", duration = 5)
+      updateTabsetPanel(session, "main_tabs", selected = "tab_settings")
       return()
     }
 
@@ -807,6 +890,110 @@ server <- function(input, output, session) {
     updateTextInput(session, "data_source", value = sel)
 
   }, ignoreInit = FALSE)
+
+  observeEvent(input$edit_dataset, {
+    f <- input$edit_dataset
+    req(f)
+
+    # DEBUG i shpejt: me pa a po kapet klikimi
+    showNotification(paste0("Edit: ", f), type = "message", duration = 2)
+
+    path <- file.path(DATA_DIR, f)
+    if (!file.exists(path)) {
+      showNotification("Dataset-i s’u gjet në /data.", type = "error", duration = 6)
+      return()
+    }
+
+    d <- tryCatch(
+      read_data_safe(path, f),
+      error = function(e) {
+        showNotification(paste0("Gabim gjatë leximit: ", e$message), type = "error", duration = 8)
+        NULL
+      }
+    )
+    if (is.null(d)) return()
+
+    nm <- names(d)
+
+    # config nga state (JSON)
+    st  <- read_state()
+    cfg <- get_dataset_config(st, f)
+
+    # time choices + default (prefero JSON)
+    cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
+    time_choices <- unique(cand$col)
+    if (length(time_choices) == 0) time_choices <- nm
+
+    tc <- cfg$time_col %||% time_choices[1]
+    if (!(tc %in% time_choices)) tc <- time_choices[1]
+
+    # num cols bazuar në tc
+    cols <- setdiff(nm, tc)
+    num_cols <- cols[vapply(d[cols], function(x) {
+      xn <- to_numeric_safe(x)
+      mean(!is.na(xn)) >= 0.70
+    }, logical(1))]
+    if (length(num_cols) == 0) num_cols <- cols
+
+    vals <- cfg$value_cols %||% character(0)
+    vals <- setdiff(vals, tc)
+    vals <- vals[vals %in% num_cols]
+    if (!length(vals)) vals <- head(num_cols, min(3, length(num_cols)))
+
+    # vendos "edit mode" + pending
+    editing_file(f)
+    pending_data(d)
+    pending_cfg(list(
+      nm = nm,
+      time_choices  = time_choices,
+      time_default  = tc,
+      value_default = vals
+    ))
+
+    # titulli i modalit (opsional)
+    output$modal_fs_title <- renderUI(tags$h5(class="modal-title", paste0("Edit dataset: ", f)))
+
+    # body i modalit (njësoj si Proceed)
+    output$modal_fs_body <- renderUI(tagList(
+      tags$div(class="cfg-top",
+        fluidRow(
+          column(3,
+            selectInput("modal_time_col", "Kolona e kohës",
+              choices  = time_choices,
+              selected = tc
+            )
+          ),
+          column(5,
+            selectizeInput("modal_value_cols", "Seritë numerike",
+              choices  = num_cols,
+              selected = vals,
+              multiple = TRUE
+            )
+          )
+        )
+      ),
+      tags$hr(),
+      DT::DTOutput("csv_preview_big")
+    ))
+
+    output$csv_preview_big <- DT::renderDT({
+      DT::datatable(head(d, 200), rownames = FALSE, options = list(scrollX = TRUE))
+    })
+
+    # hape modalin e madh
+    session$sendCustomMessage("toggle_modal", list(id="main_modal_fs", action="show"))
+
+    # sigurim ekstra që select-at të “ngulen” tamam
+    session$onFlushed(function() {
+      updateSelectInput(session, "modal_time_col", choices = time_choices, selected = tc)
+      updateSelectizeInput(session, "modal_value_cols",
+        choices  = num_cols,
+        selected = vals,
+        server   = TRUE
+      )
+    }, once = TRUE)
+
+  }, ignoreInit = TRUE)
 
   observeEvent(input$delete_dataset, {
     sel <- input$delete_dataset
@@ -884,14 +1071,17 @@ server <- function(input, output, session) {
       }
     }
 
-    if (!is.null(DATA_PATH) && file.exists(DATA_PATH)) {
-      df_raw(read_data_safe(DATA_PATH))
-    } else {
-      df_raw(NULL)
-    }
+    df_raw(NULL)
   })
 
   df <- reactive(df_raw())
+
+  active_cfg <- reactive({
+    f <- active_dataset_file()
+    if (is.null(f) || !nzchar(f)) return(list(time_col = NULL, value_cols = character(0)))
+    st <- read_state()
+    get_dataset_config(st, f)
+  })
 
   # =========================================================
   # 5) UPDATE SELECTORS WHEN df() CHANGES
@@ -903,12 +1093,17 @@ server <- function(input, output, session) {
     nm <- names(d)
     if (length(nm) == 0) return()
 
+    cfg <- active_cfg()
+
     cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
     time_choices <- unique(cand$col)
     if (length(time_choices) == 0) time_choices <- nm
 
-    tc_cur <- isolate(input$data_time_col)
-    tc_sel <- pick_choice(tc_cur, time_choices, time_choices[1])
+    tc_sel <- cfg$time_col
+    if (is.null(tc_sel) || !nzchar(tc_sel) || !(tc_sel %in% time_choices)) {
+      tc_cur <- isolate(input$data_time_col)
+      tc_sel <- pick_choice(tc_cur, time_choices, time_choices[1])
+    }
 
     updateSelectInput(session, "data_time_col", choices = time_choices, selected = tc_sel)
 
@@ -919,8 +1114,13 @@ server <- function(input, output, session) {
     }, logical(1))]
     if (length(num_cols) == 0) num_cols <- cols
 
-    vc_cur <- isolate(input$data_value_cols)
-    vc_sel <- vc_cur[vc_cur %in% num_cols]
+    vc_sel <- cfg$value_cols %||% character(0)
+    vc_sel <- vc_sel[vc_sel %in% num_cols]
+
+    if (length(vc_sel) == 0) {
+      vc_cur <- isolate(input$data_value_cols)
+      vc_sel <- vc_cur[vc_cur %in% num_cols]
+    }
     if (length(vc_sel) == 0) vc_sel <- head(num_cols, min(3, length(num_cols)))
 
     updateSelectizeInput(session, "data_value_cols",
@@ -929,7 +1129,8 @@ server <- function(input, output, session) {
       server   = TRUE
     )
 
-    choices <- num_cols
+    choices <- vc_sel
+    if (length(choices) == 0) choices <- num_cols
     if (length(choices) == 0) choices <- cols
     if (length(choices) == 0) return()
 
@@ -940,9 +1141,6 @@ server <- function(input, output, session) {
     updateSelectInput(session, "stat_series",     choices = choices, selected = pick_choice(isolate(input$stat_series), choices, s1))
     updateSelectInput(session, "model_series",    choices = choices, selected = pick_choice(isolate(input$model_series), choices, s1))
     updateSelectInput(session, "forecast_series", choices = choices, selected = pick_choice(isolate(input$forecast_series), choices, s1))
-    updateSelectInput(session, "rel_x",           choices = choices, selected = pick_choice(isolate(input$rel_x), choices, s1))
-    updateSelectInput(session, "rel_y",           choices = choices, selected = pick_choice(isolate(input$rel_y), choices, s2))
-
   }, ignoreInit = FALSE)
 
   # =========================================================
@@ -959,8 +1157,7 @@ server <- function(input, output, session) {
       output$modal_sm_body <- renderUI({
         tagList(
           tags$div(id = "csv_file_modal_pond_host"),
-          fileInput("csv_file_modal", label = NULL, accept = c(".csv")),
-          session$sendCustomMessage("csv_inline_preview", list(ok = FALSE, html = ""))
+          fileInput("csv_file_modal", label = NULL, accept = c(".csv"))
         )
       })
       session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "show"))
@@ -1019,11 +1216,6 @@ server <- function(input, output, session) {
 
     title <- tools::file_path_sans_ext(input$csv_file_modal$name)
 
-    session$sendCustomMessage("csv_inline_preview", list(
-      inputId = "csv_file_modal",
-      html = make_inline_preview_html(d, title = title, max_rows = 10, max_cols = 6)
-    ))
-
     if (nzchar(input$csv_file_modal$name)) {
       if (is.null(isolate(input$data_source)) || !nzchar(isolate(input$data_source))) {
         updateTextInput(session, "data_source", value = input$csv_file_modal$name)
@@ -1034,6 +1226,7 @@ server <- function(input, output, session) {
   }, ignoreInit = TRUE)
 
   observeEvent(input$btn_cancel_upload, {
+    editing_file(NULL)
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "hide"))
     pending_cfg(NULL); pending_data(NULL)
     uploaded_tmp_path(NULL); uploaded_tmp_name(NULL)
@@ -1077,15 +1270,25 @@ server <- function(input, output, session) {
 
   observeEvent(input$modal_time_col, {
     req(pending_data())
-    d <- pending_data()
+    d  <- pending_data()
     nm <- names(d)
 
-    sel <- isolate(input$modal_value_cols)
-    sel <- setdiff(sel, input$modal_time_col)
+    tc <- input$modal_time_col
 
-    updateSelectizeInput(
-      session, "modal_value_cols",
-      choices  = setdiff(nm, input$modal_time_col),
+    cols <- setdiff(nm, tc)
+    num_cols <- cols[vapply(d[cols], function(x) {
+      xn <- to_numeric_safe(x)
+      mean(!is.na(xn)) >= 0.70
+    }, logical(1))]
+    if (length(num_cols) == 0) num_cols <- cols
+
+    sel <- isolate(input$modal_value_cols)
+    sel <- setdiff(sel, tc)
+    sel <- sel[sel %in% num_cols]
+    if (!length(sel)) sel <- head(num_cols, min(3, length(num_cols)))
+
+    updateSelectizeInput(session, "modal_value_cols",
+      choices  = num_cols,
       selected = sel,
       server   = TRUE
     )
@@ -1104,73 +1307,106 @@ server <- function(input, output, session) {
     vals <- setdiff(vals, tc)
 
     cols <- setdiff(nm, tc)
+
     num_cols <- cols[vapply(d[cols], function(x) {
       xn <- to_numeric_safe(x)
       mean(!is.na(xn)) >= 0.70
     }, logical(1))]
+
     if (length(num_cols) == 0) num_cols <- cols
+
+    vals <- vals[vals %in% num_cols]
     if (length(vals) == 0) vals <- head(num_cols, min(3, length(num_cols)))
 
-    updateSelectInput(session, "data_time_col", choices = nm, selected = tc)
-    updateSelectizeInput(session, "data_value_cols",
-      choices  = num_cols,
-      selected = vals,
-      server   = TRUE
-    )
+    chosen_tc       <- tc
+    chosen_vals     <- vals
+    chosen_num_cols <- num_cols
 
-    dup_sel  <- isolate(input$data_dup)  %||% "mean"
-    freq_sel <- isolate(input$data_freq) %||% "auto"
-
-    updateSelectInput(session, "data_dup",
-      choices  = c("mean", "sum", "first", "last"),
-      selected = dup_sel
-    )
-    updateSelectInput(session, "data_freq",
-      choices  = c("auto", "yearly", "quarterly", "monthly", "weekly", "daily"),
-      selected = freq_sel
-    )
+    final_file <- isolate(editing_file())
+    if (is.null(final_file) || !nzchar(final_file)) {
+      final_file <- isolate(active_dataset_file())
+    }
 
     up_path <- uploaded_tmp_path()
     up_name <- uploaded_tmp_name()
 
-    if (!is.null(up_path) && file.exists(up_path) && !is.null(up_name) && nzchar(up_name)) {
+    is_edit_mode <- !is.null(isolate(editing_file())) && nzchar(isolate(editing_file()))
 
-      safe <- sanitize_filename(up_name, default_ext = "csv")
-      target <- file.path(DATA_DIR, safe)
+    if (!is_edit_mode) {
+      if (!is.null(up_path) && file.exists(up_path) && !is.null(up_name) && nzchar(up_name)) {
 
-      if (file.exists(target)) {
-        stem <- tools::file_path_sans_ext(safe)
-        ext  <- tools::file_ext(safe)
-        safe <- paste0(stem, "_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".", ext)
+        safe <- sanitize_filename(up_name, default_ext = "csv")
         target <- file.path(DATA_DIR, safe)
-      }
 
-      ok <- file.copy(up_path, target, overwrite = FALSE)
+        if (file.exists(target)) {
+          stem <- tools::file_path_sans_ext(safe)
+          ext  <- tools::file_ext(safe)
+          safe <- paste0(stem, "_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".", ext)
+          target <- file.path(DATA_DIR, safe)
+        }
 
-      if (isTRUE(ok)) {
-        files <- list_saved_datasets()
-        saved_datasets(files)
+        ok <- file.copy(up_path, target, overwrite = FALSE)
 
-        st <- set_active_dataset(safe)
-        active_dataset_file(st$active)
+        if (isTRUE(ok)) {
+          files <- list_saved_datasets()
+          saved_datasets(files)
 
-        try(updateRadioButtons(session, "saved_dataset_radio", choices = files, selected = st$active), silent = TRUE)
+          st <- set_active_dataset(safe)
+          active_dataset_file(st$active)
+          final_file <- st$active
 
-        showNotification(paste0("Dataset u ruajt te data/", safe), type="message", duration=6)
+          try(updateRadioButtons(session, "saved_dataset_radio",
+            choices = files,
+            selected = st$active
+          ), silent = TRUE)
+
+          showNotification(paste0("Dataset u ruajt te data/", safe), type="message", duration=6)
+        } else {
+          showNotification("S’u arrit me ruajt datasetin te /data (permissions).", type="error", duration=8)
+        }
       } else {
-        showNotification("S’u arrit me ruajt datasetin te /data (permissions).", type="error", duration=8)
+        if (!is.null(final_file) && nzchar(final_file)) {
+          st <- set_active_dataset(final_file)
+          active_dataset_file(st$active)
+          final_file <- st$active
+        }
       }
+    } else {
+      if (!is.null(final_file) && nzchar(final_file)) {
+        st <- set_active_dataset(final_file)
+        active_dataset_file(st$active)
+        final_file <- st$active
+      }
+    }
+
+    if (!is.null(final_file) && nzchar(final_file)) {
+      st2 <- read_state()
+      st2 <- update_dataset_config(st2, final_file, chosen_tc, chosen_vals)
+      write_state(st2)
     }
 
     df_raw(d)
 
+    session$onFlushed(function() {
+      updateSelectInput(session, "data_time_col", choices = nm, selected = chosen_tc)
+      updateSelectizeInput(session, "data_value_cols",
+        choices  = chosen_num_cols,
+        selected = chosen_vals,
+        server   = TRUE
+      )
+    }, once = TRUE)
+
     pending_cfg(NULL); pending_data(NULL)
+
     uploaded_tmp_path(NULL); uploaded_tmp_name(NULL)
+
+    editing_file(NULL)
 
     showNotification("Konfigurimi i dataset-it u ruajt me sukses.", type = "message", duration = 5)
   }, ignoreInit = TRUE)
 
   observeEvent(input$btn_cancel_config, {
+    editing_file(NULL) 
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "hide"))
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "show"))
   }, ignoreInit = TRUE)
@@ -1186,16 +1422,22 @@ server <- function(input, output, session) {
     tc_sel <- input$data_time_col
     if (is.null(tc_sel) || !nzchar(tc_sel) || !(tc_sel %in% nm)) return()
 
-    cols <- setdiff(nm, tc_sel)
+    cfg <- active_cfg()
 
+    cols <- setdiff(nm, tc_sel)
     num_cols <- cols[vapply(d[cols], function(x) {
       xn <- to_numeric_safe(x)
       mean(!is.na(xn)) >= 0.70
     }, logical(1))]
     if (length(num_cols) == 0) num_cols <- cols
 
-    vc_cur <- isolate(input$data_value_cols)
-    vc_sel <- vc_cur[vc_cur %in% num_cols]
+    vc_sel <- cfg$value_cols %||% character(0)
+    vc_sel <- vc_sel[vc_sel %in% num_cols]
+
+    if (length(vc_sel) == 0) {
+      vc_cur <- isolate(input$data_value_cols)
+      vc_sel <- vc_cur[vc_cur %in% num_cols]
+    }
     if (length(vc_sel) == 0) vc_sel <- head(num_cols, min(3, length(num_cols)))
 
     updateSelectizeInput(session, "data_value_cols",
@@ -1203,24 +1445,596 @@ server <- function(input, output, session) {
       selected = vc_sel,
       server   = TRUE
     )
-
-    choices <- num_cols
-    if (length(choices) == 0) return()
-
-    s1 <- choices[1]
-    s2 <- if (length(choices) >= 2) choices[2] else choices[1]
-
-    updateSelectInput(session, "eda_series",      choices = choices, selected = pick_choice(isolate(input$eda_series), choices, s1))
-    updateSelectInput(session, "stat_series",     choices = choices, selected = pick_choice(isolate(input$stat_series), choices, s1))
-    updateSelectInput(session, "model_series",    choices = choices, selected = pick_choice(isolate(input$model_series), choices, s1))
-    updateSelectInput(session, "forecast_series", choices = choices, selected = pick_choice(isolate(input$forecast_series), choices, s1))
-    updateSelectInput(session, "rel_x",           choices = choices, selected = pick_choice(isolate(input$rel_x), choices, s1))
-    updateSelectInput(session, "rel_y",           choices = choices, selected = pick_choice(isolate(input$rel_y), choices, s2))
   }, ignoreInit = TRUE)
 
-  #================================
-  # Backround settings
-  #================================
+
+  # =========================================================
+  # 8) BACKGROUND SETTINGS
+  # =========================================================
+
+  BG_TABS <- list(
+    list(id="tab_settings",   label="Settings"),
+    list(id="tab_overview",   label="Përmbledhje"),
+    list(id="tab_eda_ts",     label="Analiza eksploruese – Seri kohore"),
+    list(id="tab_eda_rel",    label="Analiza eksploruese – Marrëdhënie"),
+    list(id="tab_stationary", label="Stacionariteti"),
+    list(id="tab_modeling",   label="Modelimi"),
+    list(id="tab_forecast",   label="Parashikimi")
+  ) # tab_wrapup (Përfundime) nuk futet
+
+  BG_DEFAULTS <- c(
+    tab_settings   = "images/image7.jpeg",
+    tab_overview   = "images/image0.jpeg",
+    tab_eda_ts     = "images/image1.jpeg",
+    tab_eda_rel    = "images/image2.jpeg",
+    tab_stationary = "images/image3.jpeg",
+    tab_modeling   = "images/image4.jpeg",
+    tab_forecast   = "images/image5.jpeg"
+  )
+
+  # Lexo state 1 herë në start
+  BG_STATE <- read_bg_state()
+
+  bg_saved <- reactiveVal(BG_STATE)
+  bg_dirty <- reactiveVal(FALSE)
+
+  # Siguri për path (mos le NULL)
+  APP_DIR <- get0("APP_DIR", inherits = TRUE) %||% getwd()
+
+  bg_ver_src <- function(path, st) {
+    if (is.null(path) || !nzchar(path)) return(NULL)
+    v <- st$version %||% 0
+    if (!isTRUE(v > 0)) return(path)
+    paste0(path, "?v=", v)
+  }
+
+  # mark dirty on changes (pa ruajtje)
+  observeEvent(
+    list(input$bg_mode, input$bg_scope, input$bg_blur_on, input$bg_blur, input$bg_color),
+    { bg_dirty(TRUE) },
+    ignoreInit = TRUE
+  )
+
+  output$bg_dirty_badge <- renderUI({
+    if (!isTRUE(bg_dirty())) return(NULL)
+    tags$span(class="bg-badge", "Ke ndryshime pa Save")
+  })
+
+  # --- GLOBAL CARD ---
+  output$bg_global_card <- renderUI({
+    st <- bg_saved()
+
+    g <- st$modes$image$scopes$global$global %||% NULL
+    src <- g %||% "images/image0.jpeg"
+    if (!is.null(g) && nzchar(g)) src <- bg_ver_src(src, st) %||% src
+
+    status <- if (!is.null(g) && nzchar(g)) "Aktive: Custom" else "Aktive: Default"
+
+    div(
+      class="bg-tab-card",
+      div(class="bg-tab-thumb", tags$img(src = src)),
+      div(
+        class="bg-tab-meta",
+        div(class="bg-tab-name", "Global"),
+        div(class="bg-tab-status", status)
+      ),
+      div(
+        class="bg-tab-actions",
+        actionButton("bg_edit_global_btn", "Edit", class="glass-btn btn-sm")
+      )
+    )
+  })
+
+  # --- PER TAB CARDS ---
+  output$bg_tab_cards <- renderUI({
+    st <- bg_saved()
+
+    per_tab <- st$modes$image$scopes$custom$per_tab %||% setNames(list(), character())
+    if (is.null(per_tab) || !is.list(per_tab)) per_tab <- setNames(list(), character())
+
+    tags$div(
+      class="bg-tabs-grid",
+      lapply(BG_TABS, function(t) {
+        tabid <- t$id
+        def   <- BG_DEFAULTS[[tabid]]
+
+        custom <- per_tab[[tabid]] %||% NULL
+        src <- custom %||% def
+        if (!is.null(custom) && nzchar(custom)) src <- bg_ver_src(src, st)
+
+        status <- if (!is.null(custom) && nzchar(custom)) "Aktive: Custom" else "Aktive: Default"
+
+        div(
+          class="bg-tab-card",
+          div(class="bg-tab-thumb", tags$img(src = src)),
+          div(
+            class="bg-tab-meta",
+            div(class="bg-tab-name", t$label),
+            div(class="bg-tab-status", status)
+          ),
+          div(
+            class="bg-tab-actions",
+            actionButton(paste0("bg_edit__", tabid), "Edit", class="glass-btn btn-sm")
+          )
+        )
+      })
+    )
+  })
+
+  # ===========================
+  # Drafts for selections (apply only on Save)
+  # ===========================
+  draft_global_path <- reactiveVal(NULL)                       # string: "images/xxx.jpg"
+  draft_per_tab     <- reactiveVal(setNames(list(), character()))  # list(tabid = "images/..")
+
+  # ===========================
+  # SAVE (vetëm këtu ruajmë)
+  # ===========================
+  observeEvent(input$bg_save, {
+    st <- bg_saved()
+
+    # safety: struktura minimale
+    if (is.null(st$modes) || !is.list(st$modes)) st$modes <- list()
+    if (is.null(st$modes$color) || !is.list(st$modes$color)) st$modes$color <- list(value = "#0b1c24")
+    if (is.null(st$modes$image) || !is.list(st$modes$image)) st$modes$image <- list()
+
+    if (is.null(st$modes$image$blur) || !is.list(st$modes$image$blur)) st$modes$image$blur <- list(on = TRUE, amount = 10L)
+    if (is.null(st$modes$image$scopes) || !is.list(st$modes$image$scopes)) st$modes$image$scopes <- list()
+    if (is.null(st$modes$image$scopes$custom) || !is.list(st$modes$image$scopes$custom)) {
+      st$modes$image$scopes$custom <- list(per_tab = setNames(list(), character()))
+    }
+    if (is.null(st$modes$image$scopes$global) || !is.list(st$modes$image$scopes$global)) {
+      st$modes$image$scopes$global <- list(global = NULL)
+    }
+    if (is.null(st$modes$image$scopes$custom$per_tab) || !is.list(st$modes$image$scopes$custom$per_tab)) {
+      st$modes$image$scopes$custom$per_tab <- setNames(list(), character())
+    }
+
+    # mode
+    st$active_mode <- input$bg_mode %||% st$active_mode %||% "image"
+    if (!st$active_mode %in% c("image", "color", "none")) st$active_mode <- "image"
+
+    # MODE: COLOR
+    if (identical(st$active_mode, "color")) {
+      if (!is.null(input$bg_color) && nzchar(input$bg_color)) {
+        st$modes$color$value <- input$bg_color
+      }
+    }
+
+    # MODE: IMAGE
+    if (identical(st$active_mode, "image")) {
+
+      # blur
+      st$modes$image$blur$on     <- isTRUE(input$bg_blur_on %||% st$modes$image$blur$on)
+      st$modes$image$blur$amount <- as.integer(input$bg_blur %||% st$modes$image$blur$amount %||% 10)
+
+      # scope
+      st$modes$image$active_scope <- input$bg_scope %||% st$modes$image$active_scope %||% "custom"
+      if (!st$modes$image$active_scope %in% c("custom", "global")) st$modes$image$active_scope <- "custom"
+
+      # GLOBAL scope: apply ONLY draft_global_path
+      if (identical(st$modes$image$active_scope, "global")) {
+        dp <- draft_global_path()
+        if (!is.null(dp) && nzchar(dp)) {
+          st$modes$image$scopes$global$global <- dp
+          draft_global_path(NULL)
+        }
+      }
+
+      # CUSTOM scope: apply ONLY drafts for tabs edited
+      if (identical(st$modes$image$active_scope, "custom")) {
+        dpt <- draft_per_tab()
+        if (!is.null(dpt) && length(dpt) > 0) {
+          for (tb in names(dpt)) {
+            st$modes$image$scopes$custom$per_tab[[tb]] <- dpt[[tb]]
+          }
+          draft_per_tab(setNames(list(), character()))
+        }
+      }
+    }
+
+    write_bg_state(st)
+    st <- read_bg_state()
+
+    bg_saved(st)
+    bg_dirty(FALSE)
+
+    session$sendCustomMessage("bg_apply", st)
+    showNotification("Background u ruajt.", type = "message", duration = 3)
+
+  }, ignoreInit = TRUE)
+
+  # apliko state n’start
+  session$onFlushed(function() {
+    st0 <- isolate(bg_saved())
+    session$sendCustomMessage("bg_apply", st0)
+  }, once = TRUE)
+
+  # ===========================
+  # Media Library (Fullscreen modal) - Background picker
+  # ===========================
+  fs_ctx <- reactiveVal(NULL)          # list(type="bg_picker", target="global") OR (target="tab", tabid="tab_overview")
+  bg_media_selected <- reactiveVal(NULL)
+  media_refresh <- reactiveVal(0L)
+
+  # Helper JS for BS5 / jQuery modal show/hide
+  modal_show_fs <- function() {
+    shinyjs::runjs("
+      (function(){
+        var el = document.getElementById('main_modal_fs');
+        if(!el) return;
+        if (window.bootstrap && bootstrap.Modal) {
+          bootstrap.Modal.getOrCreateInstance(el).show();
+        } else if (window.jQuery && jQuery(el).modal) {
+          jQuery(el).modal('show');
+        }
+      })();
+    ")
+  }
+  modal_hide_fs <- function() {
+    shinyjs::runjs("
+      (function(){
+        var el = document.getElementById('main_modal_fs');
+        if(!el) return;
+        if (window.bootstrap && bootstrap.Modal) {
+          bootstrap.Modal.getOrCreateInstance(el).hide();
+        } else if (window.jQuery && jQuery(el).modal) {
+          jQuery(el).modal('hide');
+        }
+      })();
+    ")
+  }
+
+  # Open modal for GLOBAL
+  observeEvent(input$bg_edit_global_btn, {
+    bg_media_selected(NULL)
+    fs_ctx(list(type = "bg_picker", target = "global"))
+
+    updateActionButton(session, "btn_save_config", label = "Përdor foton")
+    updateActionButton(session, "btn_cancel_config", label = "Mbyll")
+
+    modal_show_fs()
+  }, ignoreInit = TRUE)
+
+  # Open modal for EACH TAB
+  lapply(BG_TABS, function(t) {
+    tabid <- t$id
+    observeEvent(input[[paste0("bg_edit__", tabid)]], {
+      bg_media_selected(NULL)
+      fs_ctx(list(type = "bg_picker", target = "tab", tabid = tabid))
+
+      updateActionButton(session, "btn_save_config", label = "Përdor foton")
+      updateActionButton(session, "btn_cancel_config", label = "Mbyll")
+
+      modal_show_fs()
+    }, ignoreInit = TRUE)
+  })
+
+  # Close modal
+  observeEvent(input$btn_cancel_config, {
+    modal_hide_fs()
+  }, ignoreInit = TRUE)
+
+  # Modal title (shows Global or the tab label)
+  output$modal_fs_title <- renderUI({
+    ctx <- fs_ctx()
+    if (is.null(ctx) || !identical(ctx$type, "bg_picker")) return(tags$h5(""))
+
+    if (identical(ctx$target, "global")) {
+      return(tags$h5("Media Library – Global"))
+    }
+
+    if (identical(ctx$target, "tab")) {
+      lab <- NULL
+      for (x in BG_TABS) if (identical(x$id, ctx$tabid)) lab <- x$label
+      if (is.null(lab)) lab <- ctx$tabid
+      return(tags$h5(paste0("Media Library – ", lab)))
+    }
+
+    tags$h5("Media Library")
+  })
+
+  # Modal body (Library + Upload)
+  output$modal_fs_body <- renderUI({
+    ctx <- fs_ctx()
+    if (is.null(ctx) || !identical(ctx$type, "bg_picker")) return(NULL)
+
+    tabsetPanel(
+      id = "bg_media_tabs",
+
+      tabPanel(
+        title = "Library",
+        value = "library",
+        uiOutput("bg_media_gallery"),
+      ),
+
+      tabPanel(
+        title = "Upload",
+        value = "upload",
+
+        tags$div(
+          class = "bg-upload-fill",
+          tags$div(id = "bg_media_upload_pond_host", class="bg-pond-host"),
+          fileInput(
+            "bg_media_upload",
+            label = NULL,
+            multiple = TRUE,
+            accept = c("image/png","image/jpeg","image/jpg","image/webp","image/gif","image/svg+xml")
+          )
+        )
+      )
+    )
+  })
+
+  # Gallery UI: list all images inside www/images (recursive)
+  output$bg_media_gallery <- renderUI({
+    media_refresh()
+
+    st  <- bg_saved()
+    ctx <- fs_ctx()
+
+    img_root <- file.path(APP_DIR, "www", "images")
+    if (!dir.exists(img_root)) return(tags$div("Nuk gjendet www/images"))
+
+    imgs <- list.files(
+      img_root,
+      pattern = "\\.(png|jpe?g|webp|gif|svg)$",
+      full.names = TRUE,
+      recursive = TRUE,
+      ignore.case = TRUE
+    )
+
+    imgs <- normalizePath(imgs, winslash = "/")
+    root_norm <- normalizePath(img_root, winslash = "/")
+    imgs <- gsub(paste0("^", root_norm, "/"), "images/", imgs)
+
+    sel <- bg_media_selected()
+
+    # ✅ ACTIVE image (tick + highlight)
+    active_src <- NULL
+    if (!is.null(ctx) && identical(ctx$type, "bg_picker")) {
+      if (identical(ctx$target, "global")) {
+        g <- st$modes$image$scopes$global$global %||% ""
+        active_src <- if (nzchar(g)) g else "images/image0.jpeg"
+      } else if (identical(ctx$target, "tab")) {
+        tb <- ctx$tabid
+        per_tab <- st$modes$image$scopes$custom$per_tab %||% setNames(list(), character())
+        cst <- per_tab[[tb]] %||% ""
+        active_src <- if (nzchar(cst)) cst else (BG_DEFAULTS[[tb]] %||% "images/image0.jpeg")
+      }
+    }
+
+    if (length(imgs) == 0) {
+      return(tags$div(class = "section-box", tags$small("S’ka foto në images/.")))
+    }
+
+    tags$div(
+      class = "media-grid",
+      lapply(imgs, function(src) {
+
+        is_active <- !is.null(active_src) && identical(src, active_src)
+        is_sel    <- !is.null(sel) && identical(src, sel)
+
+        cls <- "media-card"
+        if (is_active) cls <- paste(cls, "is-active")
+        if (is_sel)    cls <- paste(cls, "selected")
+
+        tags$div(
+          class = cls,
+          onclick = sprintf("Shiny.setInputValue('bg_media_pick','%s',{priority:'event'});", src),
+
+          # tick sipër për active
+          if (is_active) tags$div(class = "media-tick", tags$i(class = "ri-check-line")),
+
+          tags$div(class = "media-thumb", tags$img(src = src)),
+
+          tags$div(
+            class = "media-meta",
+            tags$div(class = "name", basename(src)),
+
+            # delete button (mos ta ndezë select)
+            tags$button(
+              type  = "button",
+              class = "media-delete-btn",
+              onclick = sprintf(
+                "event.stopPropagation();Shiny.setInputValue('bg_media_delete','%s',{priority:'event'});",
+                src
+              ),
+              tags$i(class = "ri-delete-bin-6-line")
+            )
+          )
+        )
+      })
+    )
+  })
+
+  # Selecting an image from library
+  observeEvent(input$bg_media_pick, {
+    bg_media_selected(input$bg_media_pick)
+  }, ignoreInit = TRUE)
+
+  output$bg_media_selected_txt <- renderText({
+    bg_media_selected() %||% "-"
+  })
+
+  pending_delete <- reactiveVal(NULL)
+
+  observeEvent(input$bg_media_delete, {
+    src <- input$bg_media_delete %||% ""
+    if (!nzchar(src)) return()
+
+    pending_delete(src)
+
+    showModal(modalDialog(
+      title = "Konfirmo fshirjen",
+      paste0("Do ta fshish këtë foto? ", basename(src)),
+      footer = tagList(
+        modalButton("Anulo"),
+        actionButton("bg_delete_confirm", "Fshi", class = "btn btn-danger")
+      ),
+      easyClose = TRUE
+    ))
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$bg_delete_confirm, {
+    src <- pending_delete() %||% ""
+    removeModal()
+    pending_delete(NULL)
+
+    if (!nzchar(src)) return()
+
+    # ✅ security: lejo vetëm images/
+    if (!startsWith(src, "images/")) {
+      showNotification("S’lejohet fshirja jashtë images/.", type="error", duration=4)
+      return()
+    }
+
+    # ✅ mos lejo file jo-image
+    ext <- tolower(tools::file_ext(src))
+    if (!ext %in% c("png","jpg","jpeg","webp","gif","svg")) {
+      showNotification("Ky s’është file foto.", type="error", duration=4)
+      return()
+    }
+
+    # ✅ mos lejo me fshi default / aktive / në përdorim
+    st <- bg_saved()
+
+    in_use <- character(0)
+    in_use <- c(in_use, unname(BG_DEFAULTS))
+
+    g <- st$modes$image$scopes$global$global %||% ""
+    if (nzchar(g)) in_use <- c(in_use, g)
+
+    pt <- st$modes$image$scopes$custom$per_tab %||% list()
+    if (is.list(pt) && length(pt) > 0) {
+      in_use <- c(in_use, unlist(pt, use.names = FALSE))
+    }
+
+    in_use <- unique(in_use[!is.na(in_use) & nzchar(in_use)])
+
+    if (src %in% in_use) {
+      showNotification("S’e fshin dot: kjo foto është Default/Active ose përdoret diku.", type="error", duration=4)
+      return()
+    }
+
+    abs_path <- file.path(APP_DIR, "www", src)
+
+    if (!file.exists(abs_path)) {
+      showNotification("File s’u gjet në disk.", type="error", duration=4)
+      return()
+    }
+
+    ok <- tryCatch(unlink(abs_path, force = TRUE) == 0, error = function(e) FALSE)
+
+    if (isTRUE(ok)) {
+      # nëse ishte selected, pastro
+      if (identical(bg_media_selected(), src)) bg_media_selected(NULL)
+
+      # nëse ishte draft, pastro
+      if (identical(draft_global_path(), src)) draft_global_path(NULL)
+
+      dpt <- draft_per_tab()
+      if (is.list(dpt) && length(dpt) > 0) {
+        for (k in names(dpt)) if (identical(dpt[[k]], src)) dpt[[k]] <- NULL
+        dpt <- dpt[!vapply(dpt, is.null, logical(1))]
+        draft_per_tab(dpt)
+      }
+
+      media_refresh(media_refresh() + 1L)
+      showNotification("Foto u fshi.", type="message", duration=3)
+    } else {
+      showNotification("Fshirja dështoi.", type="error", duration=4)
+    }
+  }, ignoreInit = TRUE)
+
+  # Safe file name helper
+  safe_name <- function(x) {
+    x <- gsub("[^A-Za-z0-9_-]+", "_", x)
+    x <- gsub("^_+|_+$", "", x)
+    x
+  }
+
+  processed_datapaths <- reactiveVal(character(0))
+
+  observeEvent(input$bg_media_upload, {
+    req(input$bg_media_upload)
+
+    up <- input$bg_media_upload
+
+    # Shiny me multiple jep data.frame
+    if (!is.data.frame(up) || nrow(up) == 0) return()
+
+    seen <- processed_datapaths()
+    new_count <- 0L
+
+    dest_dir <- file.path(APP_DIR, "www", "images")
+    if (!dir.exists(dest_dir)) dir.create(dest_dir, recursive = TRUE)
+
+    for (i in seq_len(nrow(up))) {
+      dp <- up$datapath[i]
+      if (!nzchar(dp) || dp %in% seen) next
+
+      ext <- tolower(tools::file_ext(up$name[i]))
+      if (!nzchar(ext)) ext <- "jpg"
+
+      base <- safe_name(tools::file_path_sans_ext(up$name[i]))
+      if (!nzchar(base)) base <- paste0("img_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+
+      # mos e overwrite nëse ekziston
+      out_abs <- file.path(dest_dir, paste0(base, ".", ext))
+      if (file.exists(out_abs)) {
+        base2 <- paste0(base, "_", format(Sys.time(), "%H%M%S"), "_", i)
+        out_abs <- file.path(dest_dir, paste0(base2, ".", ext))
+        base <- base2
+      }
+
+      ok <- file.copy(dp, out_abs, overwrite = TRUE)
+
+      if (isTRUE(ok)) {
+        new_count <- new_count + 1L
+        seen <- c(seen, dp)
+      }
+    }
+
+    processed_datapaths(seen)
+
+    if (new_count > 0) {
+      # rifresko gallery
+      media_refresh(media_refresh() + 1L)
+
+      # ✅ mos e selekto automatikisht (ti zgjedh vet)
+      bg_media_selected(NULL)
+
+      # ✅ pastro FilePond + input
+      session$sendCustomMessage("pond_clear", list(inputId = "bg_media_upload"))
+      processed_datapaths(character(0))
+
+      # ✅ kalo direkt te Library
+      updateTabsetPanel(session, "bg_media_tabs", selected = "library")
+
+      showNotification(paste0("U ngarkuan ", new_count, " foto ✅"), type="message", duration=3)
+    }
+
+  }, ignoreInit = TRUE)
+
+  # Use selected image (store draft based on ctx, mark dirty, close modal)
+  observeEvent(input$btn_save_config, {
+    ctx <- fs_ctx()
+    if (is.null(ctx) || !identical(ctx$type, "bg_picker")) return()
+
+    req(bg_media_selected())
+
+    if (identical(ctx$target, "global")) {
+      draft_global_path(bg_media_selected())
+    } else if (identical(ctx$target, "tab")) {
+      d <- draft_per_tab()
+      d[[ctx$tabid]] <- bg_media_selected()
+      draft_per_tab(d)
+    }
+
+    bg_dirty(TRUE)
+    modal_hide_fs()
+  }, ignoreInit = TRUE)
 
   server_plots(input, output, session, df)
 }

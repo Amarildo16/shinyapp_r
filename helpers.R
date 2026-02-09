@@ -49,61 +49,124 @@ DATA_DIR  <- file.path(APP_DIR, "data")
 if (!dir.exists(DATA_DIR)) dir.create(DATA_DIR, recursive = TRUE)
 DATA_PATH <- file.path(DATA_DIR, "albania_agriculture_timeseries_1998_2024.csv")
 
-STATE_FILE <- file.path(DATA_DIR, "datasets_state.json")
 
-read_state <- function() {
+default_state <- function() {
+  data.frame(
+    file      = character(),
+    added_at  = character(),
+    is_active = logical(),
+    time_col  = character(),
+    value_cols = I(list()),
+    stringsAsFactors = FALSE
+  ) |>
+    (\(df) list(active = NULL, datasets = df))()
+}
+
+read_state <- function(path = STATE_FILE) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
     stop("Mungon paketa 'jsonlite'. Instalo: install.packages('jsonlite')")
   }
 
-  if (!file.exists(STATE_FILE)) {
-    return(list(
-      active   = NULL,
-      datasets = data.frame(file = character(), added_at = character(), is_active = logical(),
-                            stringsAsFactors = FALSE)
-    ))
-  }
+  if (!file.exists(path)) return(default_state())
 
-  st <- jsonlite::fromJSON(STATE_FILE)
+  sz <- suppressWarnings(file.size(path))
+  if (is.na(sz) || sz == 0) return(default_state())
+
+  raw <- tryCatch(
+    paste(readLines(path, warn = FALSE, encoding = "UTF-8"), collapse = "\n"),
+    error = function(e) ""
+  )
+  if (!nzchar(trimws(raw))) return(default_state())
+
+  st <- tryCatch(
+    jsonlite::fromJSON(raw, simplifyVector = TRUE),
+    error = function(e) {
+      ts <- format(Sys.time(), "%Y%m%d_%H%M%S")
+      bak <- paste0(path, ".corrupt_", ts)
+      try(file.copy(path, bak, overwrite = TRUE), silent = TRUE)
+      try(file.remove(path), silent = TRUE)
+      default_state()
+    }
+  )
+
+  # Siguro strukturën
+  if (is.null(st$active)) st$active <- NULL
 
   if (is.null(st$datasets) || !is.data.frame(st$datasets)) {
-    st$datasets <- data.frame(file = character(), added_at = character(), is_active = logical(),
-                              stringsAsFactors = FALSE)
+    st$datasets <- default_state()$datasets
   }
 
-  if (is.null(st$active)) st$active <- NULL
+  # Migrim nga format i vjetër (pa time_col / value_cols)
+  if (!("time_col" %in% names(st$datasets))) st$datasets$time_col <- NA_character_
+  if (!("value_cols" %in% names(st$datasets))) st$datasets$value_cols <- I(vector("list", nrow(st$datasets)))
+
+  # Siguro list-column si duhet
+  if (!is.list(st$datasets$value_cols)) {
+    st$datasets$value_cols <- as.list(st$datasets$value_cols)
+  }
+
+  # Siguro kolonat bazë
+  needed <- c("file","added_at","is_active","time_col","value_cols")
+  for (k in needed) if (!(k %in% names(st$datasets))) st$datasets[[k]] <- NA
+
+  st$datasets$file <- as.character(st$datasets$file)
+  st$datasets$added_at <- as.character(st$datasets$added_at)
+  st$datasets$is_active <- as.logical(st$datasets$is_active)
+  st$datasets$time_col <- as.character(st$datasets$time_col)
+
   st
 }
 
-write_state <- function(st) {
-  if (!is.null(st$active) && nzchar(st$active)) {
-    st$datasets$is_active <- st$datasets$file == st$active
-  } else {
-    st$datasets$is_active <- FALSE
+write_state <- function(obj, path = STATE_FILE) {
+  dir.create(dirname(path), showWarnings = FALSE, recursive = TRUE)
+
+  tmp <- paste0(path, ".tmp")
+
+  json <- jsonlite::toJSON(
+    obj,
+    auto_unbox = TRUE,
+    pretty = TRUE,
+    null = "null"
+  )
+
+  # atomic write: shkruaj tmp -> rename
+  writeLines(json, tmp, useBytes = TRUE)
+
+  if (file.exists(path)) file.remove(path)
+  ok <- file.rename(tmp, path)
+
+  if (!ok) {
+    file.copy(tmp, path, overwrite = TRUE)
+    file.remove(tmp)
   }
 
-  jsonlite::write_json(st, STATE_FILE, auto_unbox = TRUE, pretty = TRUE)
+  TRUE
 }
 
 sync_state <- function(files) {
   st <- read_state()
 
+  # filtro vetëm file-at që ekzistojnë
   if (nrow(st$datasets) > 0) {
     st$datasets <- st$datasets[st$datasets$file %in% files, , drop = FALSE]
   }
 
   existing <- st$datasets$file
   new_files <- setdiff(files, existing)
+
   if (length(new_files) > 0) {
     add_df <- data.frame(
       file      = new_files,
       added_at  = as.character(Sys.time()),
       is_active = FALSE,
+      time_col  = NA_character_,
+      value_cols = I(rep(list(character(0)), length(new_files))),
       stringsAsFactors = FALSE
     )
     st$datasets <- rbind(st$datasets, add_df)
   }
 
+  # active validim
   if (is.null(st$active) || !nzchar(st$active) || !(st$active %in% files)) {
     if (nrow(st$datasets) > 0 && any(st$datasets$is_active)) {
       st$active <- st$datasets$file[which(st$datasets$is_active)[1]]
@@ -112,7 +175,7 @@ sync_state <- function(files) {
     }
   }
 
-  st$datasets$is_active <- st$datasets$file == st$active
+  st$datasets$is_active <- !is.null(st$active) & (st$datasets$file == st$active)
 
   write_state(st)
   st
@@ -126,8 +189,44 @@ set_active_dataset <- function(file) {
 
   st$active <- file
   st$datasets$is_active <- st$datasets$file == file
+
   write_state(st)
   st
+}
+
+# ---- NEW: config helpers (time_col + value_cols) ----
+
+get_ds_idx <- function(st, file) {
+  if (is.null(st$datasets) || nrow(st$datasets) == 0) return(NA_integer_)
+  idx <- which(st$datasets$file == file)
+  if (length(idx) == 0) return(NA_integer_)
+  idx[1]
+}
+
+update_dataset_config <- function(st, file, time_col, value_cols) {
+  i <- get_ds_idx(st, file)
+  if (is.na(i)) return(st)
+
+  st$datasets$time_col[i] <- as.character(time_col)
+
+  # value_cols si list-column
+  value_cols <- as.character(value_cols %||% character(0))
+  st$datasets$value_cols[[i]] <- value_cols
+
+  st
+}
+
+get_dataset_config <- function(st, file) {
+  i <- get_ds_idx(st, file)
+  if (is.na(i)) return(list(time_col = NULL, value_cols = character(0)))
+
+  tc <- st$datasets$time_col[i]
+  if (is.na(tc) || !nzchar(tc)) tc <- NULL
+
+  vc <- st$datasets$value_cols[[i]]
+  vc <- as.character(vc %||% character(0))
+
+  list(time_col = tc, value_cols = vc)
 }
 
 list_saved_datasets <- function() {
@@ -472,7 +571,6 @@ skip_trace_hover <- function(pl, idx) {
   pl
 }
 
-
 # =========================================================
 # 8) Build dynamic standardized df
 # =========================================================
@@ -555,8 +653,8 @@ apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
       f,
       "day"    = "day",
       "month"  = "month",
-      "quarter"= "3 months",
-      "week"   = "7 days",
+      "quarter"= "quarter",
+      "week"   = "week",
       "year"   = "year",
       NULL
     )
@@ -641,8 +739,8 @@ make_future_time <- function(Time, h) {
     }
 
     rby <- switch(by,
-      "quarter" = "3 months",
-      "week"    = "7 days",
+      "quarter" = "quarter",
+      "week"    = "week",
       by
     )
 
@@ -762,47 +860,127 @@ detect_freq_from_time <- function(Time) {
   "index"
 }
 
+# =========================================================
+# 9) Backround settings
+# =========================================================
 
-make_inline_preview_html <- function(d, title = "Dataset", max_rows = 10, max_cols = 6) {
-  df <- utils::head(d, max_rows)
+BG_STATE_FILE <- file.path(DATA_DIR, "background_state.json")
 
-  if (ncol(df) > max_cols) df <- df[, seq_len(max_cols), drop = FALSE]
-
-  # row numbers si preview
-  df <- cbind(`#` = seq_len(nrow(df)), df)
-
-  # shkurtim + text
-  df <- as.data.frame(lapply(df, function(x) {
-    x <- as.character(x)
-    x[nchar(x) > 28] <- paste0(substr(x[nchar(x) > 28], 1, 28), "…")
-    x
-  }), stringsAsFactors = FALSE)
-
-  esc <- function(x) htmltools::htmlEscape(x)
-
-  header <- paste0("<tr>", paste0("<th>", esc(names(df)), "</th>", collapse=""), "</tr>")
-  rows <- vapply(seq_len(nrow(df)), function(i) {
-    paste0("<tr>", paste0("<td>", esc(df[i, ]), "</td>", collapse=""), "</tr>")
-  }, character(1))
-
-  meta <- paste0("Preview: ", nrow(d), " rreshta × ", ncol(d), " kolona")
-
-  paste0(
-    "<div class='pond-preview-card'>",
-      "<div class='pond-preview-head'>",
-        "<div class='pond-preview-title'>", esc(title), "</div>",
-        "<div class='pond-preview-actions'>",
-          "<i class='ri-download-2-line'></i>",
-          "<i class='ri-external-link-line'></i>",
-        "</div>",
-      "</div>",
-      "<div class='pond-preview-meta'>", esc(meta), "</div>",
-      "<div class='pond-preview-table-wrap'>",
-        "<table class='pond-preview-table'>",
-          "<thead>", header, "</thead>",
-          "<tbody>", paste0(rows, collapse=""), "</tbody>",
-        "</table>",
-      "</div>",
-    "</div>"
+default_bg_state <- function() {
+  list(
+    active_mode = "image",
+    version     = 0L,
+    modes = list(
+      none  = list(),
+      color = list(value = "#0b1c24"),
+      image = list(
+        active_scope = "custom",
+        blur = list(on = TRUE, amount = 10L),
+        scopes = list(
+          custom = list(per_tab = setNames(list(), character())),
+          global = list(global = NULL)
+        )
+      )
+    )
   )
+}
+
+# ensure per_tab is a named list so JSON becomes {} when empty (not [])
+normalize_per_tab <- function(x) {
+  if (is.null(x)) return(setNames(list(), character()))
+  if (!is.list(x)) return(setNames(list(), character()))
+  if (length(x) == 0 && is.null(names(x))) return(setNames(list(), character()))
+  x
+}
+
+# Migration: old schema -> new schema
+migrate_bg_state_if_needed <- function(st) {
+  # Old schema had: mode, scope, blur_on, blur, color, global, per_tab, version
+  if (!is.null(st$mode) && is.null(st$active_mode)) {
+    d <- default_bg_state()
+
+    active_mode <- st$mode %||% d$active_mode
+    if (!active_mode %in% c("image","color","none")) active_mode <- "image"
+
+    d$active_mode <- active_mode
+    d$version     <- as.integer(st$version %||% d$version)
+
+    # remember color even if active_mode != color
+    d$modes$color$value <- st$color %||% d$modes$color$value
+
+    # image settings
+    d$modes$image$active_scope <- st$scope %||% d$modes$image$active_scope
+    if (!d$modes$image$active_scope %in% c("custom","global")) d$modes$image$active_scope <- "custom"
+
+    d$modes$image$blur$on     <- isTRUE(st$blur_on %||% d$modes$image$blur$on)
+    d$modes$image$blur$amount <- as.integer(st$blur %||% d$modes$image$blur$amount)
+
+    d$modes$image$scopes$global$global <- st$global %||% NULL
+    d$modes$image$scopes$custom$per_tab <- normalize_per_tab(st$per_tab)
+
+    return(d)
+  }
+
+  st
+}
+
+read_bg_state <- function() {
+  if (!requireNamespace("jsonlite", quietly = TRUE)) {
+    stop("Mungon paketa 'jsonlite'. Instalo: install.packages('jsonlite')")
+  }
+
+  d <- default_bg_state()
+  if (!file.exists(BG_STATE_FILE)) return(d)
+
+  st <- jsonlite::fromJSON(BG_STATE_FILE)
+
+  # migrate if old schema
+  st <- migrate_bg_state_if_needed(st)
+
+  # normalize + fill defaults (NEW schema)
+  st$active_mode <- st$active_mode %||% d$active_mode
+  if (!st$active_mode %in% c("image","color","none")) st$active_mode <- d$active_mode
+
+  st$version <- as.integer(st$version %||% d$version)
+
+  if (is.null(st$modes) || !is.list(st$modes)) st$modes <- d$modes
+
+  # none
+  if (is.null(st$modes$none) || !is.list(st$modes$none)) st$modes$none <- d$modes$none
+
+  # color
+  if (is.null(st$modes$color) || !is.list(st$modes$color)) st$modes$color <- d$modes$color
+  st$modes$color$value <- st$modes$color$value %||% d$modes$color$value
+
+  # image
+  if (is.null(st$modes$image) || !is.list(st$modes$image)) st$modes$image <- d$modes$image
+  st$modes$image$active_scope <- st$modes$image$active_scope %||% d$modes$image$active_scope
+  if (!st$modes$image$active_scope %in% c("custom","global")) st$modes$image$active_scope <- d$modes$image$active_scope
+
+  if (is.null(st$modes$image$blur) || !is.list(st$modes$image$blur)) st$modes$image$blur <- d$modes$image$blur
+  st$modes$image$blur$on     <- isTRUE(st$modes$image$blur$on %||% d$modes$image$blur$on)
+  st$modes$image$blur$amount <- as.integer(st$modes$image$blur$amount %||% d$modes$image$blur$amount)
+
+  if (is.null(st$modes$image$scopes) || !is.list(st$modes$image$scopes)) st$modes$image$scopes <- d$modes$image$scopes
+  if (is.null(st$modes$image$scopes$custom) || !is.list(st$modes$image$scopes$custom)) st$modes$image$scopes$custom <- d$modes$image$scopes$custom
+  if (is.null(st$modes$image$scopes$global) || !is.list(st$modes$image$scopes$global)) st$modes$image$scopes$global <- d$modes$image$scopes$global
+
+  st$modes$image$scopes$custom$per_tab <- normalize_per_tab(st$modes$image$scopes$custom$per_tab)
+  st$modes$image$scopes$global$global  <- st$modes$image$scopes$global$global %||% NULL
+
+  st
+}
+
+write_bg_state <- function(st) {
+  if (!requireNamespace("jsonlite", quietly = TRUE)) {
+    stop("Mungon paketa 'jsonlite'. Instalo: install.packages('jsonlite')")
+  }
+
+  st$version <- as.integer(Sys.time())
+
+  if (!is.null(st$modes$image$scopes$custom$per_tab)) {
+    st$modes$image$scopes$custom$per_tab <- normalize_per_tab(st$modes$image$scopes$custom$per_tab)
+  }
+
+  jsonlite::write_json(st, BG_STATE_FILE, auto_unbox = TRUE, pretty = TRUE)
 }

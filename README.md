@@ -33,5 +33,3 @@ safe_install <- function(pkgs) {
 }
 
 safe_install(core_pkgs)
-
-shiko inputin e viteve 
