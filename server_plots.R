@@ -729,22 +729,42 @@ server_plots <- function(input, output, session, df) {
           )
         }
       ) %>%
-      dplyr::filter(!is.na(xval), !is.na(yval))
+      dplyr::filter(is.finite(xval), is.finite(yval))
 
     shiny::validate(shiny::need(nrow(d) > 1, "S’ka mjaft pika (pas heqjes së NA)."))
+    shiny::validate(shiny::need(length(unique(d$xval)) > 1, "Variabla X s’ka mjaft variacion për regresion."))
 
-    p <- ggplot2::ggplot(d, ggplot2::aes(x = xval, y = yval, text = hover)) +
+    fit <- tryCatch(stats::lm(yval ~ xval, data = d), error = function(e) NULL)
+
+    line_df <- NULL
+    if (!is.null(fit) && all(is.finite(stats::coef(fit)))) {
+      xs <- seq(min(d$xval), max(d$xval), length.out = 100)
+      line_df <- data.frame(xval = xs)
+      line_df$yhat <- as.numeric(stats::predict(fit, newdata = line_df))
+    }
+
+    p <- ggplot2::ggplot(d, ggplot2::aes(x = xval, y = yval)) +
       ggplot2::geom_point(
+        ggplot2::aes(text = hover),
         size = 2.6,
-        alpha = 0.55,
-        color = scales::alpha("white", 0.90)
-      ) +
-      ggplot2::geom_smooth(
-        method = "lm",
-        se = FALSE,
-        linewidth = 1.4,
-        color = scales::alpha("white", 0.95)
-      ) +
+        alpha = 0.70,
+        color = "#2E86FF"
+      )
+
+    if (!is.null(line_df)) {
+      p <- p +
+        ggplot2::geom_line(
+          data = line_df,
+          ggplot2::aes(x = xval, y = yhat),
+          inherit.aes = FALSE,
+          linewidth = 0.9,
+          color = "#FF3B30"
+        )
+    }
+
+    p <- p +
+      ggplot2::scale_x_continuous(labels = fmt_by_series) +
+      ggplot2::scale_y_continuous(labels = fmt_by_series) +
       ggplot2::labs(
         title = "Marrëdhënia ndërmjet variablave",
         subtitle = paste0(mx$label, " kundrejt ", my$label),
@@ -774,9 +794,7 @@ server_plots <- function(input, output, session, df) {
         plot_bgcolor  = "rgba(0,0,0,0)",
         margin = list(t = 60, l = 50, r = 20, b = 60),
         hovermode = "closest",
-
         font = list(color = "rgba(255,255,255,0.85)"),
-
         xaxis = list(
           tickfont  = list(color = "rgba(255,255,255,0.75)"),
           titlefont = list(color = "rgba(255,255,255,0.90)"),
@@ -799,7 +817,7 @@ server_plots <- function(input, output, session, df) {
       })
     }
 
-    plotly::config(pl, displaylogo = FALSE, responsive = TRUE)
+    plotly_cfg(pl)
   })
 
   output$eda_rel_corr <- renderPlotly({
@@ -849,7 +867,10 @@ server_plots <- function(input, output, session, df) {
         )
       )
 
-    p <- ggplot2::ggplot(corr_df, ggplot2::aes(x = Var1, y = Var2, fill = Korrelacioni, text = text)) +
+    p <- ggplot2::ggplot(
+      corr_df,
+      ggplot2::aes(x = Var1, y = Var2, fill = Korrelacioni, text = text)
+    ) +
       ggplot2::geom_tile(color = scales::alpha("white", 0.35), linewidth = 0.4) +
       ggplot2::scale_fill_gradient2(
         low = "#0a84ff",
@@ -859,7 +880,7 @@ server_plots <- function(input, output, session, df) {
       ) +
       ggplot2::geom_text(
         ggplot2::aes(label = fmt_fixed(Korrelacioni, digits = 2)),
-        color = scales::alpha("white", 0.75),
+        color = "black",
         size = 4.2
       ) +
       ggplot2::labs(
@@ -877,13 +898,23 @@ server_plots <- function(input, output, session, df) {
         plot.title  = ggplot2::element_text(face = "bold", size = 15, color = scales::alpha("white", 0.95))
       )
 
-    plotly::ggplotly(p, tooltip = "text") %>%
+    pl <- plotly::ggplotly(p, tooltip = "text") %>%
       plotly::layout(
         paper_bgcolor = "rgba(0,0,0,0)",
         plot_bgcolor  = "rgba(0,0,0,0)",
         margin = list(t = 60, l = 80, r = 20, b = 60)
       ) %>%
       plotly_cfg()
+
+    for (i in seq_along(pl$x$data)) {
+      tr <- pl$x$data[[i]]
+      if (!is.null(tr$mode) && grepl("text", tr$mode)) {
+        if (is.null(pl$x$data[[i]]$textfont)) pl$x$data[[i]]$textfont <- list()
+        pl$x$data[[i]]$textfont$color <- "black"
+      }
+    }
+
+    pl
   })
 
   # =========================

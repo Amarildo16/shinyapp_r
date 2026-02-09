@@ -10,7 +10,7 @@ ui <- fluidPage(
     tags$meta(name="viewport", content="width=device-width, initial-scale=1"),
     tags$link(rel="stylesheet", href="vendor/filepond/filepond.min.css"),
     tags$link(rel="stylesheet", type="text/css", href="css/custom-style.css"),
-    tags$link(rel="icon", type="image/png", href="images/favicon.png"),
+    tags$link(rel="icon", type="image/png", href="favicon/favicon.png"),
     tags$script(src="vendor/filepond/filepond.min.js"),
     tags$script(src="vendor/filepond/filepond-plugin-file-validate-type.min.js"),
     tags$script(src="vendor/filepond/filepond-plugin-file-validate-size.min.js"),
@@ -269,13 +269,19 @@ ui <- fluidPage(
                 class = "bg-save-row",
                 actionButton("bg_save", "Save", class = "glass-btn"),
                 uiOutput("bg_dirty_badge")
-              ),
+              )
             )
           ),
 
           tabPanel(
             title = "Përmbledhje",
             value = "tab_overview",
+
+            div(
+              class = "section-box",
+              h4("Të dhënat e serive të zgjedhura"),
+              div(class = "table-wrap", DT::DTOutput("ts_selected_tbl"))
+            ),
 
             div(class = "glass-divider"),
 
@@ -2036,6 +2042,54 @@ server <- function(input, output, session) {
 
     bg_fs_ctx(NULL)
   }, ignoreInit = TRUE)
+
+  output$ts_selected_tbl <- DT::renderDT({
+    d0 <- df()
+    req(d0)
+
+    cfg <- active_cfg()
+
+    tc <- cfg$time_col %||% input$data_time_col
+    shiny::validate(shiny::need(!is.null(tc) && tc %in% names(d0),
+                              "Zgjidh kolonën e kohës te Settings."))
+
+    sel <- cfg$value_cols %||% input$data_value_cols %||% character(0)
+    sel <- sel[sel %in% names(d0)]
+    shiny::validate(shiny::need(length(sel) > 0,
+                              "S’ke zgjedh asnjë seri numerike te Settings."))
+
+    d <- make_df_dyn(d0, tc)
+
+    if (!is.null(tc) && tc != "Time" && "Time" %in% names(d)) {
+      names(d)[names(d) == "Time"] <- tc
+    }
+
+    keep <- intersect(c(tc, sel), names(d))
+    out  <- dplyr::select(d, dplyr::all_of(keep))
+
+    DT::datatable(
+      out,
+      rownames = FALSE,
+      class = "display nowrap cell-border compact",
+      options = list(
+        dom = "lfrtip",
+        pageLength = 10,
+        lengthMenu = c(5, 10, 20, 50),
+        scrollX = TRUE,
+        autoWidth = TRUE
+      )
+    )
+  }, server = FALSE)
+
+  observeEvent(input$main_tabs, {
+    if (identical(input$main_tabs, "tab_overview")) {
+      session$sendCustomMessage("dt_adjust", "ts_selected_tbl")
+    }
+  }, ignoreInit = TRUE)
+
+  session$onFlushed(function() {
+    session$sendCustomMessage("dt_adjust", "ts_selected_tbl")
+  }, once = TRUE)
 
   server_plots(input, output, session, df)
 }

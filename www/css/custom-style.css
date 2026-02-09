@@ -1564,3 +1564,16 @@ html.bg-none #bg-overlay {
 .saved-ds-trash:hover {
     opacity: 1;
 }
+
+.table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.table-wrap .dataTables_wrapper {
+    width: 100% !important;
+}
+
+.table-wrap table.dataTable {
+    width: 100% !important;
+}

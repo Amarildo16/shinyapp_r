@@ -357,4 +357,19 @@ $(document).on("hidden.bs.modal", "#main_modal_sm", function () {
         setTimeout(syncOnce, 50);
     });
 
+    Shiny.addCustomMessageHandler("dt_adjust", function (id) {
+        setTimeout(function () {
+            var $host = $("#" + id);
+            if (!$host.length) return;
+
+            var $tbl = $host.is("table") ? $host : $host.find("table").first();
+            if (!$tbl.length) $tbl = $host;
+
+            if ($.fn.dataTable && $.fn.dataTable.isDataTable($tbl)) {
+                $tbl.DataTable().columns.adjust().draw(false);
+            }
+        }, 180);
+    });
+
+
 })();
