@@ -1,6 +1,6 @@
 {
   "active_mode": "color",
-  "version": 1770588662,
+  "version": 1770630564,
   "modes": {
     "none": [],
     "color": {
@@ -15,12 +15,12 @@
       "scopes": {
         "custom": {
           "per_tab": {
-            "tab_settings": "images/image9.jpeg",
+            "tab_settings": "images/image0.jpeg",
             "tab_stationary": "images/image3.jpeg"
           }
         },
         "global": {
-          "global": "images/image4.jpeg"
+          "global": "images/image8.jpeg"
         }
       }
     }

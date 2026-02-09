@@ -47,8 +47,8 @@ APP_DIR <- get_app_dir()
 
 DATA_DIR  <- file.path(APP_DIR, "data")
 if (!dir.exists(DATA_DIR)) dir.create(DATA_DIR, recursive = TRUE)
-DATA_PATH <- file.path(DATA_DIR, "albania_agriculture_timeseries_1998_2024.csv")
 
+STATE_FILE <- file.path(DATA_DIR, "datasets_state.json")
 
 default_state <- function() {
   data.frame(

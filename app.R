@@ -667,15 +667,40 @@ ui <- fluidPage(
         )
       )
     )
+  ),
+  # ========= MODAL FULLSCREEN (Background Media Library) =========
+  tags$div(
+    class = "modal fade",
+    id = "bg_modal_fs",
+    tabindex = "-1",
+    `aria-hidden` = "true",
+    tags$div(
+      class = "modal-dialog modal-lg",
+      tags$div(
+        class = "modal-content",
+        tags$div(
+          class = "modal-header",
+          uiOutput("bg_modal_fs_title"),
+          tags$button(
+            type = "button",
+            class = "close",
+            `data-dismiss` = "modal",
+            `aria-label` = "Close",
+            tags$span(`aria-hidden` = "true", HTML("&times;"))
+          )
+        ),
+        tags$div(class = "modal-body", uiOutput("bg_modal_fs_body")),
+        tags$div(
+          class = "modal-footer",
+          actionButton("bg_btn_close", "Mbyll", class = "btn btn-light"),
+          actionButton("bg_btn_use", "Përdor foton", class = "btn btn-success")
+        )
+      )
+    )
   )
 )
 
-
 server <- function(input, output, session) {
-
-  # =========================================================
-  # 0) NAV
-  # =========================================================
   observeEvent(input$go_settings,   { updateTabsetPanel(session, "main_tabs", "tab_settings") })
   observeEvent(input$go_overview,   { updateTabsetPanel(session, "main_tabs", "tab_overview") })
   observeEvent(input$go_eda_ts,     { updateTabsetPanel(session, "main_tabs", "tab_eda_ts") })
@@ -707,7 +732,6 @@ server <- function(input, output, session) {
   # 1) PATHS (safe fallbacks)
   # =========================================================
   DATA_DIR  <- get0("DATA_DIR",  inherits = TRUE)
-  DATA_PATH <- get0("DATA_PATH", inherits = TRUE)
 
   if (is.null(DATA_DIR))  DATA_DIR  <- file.path(getwd(), "data")
   if (!dir.exists(DATA_DIR)) dir.create(DATA_DIR, recursive = TRUE)
@@ -1564,8 +1588,8 @@ server <- function(input, output, session) {
   # ===========================
   # Drafts for selections (apply only on Save)
   # ===========================
-  draft_global_path <- reactiveVal(NULL)                       # string: "images/xxx.jpg"
-  draft_per_tab     <- reactiveVal(setNames(list(), character()))  # list(tabid = "images/..")
+  draft_global_path <- reactiveVal(NULL)                          # string: "images/xxx.jpg"
+  draft_per_tab     <- reactiveVal(setNames(list(), character())) # list(tabid = "images/..")
 
   # ===========================
   # SAVE (vetëm këtu ruajmë)
@@ -1653,15 +1677,15 @@ server <- function(input, output, session) {
   # ===========================
   # Media Library (Fullscreen modal) - Background picker
   # ===========================
-  fs_ctx <- reactiveVal(NULL)          # list(type="bg_picker", target="global") OR (target="tab", tabid="tab_overview")
+  bg_fs_ctx <- reactiveVal(NULL)        # list(type="bg_picker", target="global") OR (target="tab", tabid="tab_overview")
   bg_media_selected <- reactiveVal(NULL)
   media_refresh <- reactiveVal(0L)
 
-  # Helper JS for BS5 / jQuery modal show/hide
-  modal_show_fs <- function() {
+  # Helper JS for BS5 / jQuery modal show/hide (BG MODAL)
+  modal_show_bg <- function() {
     shinyjs::runjs("
       (function(){
-        var el = document.getElementById('main_modal_fs');
+        var el = document.getElementById('bg_modal_fs');
         if(!el) return;
         if (window.bootstrap && bootstrap.Modal) {
           bootstrap.Modal.getOrCreateInstance(el).show();
@@ -1671,10 +1695,10 @@ server <- function(input, output, session) {
       })();
     ")
   }
-  modal_hide_fs <- function() {
+  modal_hide_bg <- function() {
     shinyjs::runjs("
       (function(){
-        var el = document.getElementById('main_modal_fs');
+        var el = document.getElementById('bg_modal_fs');
         if(!el) return;
         if (window.bootstrap && bootstrap.Modal) {
           bootstrap.Modal.getOrCreateInstance(el).hide();
@@ -1688,12 +1712,10 @@ server <- function(input, output, session) {
   # Open modal for GLOBAL
   observeEvent(input$bg_edit_global_btn, {
     bg_media_selected(NULL)
-    fs_ctx(list(type = "bg_picker", target = "global"))
+    bg_fs_ctx(list(type = "bg_picker", target = "global"))
 
-    updateActionButton(session, "btn_save_config", label = "Përdor foton")
-    updateActionButton(session, "btn_cancel_config", label = "Mbyll")
-
-    modal_show_fs()
+    updateTabsetPanel(session, "bg_media_tabs", selected = "library")
+    modal_show_bg()
   }, ignoreInit = TRUE)
 
   # Open modal for EACH TAB
@@ -1701,23 +1723,23 @@ server <- function(input, output, session) {
     tabid <- t$id
     observeEvent(input[[paste0("bg_edit__", tabid)]], {
       bg_media_selected(NULL)
-      fs_ctx(list(type = "bg_picker", target = "tab", tabid = tabid))
+      bg_fs_ctx(list(type = "bg_picker", target = "tab", tabid = tabid))
 
-      updateActionButton(session, "btn_save_config", label = "Përdor foton")
-      updateActionButton(session, "btn_cancel_config", label = "Mbyll")
-
-      modal_show_fs()
+      updateTabsetPanel(session, "bg_media_tabs", selected = "library")
+      modal_show_bg()
     }, ignoreInit = TRUE)
   })
 
-  # Close modal
-  observeEvent(input$btn_cancel_config, {
-    modal_hide_fs()
+  # Close BG modal (NEW BUTTON ID)
+  observeEvent(input$bg_btn_close, {
+    modal_hide_bg()
+    bg_fs_ctx(NULL)
+    bg_media_selected(NULL)
   }, ignoreInit = TRUE)
 
-  # Modal title (shows Global or the tab label)
-  output$modal_fs_title <- renderUI({
-    ctx <- fs_ctx()
+  # Modal title (BG MODAL)
+  output$bg_modal_fs_title <- renderUI({
+    ctx <- bg_fs_ctx()
     if (is.null(ctx) || !identical(ctx$type, "bg_picker")) return(tags$h5(""))
 
     if (identical(ctx$target, "global")) {
@@ -1734,9 +1756,9 @@ server <- function(input, output, session) {
     tags$h5("Media Library")
   })
 
-  # Modal body (Library + Upload)
-  output$modal_fs_body <- renderUI({
-    ctx <- fs_ctx()
+  # Modal body (BG MODAL)
+  output$bg_modal_fs_body <- renderUI({
+    ctx <- bg_fs_ctx()
     if (is.null(ctx) || !identical(ctx$type, "bg_picker")) return(NULL)
 
     tabsetPanel(
@@ -1745,7 +1767,7 @@ server <- function(input, output, session) {
       tabPanel(
         title = "Library",
         value = "library",
-        uiOutput("bg_media_gallery"),
+        uiOutput("bg_media_gallery")
       ),
 
       tabPanel(
@@ -1771,7 +1793,7 @@ server <- function(input, output, session) {
     media_refresh()
 
     st  <- bg_saved()
-    ctx <- fs_ctx()
+    ctx <- bg_fs_ctx()
 
     img_root <- file.path(APP_DIR, "www", "images")
     if (!dir.exists(img_root)) return(tags$div("Nuk gjendet www/images"))
@@ -1927,10 +1949,7 @@ server <- function(input, output, session) {
     ok <- tryCatch(unlink(abs_path, force = TRUE) == 0, error = function(e) FALSE)
 
     if (isTRUE(ok)) {
-      # nëse ishte selected, pastro
       if (identical(bg_media_selected(), src)) bg_media_selected(NULL)
-
-      # nëse ishte draft, pastro
       if (identical(draft_global_path(), src)) draft_global_path(NULL)
 
       dpt <- draft_per_tab()
@@ -1960,8 +1979,6 @@ server <- function(input, output, session) {
     req(input$bg_media_upload)
 
     up <- input$bg_media_upload
-
-    # Shiny me multiple jep data.frame
     if (!is.data.frame(up) || nrow(up) == 0) return()
 
     seen <- processed_datapaths()
@@ -1980,7 +1997,6 @@ server <- function(input, output, session) {
       base <- safe_name(tools::file_path_sans_ext(up$name[i]))
       if (!nzchar(base)) base <- paste0("img_", format(Sys.time(), "%Y%m%d_%H%M%S"))
 
-      # mos e overwrite nëse ekziston
       out_abs <- file.path(dest_dir, paste0(base, ".", ext))
       if (file.exists(out_abs)) {
         base2 <- paste0(base, "_", format(Sys.time(), "%H%M%S"), "_", i)
@@ -1999,17 +2015,13 @@ server <- function(input, output, session) {
     processed_datapaths(seen)
 
     if (new_count > 0) {
-      # rifresko gallery
       media_refresh(media_refresh() + 1L)
 
-      # ✅ mos e selekto automatikisht (ti zgjedh vet)
       bg_media_selected(NULL)
 
-      # ✅ pastro FilePond + input
       session$sendCustomMessage("pond_clear", list(inputId = "bg_media_upload"))
       processed_datapaths(character(0))
 
-      # ✅ kalo direkt te Library
       updateTabsetPanel(session, "bg_media_tabs", selected = "library")
 
       showNotification(paste0("U ngarkuan ", new_count, " foto ✅"), type="message", duration=3)
@@ -2017,9 +2029,9 @@ server <- function(input, output, session) {
 
   }, ignoreInit = TRUE)
 
-  # Use selected image (store draft based on ctx, mark dirty, close modal)
-  observeEvent(input$btn_save_config, {
-    ctx <- fs_ctx()
+  # Use selected image (store draft based on ctx, mark dirty, close BG modal)
+  observeEvent(input$bg_btn_use, {
+    ctx <- bg_fs_ctx()
     if (is.null(ctx) || !identical(ctx$type, "bg_picker")) return()
 
     req(bg_media_selected())
@@ -2033,7 +2045,10 @@ server <- function(input, output, session) {
     }
 
     bg_dirty(TRUE)
-    modal_hide_fs()
+    modal_hide_bg()
+
+    bg_fs_ctx(NULL)
+    # bg_media_selected(NULL)  # po deshe e pastrojm dhe selection kur mbyllet
   }, ignoreInit = TRUE)
 
   server_plots(input, output, session, df)

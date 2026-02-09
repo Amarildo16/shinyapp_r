@@ -220,7 +220,7 @@
         initWithRetry("csv_file_modal", 25);
     });
 
-    $(document).on("shown.bs.modal", "#main_modal_fs", function () {
+    $(document).on("shown.bs.modal", "#main_modal_fs, #bg_modal_fs", function () {
         initWithRetry("bg_media_upload", 25);
         setTimeout(function () {
             if ($.fn.dataTable) {
