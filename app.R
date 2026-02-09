@@ -47,7 +47,7 @@ ui <- fluidPage(
     id = "bg-wrapper",
     tags$div(
       class = "bg-layer current",
-      style = "background-image:url('images/image0.jpeg');"
+      style = "background-color:#0b1c24; background-image:none;"
     ),
     tags$div(class = "bg-layer next")
   ),
@@ -874,6 +874,42 @@ server <- function(input, output, session) {
 
   }, ignoreInit = TRUE)
 
+  apply_dataset_cfg_to_main <- function(file, d) {
+    req(file, d)
+
+    nm <- names(d)
+
+    st  <- tryCatch(read_state(), error = function(e) list())
+    cfg <- tryCatch(get_dataset_config(st, file), error = function(e) list(time_col=NULL, value_cols=NULL))
+
+    cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
+    time_choices <- unique(cand$col)
+    if (length(time_choices) == 0) time_choices <- nm
+
+    tc <- cfg$time_col %||% time_choices[1]
+    if (!(tc %in% time_choices)) tc <- time_choices[1]
+
+    cols <- setdiff(nm, tc)
+
+    num_cols <- cols[vapply(d[cols], function(x) {
+      xn <- to_numeric_safe(x)
+      mean(!is.na(xn)) >= 0.70
+    }, logical(1))]
+    if (length(num_cols) == 0) num_cols <- cols
+
+    vals <- cfg$value_cols %||% character(0)
+    vals <- setdiff(vals, tc)
+    vals <- vals[vals %in% num_cols]
+    if (!length(vals)) vals <- head(num_cols, min(3, length(num_cols)))
+
+    updateSelectInput(session, "data_time_col", choices = time_choices, selected = tc)
+    updateSelectizeInput(session, "data_value_cols",
+      choices  = num_cols,
+      selected = vals,
+      server   = TRUE
+    )
+  }
+
   observeEvent(active_dataset_file(), {
     sel   <- active_dataset_file()
     files <- saved_datasets()
@@ -915,6 +951,7 @@ server <- function(input, output, session) {
 
     df_raw(d)
     updateTextInput(session, "data_source", value = sel)
+    apply_dataset_cfg_to_main(sel, d)
 
   }, ignoreInit = FALSE)
 
@@ -1038,10 +1075,12 @@ server <- function(input, output, session) {
 
     target <- file.path(DATA_DIR, sel)
     if (!file.exists(target)) {
-      showNotification("File s’u gjet (ndoshta u fshi më parë).", type = "warning", duration = 5)
+      showNotification("File s’u gjet.", type = "warning", duration = 5)
       pending_delete_file(NULL)
       return()
     }
+
+    was_active <- identical(active_dataset_file(), sel)
 
     ok <- file.remove(target)
     if (!isTRUE(ok)) {
@@ -1053,13 +1092,48 @@ server <- function(input, output, session) {
     files <- list_saved_datasets()
     saved_datasets(files)
 
-    if (identical(active_dataset_file(), sel)) {
-      active_dataset_file(NULL)
+    try(sync_state(files), silent = TRUE)
+
+    if (was_active) {
+      if (length(files) > 0) {
+        st <- set_active_dataset(files[1])
+        active_dataset_file(st$active)
+
+        d <- tryCatch(
+          read_data_safe(file.path(DATA_DIR, st$active), st$active),
+          error = function(e) {
+            showNotification(
+              paste0("S’u lexu dot dataset-i i ri: ", conditionMessage(e)),
+              type = "error", duration = 7
+            )
+            NULL
+          }
+        )
+        df_raw(d)
+
+        updateTextInput(session, "data_source", value = st$active)
+
+        showNotification("Dataset u fshi. Kalova te dataset-i tjetër.", type = "message", duration = 4)
+      } else {
+        active_dataset_file(NULL)
+        df_raw(NULL)
+
+        updateTextInput(session, "data_source", value = "")
+        updateSelectInput(session, "data_time_col", choices = character(0), selected = character(0))
+        updateSelectizeInput(session, "data_value_cols", choices = character(0), selected = character(0), server = TRUE)
+
+        showNotification("Dataset u fshi. S’ka dataset tjetër të ruajtur.", type = "message", duration = 5)
+      }
+    } else {
+      st <- tryCatch(read_state(), error = function(e) list(active = NULL))
+      if (!is.null(st$active) && !identical(active_dataset_file(), st$active)) {
+        active_dataset_file(st$active)
+      }
+
+      showNotification("Dataset u fshi me sukses.", type = "message", duration = 4)
     }
 
     pending_delete_file(NULL)
-
-    showNotification("Dataset u fshi me sukses.", type = "message", duration = 4)
   }, ignoreInit = TRUE)
 
 
@@ -1095,10 +1169,14 @@ server <- function(input, output, session) {
   df <- reactive({ df_raw() })
 
   active_cfg <- reactive({
+    df_raw()
     f <- active_dataset_file()
     if (is.null(f) || !nzchar(f)) return(list(time_col = NULL, value_cols = character(0)))
-    st <- read_state()
-    get_dataset_config(st, f)
+    st <- tryCatch(read_state(), error = function(e) list())
+    tryCatch(
+      get_dataset_config(st, f),
+      error = function(e) list(time_col = NULL, value_cols = character(0))
+    )
   })
 
   # =========================================================
@@ -1111,7 +1189,9 @@ server <- function(input, output, session) {
     nm <- names(d)
     if (length(nm) == 0) return()
 
-    cfg <- active_cfg()
+    f0 <- active_dataset_file()
+    st0 <- tryCatch(read_state(), error = function(e) list())
+    cfg <- tryCatch(get_dataset_config(st0, f0), error = function(e) list(time_col = NULL, value_cols = character(0)))
 
     cand <- tryCatch(
       detect_time_candidates(d),
@@ -1340,7 +1420,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$btn_save_config, {
     if (length(input$modal_value_cols) == 0) {
-      showNotification("Zgjidh të paktën 1 seri numerike!", type="error")
+      showNotification("Zgjidh të paktën 1 seri numerike!", type = "error")
       return()
     }
 
@@ -1348,28 +1428,11 @@ server <- function(input, output, session) {
 
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "hide"))
 
-    d  <- pending_data()
-    nm <- names(d)
+    d_pending <- pending_data()
+    nm_pending <- names(d_pending)
 
-    tc   <- isolate(input$modal_time_col)
-    vals <- isolate(input$modal_value_cols)
-    vals <- setdiff(vals, tc)
-
-    cols <- setdiff(nm, tc)
-
-    num_cols <- cols[vapply(d[cols], function(x) {
-      xn <- to_numeric_safe(x)
-      mean(!is.na(xn)) >= 0.70
-    }, logical(1))]
-
-    if (length(num_cols) == 0) num_cols <- cols
-
-    vals <- vals[vals %in% num_cols]
-    if (length(vals) == 0) vals <- head(num_cols, min(3, length(num_cols)))
-
-    chosen_tc       <- tc
-    chosen_vals     <- vals
-    chosen_num_cols <- num_cols
+    tc_in   <- isolate(input$modal_time_col)
+    vals_in <- isolate(input$modal_value_cols)
 
     final_file <- isolate(editing_file())
     if (is.null(final_file) || !nzchar(final_file)) {
@@ -1404,12 +1467,12 @@ server <- function(input, output, session) {
           active_dataset_file(st$active)
           final_file <- st$active
 
-          showNotification(paste0("Dataset u ruajt te data/", safe), type="message", duration=6)
+          showNotification(paste0("Dataset u ruajt te data/", safe), type = "message", duration = 6)
         } else {
-            showNotification("S’u arrit me ruajt datasetin te /data (permissions).", type="error", duration=8)
-            session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "show"))
-            return()
-          }
+          showNotification("S’u arrit me ruajt datasetin te /data (permissions).", type = "error", duration = 8)
+          session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "show"))
+          return()
+        }
       } else {
         if (!is.null(final_file) && nzchar(final_file)) {
           st <- set_active_dataset(final_file)
@@ -1425,27 +1488,69 @@ server <- function(input, output, session) {
       }
     }
 
+    d <- d_pending
+    if (!is.null(final_file) && nzchar(final_file)) {
+      disk_path <- file.path(DATA_DIR, final_file)
+      if (file.exists(disk_path)) {
+        d2 <- tryCatch(
+          read_data_safe(disk_path, final_file),
+          error = function(e) {
+            showNotification(paste0("S’u rihap dot dataset-i nga disku: ", e$message),
+                            type = "error", duration = 8)
+            NULL
+          }
+        )
+        if (!is.null(d2)) d <- d2
+      }
+    }
+
+    nm <- names(d)
+
+    cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
+    time_choices <- unique(cand$col)
+    if (length(time_choices) == 0) time_choices <- nm
+
+    chosen_tc <- tc_in
+    if (is.null(chosen_tc) || !nzchar(chosen_tc) || !(chosen_tc %in% time_choices)) {
+      chosen_tc <- time_choices[1]
+    }
+
+    vals_in <- setdiff(vals_in, chosen_tc)
+
+    cols <- setdiff(nm, chosen_tc)
+
+    chosen_num_cols <- cols[vapply(d[cols], function(x) {
+      xn <- to_numeric_safe(x)
+      mean(!is.na(xn)) >= 0.70
+    }, logical(1))]
+    if (length(chosen_num_cols) == 0) chosen_num_cols <- cols
+
+    chosen_vals <- vals_in[vals_in %in% chosen_num_cols]
+    if (length(chosen_vals) == 0) chosen_vals <- head(chosen_num_cols, min(3, length(chosen_num_cols)))
+
     if (!is.null(final_file) && nzchar(final_file)) {
       st2 <- read_state()
       st2 <- update_dataset_config(st2, final_file, chosen_tc, chosen_vals)
       write_state(st2)
     }
 
+    if (!is.null(final_file) && nzchar(final_file)) {
+      disk_path <- file.path(DATA_DIR, final_file)
+      if (file.exists(disk_path)) {
+        d2 <- tryCatch(read_data_safe(disk_path, final_file), error = function(e) NULL)
+        if (!is.null(d2)) d <- d2
+      }
+    }
+
+    df_raw(NULL)
     df_raw(d)
 
-    session$onFlushed(function() {
-      updateSelectInput(session, "data_time_col", choices = nm, selected = chosen_tc)
-      updateSelectizeInput(session, "data_value_cols",
-        choices  = chosen_num_cols,
-        selected = chosen_vals,
-        server   = TRUE
-      )
-    }, once = TRUE)
+    if (!is.null(final_file) && nzchar(final_file)) {
+      updateTextInput(session, "data_source", value = final_file)
+    }
 
     pending_cfg(NULL); pending_data(NULL)
-
     uploaded_tmp_path(NULL); uploaded_tmp_name(NULL)
-
     editing_file(NULL)
 
     showNotification("Konfigurimi i dataset-it u ruajt me sukses.", type = "message", duration = 5)
@@ -1508,16 +1613,6 @@ server <- function(input, output, session) {
     list(id="tab_forecast",   label="Parashikimi")
   )
 
-  BG_DEFAULTS <- c(
-    tab_settings   = "images/image7.jpeg",
-    tab_overview   = "images/image0.jpeg",
-    tab_eda_ts     = "images/image1.jpeg",
-    tab_eda_rel    = "images/image2.jpeg",
-    tab_stationary = "images/image3.jpeg",
-    tab_modeling   = "images/image4.jpeg",
-    tab_forecast   = "images/image5.jpeg"
-  )
-
   BG_STATE <- read_bg_state()
 
   bg_saved <- reactiveVal(BG_STATE)
@@ -1548,14 +1643,15 @@ server <- function(input, output, session) {
     st <- bg_saved()
 
     g <- st$modes$image$scopes$global$global %||% NULL
-    src <- g %||% "images/image0.jpeg"
-    if (!is.null(g) && nzchar(g)) src <- bg_ver_src(src, st) %||% src
-
-    status <- if (!is.null(g) && nzchar(g)) "Aktive: Custom" else "Aktive: Default"
+    src <- if (!is.null(g) && nzchar(g)) bg_ver_src(g, st) else NULL
+    status <- if (!is.null(g) && nzchar(g)) "Aktive: Custom" else "Aktive: Pa foto (ngjyrë default)"
 
     div(
       class="bg-tab-card",
-      div(class="bg-tab-thumb", tags$img(src = src)),
+      div(
+        class = "bg-tab-thumb bg-thumb-empty",
+        if (!is.null(src) && nzchar(src)) tags$img(src = src) else HTML(BG_PLACEHOLDER_SVG)
+      ),
       div(
         class="bg-tab-meta",
         div(class="bg-tab-name", "Global"),
@@ -1579,17 +1675,16 @@ server <- function(input, output, session) {
       class="bg-tabs-grid",
       lapply(BG_TABS, function(t) {
         tabid <- t$id
-        def   <- BG_DEFAULTS[[tabid]]
-
         custom <- per_tab[[tabid]] %||% NULL
-        src <- custom %||% def
-        if (!is.null(custom) && nzchar(custom)) src <- bg_ver_src(src, st)
-
-        status <- if (!is.null(custom) && nzchar(custom)) "Aktive: Custom" else "Aktive: Default"
+        src <- if (!is.null(custom) && nzchar(custom)) bg_ver_src(custom, st) else NULL
+        status <- if (!is.null(custom) && nzchar(custom)) "Aktive: Custom" else "Aktive: Pa foto (ngjyrë default)"
 
         div(
           class="bg-tab-card",
-          div(class="bg-tab-thumb", tags$img(src = src)),
+          div(
+            class = "bg-tab-thumb bg-thumb-empty",
+            if (!is.null(src) && nzchar(src)) tags$img(src = src) else HTML(BG_PLACEHOLDER_SVG)
+          ),
           div(
             class="bg-tab-meta",
             div(class="bg-tab-name", t$label),
@@ -1604,6 +1699,25 @@ server <- function(input, output, session) {
     )
   })
 
+  BG_PLACEHOLDER_SVG <- '
+    <svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gallery placeholder">
+      <defs>
+        <filter id="wobble">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="2" result="noise"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+      </defs>
+
+      <g filter="url(#wobble)" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="3"
+        stroke-linecap="round" stroke-linejoin="round">
+        <rect x="10" y="10" width="100" height="70" rx="10"/>
+        <circle cx="38" cy="30" r="6"/>
+        <path d="M22 66 L44 44 L58 58 L80 36 L98 54"/>
+        <path d="M22 66 H98"/>
+      </g>
+    </svg>
+    '
+
   # ===========================
   # Drafts for selections
   # ===========================
@@ -1614,6 +1728,8 @@ server <- function(input, output, session) {
   # SAVE
   # ===========================
   observeEvent(input$bg_save, {
+
+    BG_CLEAR <- "__CLEAR__"
     st <- bg_saved()
 
     if (is.null(st$modes) || !is.list(st$modes)) st$modes <- list()
@@ -1621,6 +1737,7 @@ server <- function(input, output, session) {
     if (is.null(st$modes$image) || !is.list(st$modes$image)) st$modes$image <- list()
     if (is.null(st$modes$image$blur) || !is.list(st$modes$image$blur)) st$modes$image$blur <- list(on = TRUE, amount = 10L)
     if (is.null(st$modes$image$scopes) || !is.list(st$modes$image$scopes)) st$modes$image$scopes <- list()
+
     if (is.null(st$modes$image$scopes$custom) || !is.list(st$modes$image$scopes$custom)) {
       st$modes$image$scopes$custom <- list(per_tab = setNames(list(), character()))
     }
@@ -1650,7 +1767,12 @@ server <- function(input, output, session) {
 
       if (identical(st$modes$image$active_scope, "global")) {
         dp <- draft_global_path()
-        if (!is.null(dp) && nzchar(dp)) {
+
+        if (identical(dp, BG_CLEAR)) {
+          st$modes$image$scopes$global$global <- NULL
+          draft_global_path(NULL)
+
+        } else if (!is.null(dp) && nzchar(dp)) {
           st$modes$image$scopes$global$global <- dp
           draft_global_path(NULL)
         }
@@ -1658,10 +1780,25 @@ server <- function(input, output, session) {
 
       if (identical(st$modes$image$active_scope, "custom")) {
         dpt <- draft_per_tab()
-        if (!is.null(dpt) && length(dpt) > 0) {
+
+        if (is.list(dpt) && length(dpt) > 0) {
           for (tb in names(dpt)) {
-            st$modes$image$scopes$custom$per_tab[[tb]] <- dpt[[tb]]
+            v <- dpt[[tb]]
+
+            if (identical(v, BG_CLEAR)) {
+              st$modes$image$scopes$custom$per_tab[[tb]] <- NULL
+
+            } else if (!is.null(v) && nzchar(v)) {
+              st$modes$image$scopes$custom$per_tab[[tb]] <- v
+            }
           }
+
+          pt <- st$modes$image$scopes$custom$per_tab
+          if (is.list(pt) && length(pt) > 0) {
+            pt <- pt[!vapply(pt, is.null, logical(1))]
+            st$modes$image$scopes$custom$per_tab <- pt
+          }
+
           draft_per_tab(setNames(list(), character()))
         }
       }
@@ -1794,6 +1931,8 @@ server <- function(input, output, session) {
   output$bg_media_gallery <- renderUI({
     media_refresh()
 
+    BG_CLEAR <- "__CLEAR__"
+
     st  <- bg_saved()
     ctx <- bg_fs_ctx()
 
@@ -1814,16 +1953,41 @@ server <- function(input, output, session) {
 
     sel <- bg_media_selected()
 
-    active_src <- NULL
+    active_src <- ""
+
     if (!is.null(ctx) && identical(ctx$type, "bg_picker")) {
+
+      dp  <- draft_global_path()
+      dpt <- draft_per_tab()
+
       if (identical(ctx$target, "global")) {
-        g <- st$modes$image$scopes$global$global %||% ""
-        active_src <- if (nzchar(g)) g else "images/image0.jpeg"
+
+        if (identical(dp, BG_CLEAR)) {
+          active_src <- ""
+        } else if (!is.null(dp) && nzchar(dp)) {
+          active_src <- dp
+        } else {
+          g <- st$modes$image$scopes$global$global %||% ""
+          active_src <- if (nzchar(g)) g else ""
+        }
+
       } else if (identical(ctx$target, "tab")) {
+
         tb <- ctx$tabid
-        per_tab <- st$modes$image$scopes$custom$per_tab %||% setNames(list(), character())
-        cst <- per_tab[[tb]] %||% ""
-        active_src <- if (nzchar(cst)) cst else (BG_DEFAULTS[[tb]] %||% "images/image0.jpeg")
+        v  <- NULL
+        if (!is.null(tb) && nzchar(tb) && is.list(dpt)) {
+          v <- dpt[[tb]] %||% NULL
+        }
+
+        if (identical(v, BG_CLEAR)) {
+          active_src <- ""
+        } else if (!is.null(v) && nzchar(v)) {
+          active_src <- v
+        } else {
+          per_tab <- st$modes$image$scopes$custom$per_tab %||% setNames(list(), character())
+          cst <- per_tab[[tb]] %||% ""
+          active_src <- if (nzchar(cst)) cst else ""
+        }
       }
     }
 
@@ -1835,7 +1999,7 @@ server <- function(input, output, session) {
       class = "media-grid",
       lapply(imgs, function(src) {
 
-        is_active <- !is.null(active_src) && identical(src, active_src)
+        is_active <- nzchar(active_src) && identical(src, active_src)
         is_sel    <- !is.null(sel) && identical(src, sel)
 
         cls <- "media-card"
@@ -1844,9 +2008,22 @@ server <- function(input, output, session) {
 
         tags$div(
           class = cls,
-          onclick = sprintf("Shiny.setInputValue('bg_media_pick','%s',{priority:'event'});", src),
+          onclick = sprintf(
+            "Shiny.setInputValue('bg_media_pick','%s',{priority:'event'});",
+            src
+          ),
 
           if (is_active) tags$div(class = "media-tick", tags$i(class = "ri-check-line")),
+
+          if (is_active) tags$button(
+            type  = "button",
+            class = "media-clear-btn",
+            onclick = sprintf(
+              "event.stopPropagation();Shiny.setInputValue('bg_media_clear_active','%s',{priority:'event'});",
+              src
+            ),
+            tags$i(class = "ri-subtract-line")
+          ),
 
           tags$div(class = "media-thumb", tags$img(src = src)),
 
@@ -1896,6 +2073,28 @@ server <- function(input, output, session) {
     ))
   }, ignoreInit = TRUE)
 
+  observeEvent(input$bg_media_clear_active, {
+    ctx <- bg_fs_ctx()
+    if (is.null(ctx) || !identical(ctx$type, "bg_picker")) return()
+
+    BG_CLEAR <- "__CLEAR__"
+
+    if (identical(ctx$target, "global")) {
+      draft_global_path(BG_CLEAR)
+    } else if (identical(ctx$target, "tab")) {
+      if (is.null(ctx$tabid) || !nzchar(ctx$tabid)) return()
+      d <- draft_per_tab()
+      d[[ctx$tabid]] <- BG_CLEAR
+      draft_per_tab(d)
+    }
+
+    bg_dirty(TRUE)
+    modal_hide_bg()
+    bg_fs_ctx(NULL)
+    bg_media_selected(NULL)
+  }, ignoreInit = TRUE)
+
+
   observeEvent(input$bg_delete_confirm, {
     src <- pending_delete() %||% ""
     removeModal()
@@ -1917,7 +2116,6 @@ server <- function(input, output, session) {
     st <- bg_saved()
 
     in_use <- character(0)
-    in_use <- c(in_use, unname(BG_DEFAULTS))
 
     g <- st$modes$image$scopes$global$global %||% ""
     if (nzchar(g)) in_use <- c(in_use, g)

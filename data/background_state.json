@@ -1,27 +1,27 @@
 {
   "active_mode": "image",
-  "version": 1770657474,
+  "version": 1770633800,
   "modes": {
     "none": [],
     "color": {
       "value": "#1f2937"
     },
     "image": {
-      "active_scope": "global",
+      "active_scope": "custom",
       "blur": {
         "on": true,
-        "amount": 20
+        "amount": 10
       },
       "scopes": {
         "custom": {
           "per_tab": {
-            "tab_settings": "images/image0.jpeg",
-            "tab_stationary": "images/image3.jpeg"
+            "tab_stationary": "images/image3.jpeg",
+            "tab_eda_rel": "images/image11.jpeg",
+            "tab_modeling": "images/image9.jpeg",
+            "tab_forecast": "images/image3.jpeg"
           }
         },
-        "global": {
-          "global": "images/image8.jpeg"
-        }
+        "global": {}
       }
     }
   }

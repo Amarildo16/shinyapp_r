@@ -1577,3 +1577,138 @@ html.bg-none #bg-overlay {
 .table-wrap table.dataTable {
     width: 100% !important;
 }
+
+.bg-thumb-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 84px;
+}
+
+.bg-thumb-empty svg {
+    width: 64px;
+    height: 64px;
+    opacity: .9;
+}
+
+.media-card {
+    position: relative;
+}
+
+.media-tick {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.media-clear-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 7;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
+}
+
+/* =========================
+   DataTables (page tables)
+   ========================= */
+
+.app-content .dataTables_wrapper,
+.app-content .dataTables_wrapper label,
+.app-content .dataTables_wrapper .dataTables_info {
+    color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.app-content .dataTables_filter input,
+.app-content .dataTables_length select {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    border-radius: 10px !important;
+    padding: 7px 10px !important;
+    outline: none !important;
+}
+
+.app-content .dataTables_filter input::placeholder {
+    color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.app-content table.dataTable {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+}
+
+.app-content table.dataTable thead th {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+.app-content table.dataTable tbody td {
+    color: rgba(255, 255, 255, 0.88) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.app-content table.dataTable tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.app-content table.dataTable tbody tr:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+}
+
+.app-content .dataTables_paginate .paginate_button {
+    color: rgba(255, 255, 255, 0.72) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-radius: 10px !important;
+}
+
+.app-content .dataTables_paginate .paginate_button.current {
+    background: rgba(255, 255, 255, 0.14) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+.app-content .dataTables_length select {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    border-radius: 10px !important;
+    padding: 6px 28px 6px 10px !important;
+
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    background-image:
+        linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.75) 50%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.75) 50%, transparent 50%);
+    background-position:
+        calc(100% - 16px) calc(50% - 2px),
+        calc(100% - 11px) calc(50% - 2px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+}
+
+.app-content .dataTables_length select:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.10) !important;
+}
+
+.app-content .dataTables_length select option {
+    background: #1d232a !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+}

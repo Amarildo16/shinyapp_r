@@ -1,26 +1,11 @@
 (function () {
-    const tabBackgrounds = {
-        tab_settings: "images/image7.jpeg",
-        tab_overview: "images/image0.jpeg",
-        tab_eda_ts: "images/image1.jpeg",
-        tab_eda_rel: "images/image2.jpeg",
-        tab_stationary: "images/image3.jpeg",
-        tab_modeling: "images/image4.jpeg",
-        tab_forecast: "images/image5.jpeg",
-    };
-
     const TRANSITION_MS = 1200;
 
     let currentSrc = null;
     let swapTimer = null;
     let bgState = null;
 
-    function preloadImages(map) {
-        Object.values(map).forEach((src) => {
-            const img = new Image();
-            img.src = src;
-        });
-    }
+    const DEFAULT_COLOR = "#0b1c24";
 
     function withVersion(src) {
         const v = bgState?.version;
@@ -37,10 +22,13 @@
     function clearBg() {
         const { bgCurrent, bgNext } = getLayers();
         if (!bgCurrent || !bgNext) return;
+
         bgCurrent.style.backgroundImage = "none";
         bgNext.style.backgroundImage = "none";
+
         bgCurrent.style.backgroundColor = "";
         bgNext.style.backgroundColor = "";
+
         currentSrc = null;
     }
 
@@ -59,6 +47,19 @@
         document.documentElement.style.setProperty("--bg-blur", "0px");
     }
 
+    function setBgColor(color) {
+        const c = color || bgState?.modes?.color?.value || DEFAULT_COLOR;
+
+        clearBg();
+        setLayerFilter("color");
+
+        const { bgCurrent, bgNext } = getLayers();
+        if (bgCurrent && bgNext) {
+            bgCurrent.style.backgroundColor = c;
+            bgNext.style.backgroundColor = c;
+        }
+    }
+
     function setBg(src) {
         if (!src) return;
         if (src === currentSrc) return;
@@ -71,7 +72,9 @@
             swapTimer = null;
         }
 
-        const currentHasBg = !!bgCurrent.style.backgroundImage && bgCurrent.style.backgroundImage !== "none";
+        const currentHasBg =
+            !!bgCurrent.style.backgroundImage && bgCurrent.style.backgroundImage !== "none";
+
         if (!currentHasBg) {
             bgCurrent.style.backgroundImage = "url('" + src + "')";
             currentSrc = src;
@@ -96,7 +99,7 @@
     }
 
     function applyBlurFromState() {
-        const mode = bgState?.active_mode || "image";
+        const mode = bgState?.active_mode || "color";
         if (mode !== "image") return;
 
         const blur = bgState?.modes?.image?.blur || {};
@@ -115,34 +118,24 @@
     }
 
     function setBgByTabValue(tabId) {
-        if (!tabId) return;
+        const mode = bgState?.active_mode || "color";
 
-        const mode = bgState?.active_mode || "image";
+        if (!bgState) {
+            setBgColor(DEFAULT_COLOR);
+            return;
+        }
 
         if (mode === "none") {
-            clearBg();
-            setLayerFilter("none");
-            const { bgCurrent, bgNext } = getLayers();
-            if (bgCurrent && bgNext) {
-                bgCurrent.style.backgroundColor = "#0b1c24";
-                bgNext.style.backgroundColor = "#0b1c24";
-            }
+            setBgColor(bgState?.modes?.color?.value || DEFAULT_COLOR);
             return;
         }
 
         if (mode === "color") {
-            clearBg();
-            setLayerFilter("color");
-            const color = bgState?.modes?.color?.value || "#0b1c24";
-            const { bgCurrent, bgNext } = getLayers();
-            if (bgCurrent && bgNext) {
-                bgCurrent.style.backgroundColor = color;
-                bgNext.style.backgroundColor = color;
-            }
+            setBgColor(bgState?.modes?.color?.value || DEFAULT_COLOR);
             return;
         }
 
-        // image
+        applyBlurFromState();
         setLayerFilter("image");
 
         const imgMode = bgState?.modes?.image || {};
@@ -154,10 +147,19 @@
             src = imgMode?.scopes?.global?.global || null;
         } else {
             const perTab = imgMode?.scopes?.custom?.per_tab || {};
-            src = perTab?.[tabId] || tabBackgrounds[tabId] || tabBackgrounds.tab_overview;
+            src = perTab?.[tabId] || null;
         }
 
-        if (!src) src = tabBackgrounds[tabId] || tabBackgrounds.tab_overview;
+        if (!src) {
+            setBgColor(bgState?.modes?.color?.value || DEFAULT_COLOR);
+            return;
+        }
+
+        const { bgCurrent, bgNext } = getLayers();
+        if (bgCurrent && bgNext) {
+            bgCurrent.style.backgroundColor = "";
+            bgNext.style.backgroundColor = "";
+        }
 
         setBg(withVersion(src));
     }
@@ -171,15 +173,12 @@
     }
 
     function applyStateNow() {
-        applyBlurFromState();
-        const tabId = currentTabFromShiny() || "tab_overview";
+        const tabId = currentTabFromShiny() || "tab_settings";
         setBgByTabValue(tabId);
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-        preloadImages(tabBackgrounds);
-
-        setBg(tabBackgrounds.tab_overview);
+        setBgColor(DEFAULT_COLOR);
 
         if (window.jQuery) {
             jQuery(document).on("shiny:inputchanged", function (e) {
