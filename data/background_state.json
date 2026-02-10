@@ -1,13 +1,13 @@
 {
   "active_mode": "none",
-  "version": 1770638436,
+  "version": 1770729834,
   "modes": {
     "none": [],
     "color": {
       "value": "#1f2937"
     },
     "image": {
-      "active_scope": "custom",
+      "active_scope": "global",
       "blur": {
         "on": true,
         "amount": 10
