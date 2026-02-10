@@ -17,7 +17,7 @@ ui <- fluidPage(
     tags$script(src="js/bg.js"),
     tags$script(src="js/sidebar.js"),
     tags$script(src="js/plotly-animate.js"),
-    tags$link(rel = "stylesheet", href = "https://cdn.jsdelivr.net/npm/remixicon@4.9.1/fonts/remixicon.css"),
+    tags$link(rel = "stylesheet", href = "css/remixicon.css"),
     tags$link(rel="stylesheet", href="css/icons.css"),
     tags$script(src="js/custom.js")
   ),
