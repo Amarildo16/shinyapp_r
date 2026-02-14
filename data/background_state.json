@@ -7,14 +7,16 @@
       "value": "#1f2937"
     },
     "image": {
-      "active_scope": "global",
+      "active_scope": "custom",
       "blur": {
         "on": true,
-        "amount": 10
+        "amount": 20
       },
       "scopes": {
         "custom": {
-          "per_tab": {}
+          "per_tab": {
+            "tab_settings": "images/image1.jpeg"
+          }
         },
         "global": {}
       }

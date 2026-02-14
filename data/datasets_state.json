@@ -4,7 +4,7 @@
       "file": "albania_agriculture_timeseries_1998_2024.csv",
       "added_at": "2026-02-09 09:33:16.901586",
       "is_active": true,
-      "value_cols": ["Production_ton", "Area_ha", "Rainfall_mm", "Yield_ton_per_ha"],
+      "value_cols": ["Production_ton", "Area_ha", "Rainfall_mm"],
       "time_col": "Year"
     }
   ],
