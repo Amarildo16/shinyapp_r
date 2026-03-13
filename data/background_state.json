@@ -1,16 +1,16 @@
 {
   "active_mode": "none",
-  "version": 1771101823,
+  "version": 1773411658,
   "modes": {
     "none": [],
     "color": {
       "value": "#1f2937"
     },
     "image": {
-      "active_scope": "custom",
+      "active_scope": "global",
       "blur": {
         "on": true,
-        "amount": 20
+        "amount": 10
       },
       "scopes": {
         "custom": {
@@ -18,7 +18,9 @@
             "tab_settings": "images/image1.jpeg"
           }
         },
-        "global": {}
+        "global": {
+          "global": "images/image11.jpeg"
+        }
       }
     }
   }
