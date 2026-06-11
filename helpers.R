@@ -231,6 +231,137 @@ list_saved_datasets <- function() {
   ))
 }
 
+normalize_app_path <- function(path) {
+  normalizePath(path, winslash = "/", mustWork = FALSE)
+}
+
+is_path_inside_dir <- function(path, dir) {
+  path_norm <- sub("/+$", "", normalize_app_path(path))
+  dir_norm  <- sub("/+$", "", normalize_app_path(dir))
+
+  if (.Platform$OS.type == "windows") {
+    path_norm <- tolower(path_norm)
+    dir_norm  <- tolower(dir_norm)
+  }
+
+  identical(path_norm, dir_norm) || startsWith(path_norm, paste0(dir_norm, "/"))
+}
+
+resolve_saved_dataset_path <- function(file, data_dir = DATA_DIR) {
+  bad <- function(msg = "Dataset i pavlefshëm.") {
+    list(ok = FALSE, file = NULL, path = NULL, msg = msg)
+  }
+
+  if (is.null(file) || length(file) != 1 || is.na(file) || !nzchar(as.character(file))) {
+    return(bad())
+  }
+
+  file <- as.character(file)
+  files <- list_saved_datasets()
+
+  if (sum(files == file) != 1) {
+    return(bad("Dataset-i i zgjedhur nuk është i ruajtur ose nuk lejohet."))
+  }
+
+  base_dir <- normalize_app_path(data_dir)
+  path <- normalize_app_path(file.path(data_dir, file))
+
+  if (!is_path_inside_dir(path, base_dir)) {
+    return(bad("Shtegu i dataset-it nuk lejohet."))
+  }
+
+  if (!file.exists(path)) {
+    return(bad("Dataset-i s’u gjet në /data."))
+  }
+
+  list(ok = TRUE, file = file, path = path, msg = NULL)
+}
+
+resolve_media_image_path <- function(src, app_dir = APP_DIR) {
+  bad <- function(msg = "Shtegu i fotos nuk lejohet.") {
+    list(ok = FALSE, src = NULL, path = NULL, msg = msg)
+  }
+
+  if (is.null(src) || length(src) != 1 || is.na(src) || !nzchar(as.character(src))) {
+    return(bad())
+  }
+
+  src <- gsub("\\\\", "/", as.character(src))
+  if (grepl("^([A-Za-z]:|/|//)", src)) {
+    return(bad())
+  }
+
+  if (!startsWith(src, "images/")) {
+    return(bad("S’lejohet fshirja jashtë images/."))
+  }
+
+  base_dir <- normalize_app_path(file.path(app_dir, "www", "images"))
+  path <- normalize_app_path(file.path(app_dir, "www", src))
+
+  if (!is_path_inside_dir(path, base_dir)) {
+    return(bad("S’lejohet fshirja jashtë images/."))
+  }
+
+  list(ok = TRUE, src = src, path = path, msg = NULL)
+}
+
+validate_bg_upload_file <- function(path, filename, mime = NULL, size = NULL, max_bytes = 5 * 1024^2) {
+  bad <- function(msg) list(ok = FALSE, ext = NULL, msg = msg)
+
+  if (is.null(path) || length(path) != 1 || is.na(path) || !nzchar(as.character(path)) || !file.exists(path)) {
+    return(bad("File-i i ngarkuar s’u gjet."))
+  }
+
+  ext <- tolower(tools::file_ext(filename %||% ""))
+  allowed_ext <- c("jpg", "jpeg", "png", "webp")
+  if (!ext %in% allowed_ext) {
+    return(bad("Lejohen vetëm foto JPG, PNG ose WEBP."))
+  }
+
+  fsz <- suppressWarnings(as.numeric(size %||% NA_real_))
+  if (length(fsz) != 1 || is.na(fsz)) {
+    fsz <- suppressWarnings(as.numeric(file.info(path)$size))
+  }
+  if (length(fsz) != 1 || is.na(fsz) || fsz <= 0) {
+    return(bad("Madhësia e file-it nuk u verifikua."))
+  }
+  if (fsz > max_bytes) {
+    return(bad("Foto është shumë e madhe. Limiti është 5 MB."))
+  }
+
+  mime <- tolower(trimws(as.character(mime %||% "")))
+  generic_mime <- c("", "application/octet-stream", "binary/octet-stream")
+  allowed_mime <- switch(
+    ext,
+    "jpg"  = c("image/jpeg", "image/pjpeg"),
+    "jpeg" = c("image/jpeg", "image/pjpeg"),
+    "png"  = c("image/png", "image/x-png"),
+    "webp" = c("image/webp"),
+    character(0)
+  )
+  if (!mime %in% generic_mime && !mime %in% allowed_mime) {
+    return(bad("Tipi MIME i fotos nuk përputhet me formatin e lejuar."))
+  }
+
+  hdr <- tryCatch(readBin(path, "raw", n = 12), error = function(e) raw())
+  magic_ok <- FALSE
+  if (ext %in% c("jpg", "jpeg")) {
+    magic_ok <- length(hdr) >= 3 && identical(as.integer(hdr[1:3]), c(255L, 216L, 255L))
+  } else if (ext == "png") {
+    magic_ok <- length(hdr) >= 8 && identical(as.integer(hdr[1:8]), c(137L, 80L, 78L, 71L, 13L, 10L, 26L, 10L))
+  } else if (ext == "webp") {
+    magic_ok <- length(hdr) >= 12 &&
+      identical(rawToChar(hdr[1:4]), "RIFF") &&
+      identical(rawToChar(hdr[9:12]), "WEBP")
+  }
+
+  if (!isTRUE(magic_ok)) {
+    return(bad("Përmbajtja e file-it nuk duket si foto e vlefshme."))
+  }
+
+  list(ok = TRUE, ext = ext, msg = NULL)
+}
+
 has_zoo    <- requireNamespace("zoo", quietly = TRUE)
 has_readxl <- requireNamespace("readxl", quietly = TRUE)
 has_vars   <- requireNamespace("vars", quietly = TRUE)
@@ -320,20 +451,39 @@ read_data_safe <- function(path, filename = NULL) {
     )
   }
 
-  as.data.frame(d, stringsAsFactors = FALSE)
+  d <- as.data.frame(d, stringsAsFactors = FALSE)
+
+  if (nrow(d) == 0) {
+    stop("Dataset-i është bosh ose ka vetëm header. Ngarko dataset me të dhëna.")
+  }
+
+  if (ncol(d) == 0 || length(names(d)) == 0 || all(!nzchar(trimws(names(d))))) {
+    stop("Dataset-i nuk ka kolona të përdorshme.")
+  }
+
+  d
 }
 
 # =========================================================
 # 2) Time parsing
 # =========================================================
 parse_time_safe <- function(x) {
-  if (inherits(x, "Date")) return(x)
-  if (inherits(x, "POSIXt")) return(as.Date(x))
+  require_time_values <- function(v) {
+    if (sum(!is.na(v)) < 2) {
+      stop("Kolona e kohës duhet të ketë të paktën 2 vlera jo bosh.")
+    }
+    v
+  }
+
+  if (inherits(x, "Date")) return(require_time_values(x))
+  if (inherits(x, "POSIXt")) return(require_time_values(as.Date(x)))
   if (is.numeric(x) || is.integer(x)) {
     xn  <- as.numeric(x)
     xn0 <- xn[!is.na(xn)]
 
-    if (length(xn0) < 2) return(xn)
+    if (length(xn0) < 2) {
+      stop("Kolona e kohës duhet të ketë të paktën 2 vlera jo bosh.")
+    }
 
     if (all(xn0 >= 1500 & xn0 <= 3000) &&
         mean(abs(xn0 - round(xn0)) < 1e-8) >= 0.95) {
@@ -353,14 +503,19 @@ parse_time_safe <- function(x) {
 
   x0 <- trimws(as.character(x))
   x0[x0 == ""] <- NA_character_
+  x_non_na <- x0[!is.na(x0)]
 
-  if (all(grepl("^\\d{4}$", x0[!is.na(x0)]))) return(as.numeric(x0))
+  if (length(x_non_na) < 2) {
+    stop("Kolona e kohës duhet të ketë të paktën 2 vlera jo bosh.")
+  }
 
-  if (all(grepl("^\\d{4}-\\d{2}$", x0[!is.na(x0)]))) {
+  if (all(grepl("^\\d{4}$", x_non_na))) return(as.numeric(x0))
+
+  if (all(grepl("^\\d{4}-\\d{2}$", x_non_na))) {
     return(as.Date(paste0(x0, "-01")))
   }
 
-  if (all(grepl("^\\d{4}Q[1-4]$", x0[!is.na(x0)]))) {
+  if (all(grepl("^\\d{4}Q[1-4]$", x_non_na))) {
     yr <- as.integer(substr(x0, 1, 4))
     q  <- as.integer(substr(x0, 6, 6))
     m  <- (q - 1) * 3 + 1
@@ -610,10 +765,19 @@ skip_trace_hover <- function(pl, idx) {
 make_df_dyn <- function(df, time_col) {
   d <- df
 
+  if (is.null(time_col) || length(time_col) != 1 || is.na(time_col) ||
+      !nzchar(as.character(time_col)) || !(time_col %in% names(d))) {
+    stop("Zgjidh një kolonë kohe të vlefshme.")
+  }
+
   tm <- tryCatch(
     parse_time_safe(d[[time_col]]),
     error = function(e) stop("Kolona e kohës s’u parse dot: ", e$message)
   )
+
+  if (sum(!is.na(tm)) < 2) {
+    stop("Kolona e kohës duhet të ketë të paktën 2 vlera jo bosh.")
+  }
 
   d$Time <- tm
   d <- d[order(d$Time), , drop = FALSE]
@@ -662,7 +826,8 @@ apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
   if (length(vc) == 0) return(d)
 
   tt <- d$Time
-  if (length(tt) < 2) return(d)
+  tt_ok <- tt[!is.na(tt)]
+  if (length(tt_ok) < 2) return(d)
 
   f <- tolower(freq %||% "auto")
 
@@ -693,7 +858,7 @@ apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
     )
     if (is.null(by)) return(d)
 
-    full_time <- seq.Date(min(tt, na.rm = TRUE), max(tt, na.rm = TRUE), by = by)
+    full_time <- seq.Date(min(tt_ok), max(tt_ok), by = by)
     full <- data.frame(Time = full_time)
     out <- merge(full, d[, c("Time", vc), drop = FALSE], by = "Time", all.x = TRUE, sort = TRUE)
     return(out)
@@ -703,7 +868,7 @@ apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
     step <- switch(f, "year" = 1, NULL)
     if (is.null(step)) return(d)
 
-    full_time <- seq(min(tt, na.rm = TRUE), max(tt, na.rm = TRUE), by = step)
+    full_time <- seq(min(tt_ok), max(tt_ok), by = step)
     full <- data.frame(Time = full_time)
     out <- merge(full, d[, c("Time", vc), drop = FALSE], by = "Time", all.x = TRUE, sort = TRUE)
     return(out)
@@ -958,8 +1123,29 @@ read_bg_state <- function() {
   d <- default_bg_state()
   if (!file.exists(BG_STATE_FILE)) return(d)
 
-  st <- jsonlite::fromJSON(BG_STATE_FILE)
-  st <- migrate_bg_state_if_needed(st)
+  raw <- tryCatch(
+    paste(readLines(BG_STATE_FILE, warn = FALSE, encoding = "UTF-8"), collapse = "\n"),
+    error = function(e) ""
+  )
+  if (!nzchar(trimws(raw))) return(d)
+
+  st <- tryCatch(
+    jsonlite::fromJSON(raw),
+    error = function(e) {
+      ts <- format(Sys.time(), "%Y%m%d_%H%M%S")
+      bak <- paste0(BG_STATE_FILE, ".", ts, ".bak")
+      try(file.copy(BG_STATE_FILE, bak, overwrite = TRUE), silent = TRUE)
+      try(file.remove(BG_STATE_FILE), silent = TRUE)
+      d
+    }
+  )
+
+  if (is.null(st) || !is.list(st)) return(d)
+
+  st <- tryCatch(
+    migrate_bg_state_if_needed(st),
+    error = function(e) d
+  )
 
   st$active_mode <- st$active_mode %||% d$active_mode
   if (!st$active_mode %in% c("image","color","none")) st$active_mode <- d$active_mode

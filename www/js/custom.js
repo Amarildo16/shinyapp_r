@@ -68,8 +68,8 @@
         ) {
             return {
                 mode: "image",
-                acceptedFileTypes: ["image/*"],
-                expectedLabel: "Lejohet vetëm: foto",
+                acceptedFileTypes: ["image/jpeg", "image/png", "image/webp"],
+                expectedLabel: "Lejohen vetëm: JPG, PNG, WEBP",
                 detectMime: (source, type) =>
                     new Promise((resolve) => {
                         const name = (source && source.name) ? String(source.name).toLowerCase() : "";
@@ -78,12 +78,10 @@
                             png: "image/png",
                             jpg: "image/jpeg",
                             jpeg: "image/jpeg",
-                            webp: "image/webp",
-                            gif: "image/gif",
-                            svg: "image/svg+xml"
+                            webp: "image/webp"
                         };
                         if (map[ext]) return resolve(map[ext]);
-                        return resolve(type || "image/*");
+                        return resolve(type || "application/octet-stream");
                     })
             };
         }

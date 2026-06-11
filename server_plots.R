@@ -257,7 +257,9 @@ server_plots <- function(input, output, session, df) {
   time_range_txt <- reactive({
     req(df_dyn())
     tt <- df_dyn()$Time
-    rng <- range(tt, na.rm = TRUE)
+    tt_ok <- tt[!is.na(tt)]
+    validate(need(length(tt_ok) >= 2, "Kolona e kohës duhet të ketë të paktën 2 vlera jo bosh."))
+    rng <- range(tt_ok)
     paste0(fmt_time(rng[1]), " – ", fmt_time(rng[2]))
   })
 
@@ -274,6 +276,9 @@ server_plots <- function(input, output, session, df) {
 
     d  <- df_dyn()
     tt <- d$Time
+    tt_ok <- tt[!is.na(tt)]
+
+    validate(need(length(tt_ok) >= 2, "Kolona e kohës duhet të ketë të paktën 2 vlera jo bosh."))
 
     data.frame(
       Element = c(
@@ -284,8 +289,8 @@ server_plots <- function(input, output, session, df) {
         "Burimi i të dhënave"
       ),
       Vlera = c(
-        fmt_time(min(tt, na.rm = TRUE)),
-        fmt_time(max(tt, na.rm = TRUE)),
+        fmt_time(min(tt_ok)),
+        fmt_time(max(tt_ok)),
         as.character(nrow(d)),
         n_series_txt(),
         input$data_source %||% "Përdoruesi (dataset i ngarkuar)"

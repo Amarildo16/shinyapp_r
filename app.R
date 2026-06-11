@@ -200,11 +200,7 @@ ui <- fluidPage(
                 conditionalPanel(
                   condition = "input.bg_scope == 'global'",
                   tags$div(class = "bg-tabs-title", "Foto globale"),
-                  uiOutput("bg_global_card"),
-                  div(
-                    class = "bg-hidden-fileinput",
-                    fileInput("bg_global_upload", label = NULL, accept = c("image/png", "image/jpeg", "image/jpg"))
-                  )
+                  uiOutput("bg_global_card")
                 ),
 
                 conditionalPanel(
@@ -861,12 +857,13 @@ server <- function(input, output, session) {
     sel <- input$activate_dataset
     req(sel)
 
-    path <- file.path(DATA_DIR, sel)
-    if (!file.exists(path)) {
-      showNotification("Dataset-i s’u gjet në /data.", type = "error", duration = 6)
+    ds <- resolve_saved_dataset_path(sel, DATA_DIR)
+    if (!isTRUE(ds$ok)) {
+      showNotification(ds$msg %||% "Dataset i pavlefshëm.", type = "error", duration = 6)
       return()
     }
 
+    sel <- ds$file
     st <- set_active_dataset(sel)
     active_dataset_file(st$active %||% sel)
 
@@ -932,15 +929,15 @@ server <- function(input, output, session) {
       return()
     }
 
-    path <- file.path(DATA_DIR, sel)
-    if (!file.exists(path)) {
-      showNotification("Dataset aktiv s’u gjet (mund të jetë fshirë).", type = "warning", duration = 6)
+    ds <- resolve_saved_dataset_path(sel, DATA_DIR)
+    if (!isTRUE(ds$ok)) {
+      showNotification(ds$msg %||% "Dataset aktiv s’u gjet (mund të jetë fshirë).", type = "warning", duration = 6)
       active_dataset_file(NULL)
       return()
     }
 
     d <- tryCatch(
-      read_data_safe(path, sel),
+      read_data_safe(ds$path, ds$file),
       error = function(e) {
         showNotification(paste0("Gabim gjatë leximit: ", e$message), type = "error", duration = 8)
         NULL
@@ -950,8 +947,8 @@ server <- function(input, output, session) {
     if (is.null(d)) return()
 
     df_raw(d)
-    updateTextInput(session, "data_source", value = sel)
-    apply_dataset_cfg_to_main(sel, d)
+    updateTextInput(session, "data_source", value = ds$file)
+    apply_dataset_cfg_to_main(ds$file, d)
 
   }, ignoreInit = FALSE)
 
@@ -959,16 +956,17 @@ server <- function(input, output, session) {
     f <- input$edit_dataset
     req(f)
 
-    showNotification(paste0("Edit: ", f), type = "message", duration = 2)
-
-    path <- file.path(DATA_DIR, f)
-    if (!file.exists(path)) {
-      showNotification("Dataset-i s’u gjet në /data.", type = "error", duration = 6)
+    ds <- resolve_saved_dataset_path(f, DATA_DIR)
+    if (!isTRUE(ds$ok)) {
+      showNotification(ds$msg %||% "Dataset i pavlefshëm.", type = "error", duration = 6)
       return()
     }
 
+    f <- ds$file
+    showNotification(paste0("Edit: ", f), type = "message", duration = 2)
+
     d <- tryCatch(
-      read_data_safe(path, f),
+      read_data_safe(ds$path, f),
       error = function(e) {
         showNotification(paste0("Gabim gjatë leximit: ", e$message), type = "error", duration = 8)
         NULL
@@ -1000,6 +998,8 @@ server <- function(input, output, session) {
     vals <- vals[vals %in% num_cols]
     if (!length(vals)) vals <- head(num_cols, min(3, length(num_cols)))
 
+    uploaded_tmp_path(NULL)
+    uploaded_tmp_name(NULL)
     editing_file(f)
     pending_data(d)
     pending_cfg(list(
@@ -1073,13 +1073,15 @@ server <- function(input, output, session) {
     sel <- pending_delete_file()
     req(sel)
 
-    target <- file.path(DATA_DIR, sel)
-    if (!file.exists(target)) {
-      showNotification("File s’u gjet.", type = "warning", duration = 5)
+    ds <- resolve_saved_dataset_path(sel, DATA_DIR)
+    if (!isTRUE(ds$ok)) {
+      showNotification(ds$msg %||% "Dataset i pavlefshëm.", type = "error", duration = 5)
       pending_delete_file(NULL)
       return()
     }
 
+    sel <- ds$file
+    target <- ds$path
     was_active <- identical(active_dataset_file(), sel)
 
     ok <- file.remove(target)
@@ -1099,8 +1101,9 @@ server <- function(input, output, session) {
         st <- set_active_dataset(files[1])
         active_dataset_file(st$active)
 
+        ds_next <- resolve_saved_dataset_path(st$active, DATA_DIR)
         d <- tryCatch(
-          read_data_safe(file.path(DATA_DIR, st$active), st$active),
+          if (isTRUE(ds_next$ok)) read_data_safe(ds_next$path, ds_next$file) else stop(ds_next$msg %||% "Dataset i pavlefshëm."),
           error = function(e) {
             showNotification(
               paste0("S’u lexu dot dataset-i i ri: ", conditionMessage(e)),
@@ -1153,12 +1156,14 @@ server <- function(input, output, session) {
     st <- tryCatch(sync_state(files), error = function(e) list(active = NULL))
     act <- st$active %||% NULL
 
-    if (!is.null(act) && nzchar(act) && file.exists(file.path(DATA_DIR, act))) {
-      d <- tryCatch(read_data_safe(file.path(DATA_DIR, act), act), error = function(e) NULL)
+    ds_act <- if (!is.null(act) && nzchar(act)) resolve_saved_dataset_path(act, DATA_DIR) else list(ok = FALSE)
+
+    if (isTRUE(ds_act$ok)) {
+      d <- tryCatch(read_data_safe(ds_act$path, ds_act$file), error = function(e) NULL)
       if (!is.null(d)) {
         df_raw(d)
-        active_dataset_file(act)
-        try(updateTextInput(session, "data_source", value = act), silent = TRUE)
+        active_dataset_file(ds_act$file)
+        try(updateTextInput(session, "data_source", value = ds_act$file), silent = TRUE)
         return()
       }
     }
@@ -1426,6 +1431,18 @@ server <- function(input, output, session) {
 
     req(input$modal_time_col, input$modal_value_cols, pending_data())
 
+    tc_check <- isolate(input$modal_time_col)
+    d_check  <- pending_data()
+    time_ok <- tryCatch({
+      parse_time_safe(d_check[[tc_check]])
+      TRUE
+    }, error = function(e) e$message)
+
+    if (!isTRUE(time_ok)) {
+      showNotification(paste0("Kolona e kohës nuk është e vlefshme: ", time_ok), type = "error", duration = 8)
+      return()
+    }
+
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "hide"))
 
     d_pending <- pending_data()
@@ -1448,13 +1465,19 @@ server <- function(input, output, session) {
       if (!is.null(up_path) && file.exists(up_path) && !is.null(up_name) && nzchar(up_name)) {
 
         safe <- sanitize_filename(up_name, default_ext = "csv")
-        target <- file.path(DATA_DIR, safe)
+        target <- normalize_app_path(file.path(DATA_DIR, safe))
+
+        if (!is_path_inside_dir(target, DATA_DIR)) {
+          showNotification("Emri i dataset-it nuk lejohet.", type = "error", duration = 8)
+          session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "show"))
+          return()
+        }
 
         if (file.exists(target)) {
           stem <- tools::file_path_sans_ext(safe)
           ext  <- tools::file_ext(safe)
           safe <- paste0(stem, "_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".", ext)
-          target <- file.path(DATA_DIR, safe)
+          target <- normalize_app_path(file.path(DATA_DIR, safe))
         }
 
         ok <- file.copy(up_path, target, overwrite = FALSE)
@@ -1490,10 +1513,11 @@ server <- function(input, output, session) {
 
     d <- d_pending
     if (!is.null(final_file) && nzchar(final_file)) {
-      disk_path <- file.path(DATA_DIR, final_file)
-      if (file.exists(disk_path)) {
+      ds_final <- resolve_saved_dataset_path(final_file, DATA_DIR)
+      if (isTRUE(ds_final$ok)) {
+        final_file <- ds_final$file
         d2 <- tryCatch(
-          read_data_safe(disk_path, final_file),
+          read_data_safe(ds_final$path, final_file),
           error = function(e) {
             showNotification(paste0("S’u rihap dot dataset-i nga disku: ", e$message),
                             type = "error", duration = 8)
@@ -1529,15 +1553,23 @@ server <- function(input, output, session) {
     if (length(chosen_vals) == 0) chosen_vals <- head(chosen_num_cols, min(3, length(chosen_num_cols)))
 
     if (!is.null(final_file) && nzchar(final_file)) {
+      ds_cfg <- resolve_saved_dataset_path(final_file, DATA_DIR)
+      if (!isTRUE(ds_cfg$ok)) {
+        showNotification(ds_cfg$msg %||% "Dataset i pavlefshëm.", type = "error", duration = 8)
+        session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "show"))
+        return()
+      }
+      final_file <- ds_cfg$file
+
       st2 <- read_state()
       st2 <- update_dataset_config(st2, final_file, chosen_tc, chosen_vals)
       write_state(st2)
     }
 
     if (!is.null(final_file) && nzchar(final_file)) {
-      disk_path <- file.path(DATA_DIR, final_file)
-      if (file.exists(disk_path)) {
-        d2 <- tryCatch(read_data_safe(disk_path, final_file), error = function(e) NULL)
+      ds_final <- resolve_saved_dataset_path(final_file, DATA_DIR)
+      if (isTRUE(ds_final$ok)) {
+        d2 <- tryCatch(read_data_safe(ds_final$path, ds_final$file), error = function(e) NULL)
         if (!is.null(d2)) d <- d2
       }
     }
@@ -1557,9 +1589,18 @@ server <- function(input, output, session) {
   }, ignoreInit = TRUE)
 
   observeEvent(input$btn_cancel_config, {
-    editing_file(NULL) 
+    was_edit_mode <- !is.null(isolate(editing_file())) && nzchar(isolate(editing_file()))
+    has_upload_draft <- !is.null(isolate(uploaded_tmp_path())) && nzchar(isolate(uploaded_tmp_path()))
+
+    editing_file(NULL)
     session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "hide"))
-    session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "show"))
+    if (was_edit_mode) {
+      pending_cfg(NULL)
+      pending_data(NULL)
+    }
+    if (!was_edit_mode && has_upload_draft) {
+      session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "show"))
+    }
   }, ignoreInit = TRUE)
 
   # =========================================================
@@ -1921,7 +1962,7 @@ server <- function(input, output, session) {
             "bg_media_upload",
             label = NULL,
             multiple = TRUE,
-            accept = c("image/png","image/jpeg","image/jpg","image/webp","image/gif","image/svg+xml")
+            accept = c("image/png","image/jpeg","image/jpg","image/webp")
           )
         )
       )
@@ -2102,16 +2143,18 @@ server <- function(input, output, session) {
 
     if (!nzchar(src)) return()
 
-    if (!startsWith(src, "images/")) {
-      showNotification("S’lejohet fshirja jashtë images/.", type="error", duration=4)
-      return()
-    }
-
     ext <- tolower(tools::file_ext(src))
     if (!ext %in% c("png","jpg","jpeg","webp","gif","svg")) {
       showNotification("Ky s’është file foto.", type="error", duration=4)
       return()
     }
+
+    media_path <- resolve_media_image_path(src, APP_DIR)
+    if (!isTRUE(media_path$ok)) {
+      showNotification(media_path$msg %||% "Shtegu i fotos nuk lejohet.", type="error", duration=4)
+      return()
+    }
+    src <- media_path$src
 
     st <- bg_saved()
 
@@ -2132,7 +2175,7 @@ server <- function(input, output, session) {
       return()
     }
 
-    abs_path <- file.path(APP_DIR, "www", src)
+    abs_path <- media_path$path
 
     if (!file.exists(abs_path)) {
       showNotification("File s’u gjet në disk.", type="error", duration=4)
@@ -2165,6 +2208,8 @@ server <- function(input, output, session) {
     x
   }
 
+  BG_UPLOAD_MAX_BYTES <- 5 * 1024^2
+
   processed_datapaths <- reactiveVal(character(0))
 
   observeEvent(input$bg_media_upload, {
@@ -2181,22 +2226,46 @@ server <- function(input, output, session) {
 
     for (i in seq_len(nrow(up))) {
       dp <- up$datapath[i]
-      if (!nzchar(dp) || dp %in% seen) next
+      if (is.na(dp) || !nzchar(dp) || dp %in% seen) next
 
-      ext <- tolower(tools::file_ext(up$name[i]))
-      if (!nzchar(ext)) ext <- "jpg"
+      orig_name <- up$name[i] %||% paste0("image_", i)
+      mime <- if ("type" %in% names(up)) up$type[i] else NULL
+      size <- if ("size" %in% names(up)) up$size[i] else NULL
+      chk <- validate_bg_upload_file(
+        path = dp,
+        filename = orig_name,
+        mime = mime,
+        size = size,
+        max_bytes = BG_UPLOAD_MAX_BYTES
+      )
 
-      base <- safe_name(tools::file_path_sans_ext(up$name[i]))
-      if (!nzchar(base)) base <- paste0("img_", format(Sys.time(), "%Y%m%d_%H%M%S"))
-
-      out_abs <- file.path(dest_dir, paste0(base, ".", ext))
-      if (file.exists(out_abs)) {
-        base2 <- paste0(base, "_", format(Sys.time(), "%H%M%S"), "_", i)
-        out_abs <- file.path(dest_dir, paste0(base2, ".", ext))
-        base <- base2
+      if (!isTRUE(chk$ok)) {
+        showNotification(paste0(basename(orig_name), ": ", chk$msg), type="error", duration=6)
+        seen <- c(seen, dp)
+        next
       }
 
-      ok <- file.copy(dp, out_abs, overwrite = TRUE)
+      ext <- chk$ext
+
+      base <- safe_name(tools::file_path_sans_ext(orig_name))
+      if (is.na(base) || !nzchar(base)) base <- paste0("img_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+
+      out_abs <- normalize_app_path(file.path(dest_dir, paste0(base, ".", ext)))
+      suffix <- 0L
+      while (file.exists(out_abs)) {
+        suffix <- suffix + 1L
+        base2 <- paste0(base, "_", format(Sys.time(), "%Y%m%d_%H%M%S"), "_", suffix)
+        out_abs <- file.path(dest_dir, paste0(base2, ".", ext))
+      }
+
+      out_abs <- normalize_app_path(out_abs)
+      if (!is_path_inside_dir(out_abs, dest_dir)) {
+        showNotification("Emri i fotos nuk lejohet.", type="error", duration=6)
+        seen <- c(seen, dp)
+        next
+      }
+
+      ok <- file.copy(dp, out_abs, overwrite = FALSE)
 
       if (isTRUE(ok)) {
         new_count <- new_count + 1L
