@@ -33,6 +33,8 @@
         h: ["forecast_plot"]
     };
 
+    const ALL_TARGETS = uniq(Object.values(AFFECTS).reduce((acc, ids) => acc.concat(ids), []));
+
     function uniq(arr) {
         return Array.from(new Set(arr || []));
     }
@@ -43,14 +45,13 @@
 
     const INPUT_DELAY_MS = 120;
     const TAB_DELAY_MS = 160;
-    const POLL_EVERY_MS = 140;
-    const POLL_MAX = 80;
     const DEBOUNCE_MS = 260;
 
     const state = {
         epoch: 0,
         lastFire: Object.create(null),
-        pollTimer: null,
+        pending: new Map(),
+        fallbackTimers: Object.create(null),
         io: null
     };
 
@@ -95,21 +96,21 @@
                 if (!entry.isIntersecting) return;
 
                 const gd = entry.target;
-                const ep = gd.__pendingEpoch;
+                const id = getPlotOutputId(gd);
+                if (!id) return;
+
+                const ep = state.pending.get(id);
                 if (!ep) return;
 
                 if (!gd.querySelector("svg")) return;
                 if (gd.__animatedEpoch === ep) {
-                    gd.__pendingEpoch = null;
+                    state.pending.delete(id);
                     return;
                 }
 
                 if (!isVisibleInContainer(gd)) return;
 
-                gd.__animatedEpoch = ep;
-                gd.__pendingEpoch = null;
-
-                animatePlotSvg(gd);
+                animateIfReady(id, "intersection", gd);
                 log("io animate", gd.id || "(no id)", { ep });
             });
         }, { root: rootEl, threshold: 0.18 });
@@ -187,30 +188,28 @@
     }
 
     function hookPlot(gd) {
-        if (!gd || gd.__animHooked) return;
+        if (!gd) return;
+
+        const id = getPlotOutputId(gd);
+        if (id) gd.__animOutputId = id;
+        if (gd.__animHooked) return;
         gd.__animHooked = true;
 
         ensureIntersectionObserver();
         if (state.io) state.io.observe(gd);
 
         const afterPlot = () => {
-            const ep = gd.__pendingEpoch;
-            if (!ep) return;
-
-            if (!gd.querySelector("svg")) return;
-
-            if (isVisibleInContainer(gd) && gd.__animatedEpoch !== ep) {
-                gd.__animatedEpoch = ep;
-                gd.__pendingEpoch = null;
-                animatePlotSvg(gd);
-                log("afterplot animate", gd.id || "(no id)", { ep });
-            } else {
-                log("afterplot ready waiting visibility", gd.id || "(no id)", { ep });
-            }
+            const outId = getPlotOutputId(gd);
+            if (!outId || !state.pending.has(outId)) return;
+            animateIfReady(outId, "afterplot", gd);
         };
 
-        if (typeof gd.on === "function") gd.on("plotly_afterplot", afterPlot);
-        gd.addEventListener("plotly_afterplot", afterPlot);
+        gd.__animAfterPlotHandler = afterPlot;
+        if (typeof gd.on === "function") {
+            gd.on("plotly_afterplot", afterPlot);
+        } else if (typeof gd.addEventListener === "function") {
+            gd.addEventListener("plotly_afterplot", afterPlot);
+        }
     }
 
     function findPlotContainers(scope) {
@@ -227,105 +226,134 @@
         return out;
     }
 
-    function stopPolling(reason, ep, tries) {
-        if (state.pollTimer) {
-            clearInterval(state.pollTimer);
-            state.pollTimer = null;
-        }
-        log("stop polling", { reason, tries, epoch: ep });
+    function isKnownTarget(id) {
+        return !!id && ALL_TARGETS.indexOf(id) >= 0;
     }
 
+    function getPlotOutputId(el) {
+        if (!el) return null;
+        if (el.__animOutputId && isKnownTarget(el.__animOutputId)) return el.__animOutputId;
+        if (el.id && isKnownTarget(el.id)) return el.id;
 
-    function pollUntilDone(reason, ep, targets) {
-        if (state.pollTimer) {
-            clearInterval(state.pollTimer);
-            state.pollTimer = null;
+        const host = el.closest && el.closest(".html-widget-output, .shiny-bound-output");
+        if (host && host.id && isKnownTarget(host.id)) return host.id;
+
+        return null;
+    }
+
+    function getPlotForOutput(id) {
+        if (!isKnownTarget(id)) return null;
+
+        const out = document.getElementById(id);
+        if (!out) return null;
+        if (out.classList && out.classList.contains("shiny-output-error")) return null;
+
+        if (
+            out.matches &&
+            (out.matches(".js-plotly-plot") || out.matches(".plotly.html-widget"))
+        ) {
+            return out;
         }
 
-        let tries = 0;
-        const isTargeted = Array.isArray(targets) && targets.length > 0;
+        return out.querySelector(".js-plotly-plot, .plotly.html-widget");
+    }
 
-        state.pollTimer = setInterval(() => {
-            tries += 1;
+    function scheduleReadyCheck(id, delay) {
+        if (!isKnownTarget(id)) return;
 
-            const plots = isTargeted
-                ? targets.map((id) => document.getElementById(id)).filter(Boolean)
-                : findPlotContainers(document);
+        const key = id + ":" + delay;
+        if (state.fallbackTimers[key]) clearTimeout(state.fallbackTimers[key]);
 
-            if (!plots.length) {
-                if (tries >= POLL_MAX) stopPolling(reason, ep, tries);
-                return;
-            }
+        state.fallbackTimers[key] = setTimeout(() => {
+            delete state.fallbackTimers[key];
+            findPlotContainers(document);
+            animateIfReady(id, "timer_" + delay);
+        }, delay);
+    }
 
-            plots.forEach((gd) => { gd.__pendingEpoch = ep; });
+    function markPending(ids, reason, delays) {
+        const targets = uniq(ids).filter(isKnownTarget);
+        if (!targets.length) return;
 
-            let didAny = 0;
-            plots.forEach((gd) => {
-                if (!gd.querySelector("svg")) return;
-                if (!isVisibleInContainer(gd)) return;
-                if (gd.__animatedEpoch === ep) return;
+        const ep = ++state.epoch;
+        targets.forEach((id) => {
+            state.pending.set(id, ep);
+        });
 
-                gd.__animatedEpoch = ep;
-                gd.__pendingEpoch = null;
-                animatePlotSvg(gd);
-                didAny += 1;
+        if (Array.isArray(delays)) {
+            targets.forEach((id) => {
+                delays.forEach((delay) => scheduleReadyCheck(id, delay));
             });
+        }
 
-            if (didAny > 0 || tries >= POLL_MAX) {
-                stopPolling(reason, ep, tries);
-            }
-        }, POLL_EVERY_MS);
+        log("pending plots", reason, targets, { ep });
+    }
+
+    function ensurePending(id, reason) {
+        if (!isKnownTarget(id)) return;
+        if (!state.pending.has(id)) markPending([id], reason);
+    }
+
+    function animateIfReady(id, reason, gd) {
+        if (!isKnownTarget(id) || !state.pending.has(id)) return false;
+
+        gd = gd || getPlotForOutput(id);
+        if (!gd) return false;
+
+        hookPlot(gd);
+
+        const svg = gd.querySelector("svg");
+        if (!svg) return false;
+        if (!isVisibleInContainer(gd)) return false;
+
+        const ep = state.pending.get(id);
+        if (gd.__animatedEpoch === ep) {
+            state.pending.delete(id);
+            return true;
+        }
+
+        const now = Date.now();
+        if (gd.__lastAnimAt && now - gd.__lastAnimAt < 90) return false;
+
+        gd.__animatedEpoch = ep;
+        gd.__lastAnimAt = now;
+        state.pending.delete(id);
+        animatePlotSvg(gd);
+        log("animate ready", id, reason, { ep });
+        return true;
     }
 
     function triggerTab(reason) {
-
         if (debounced(reason)) return;
-        const ep = ++state.epoch;
-        setTimeout(() => pollUntilDone(reason, ep), TAB_DELAY_MS);
+        markPending(ALL_TARGETS, reason, [TAB_DELAY_MS, TAB_DELAY_MS + 260]);
     }
-
-
-    function destroyPlots(targets) {
-        const ids = Array.isArray(targets) ? targets : [];
-        if (!ids.length) return;
-
-        ids.forEach((id) => {
-            const gd = document.getElementById(id);
-            if (!gd) return;
-
-            if (typeof Plotly !== "undefined" && Plotly.purge) {
-                try {
-                    Plotly.purge(gd);
-                } catch (e) {
-                    log("error purging plot", id, e);
-                }
-            }
-
-            gd.__animHooked = false;
-            gd.__pendingEpoch = null;
-            gd.__animatedEpoch = null;
-        });
-
-        log("destroyed plots", ids);
-    }
-
 
     function triggerInput(name) {
         const reason = "input_" + name;
         if (debounced(reason)) return;
 
         const targets = getTargetsForInput(name);
-        destroyPlots(targets);
-
-        const ep = ++state.epoch;
-        setTimeout(() => pollUntilDone(reason, ep, targets), INPUT_DELAY_MS);
+        markPending(targets, reason);
     }
 
-    function getEventName
-        (e) {
+    function triggerOutput(id) {
+        if (!isKnownTarget(id)) return;
+        ensurePending(id, "output_" + id);
+        scheduleReadyCheck(id, INPUT_DELAY_MS);
+        scheduleReadyCheck(id, INPUT_DELAY_MS + 180);
+    }
+
+    function getEventName(e) {
         if (!e) return null;
         if (typeof e.name === "string") return e.name;
         if (e.detail && typeof e.detail.name === "string") return e.detail.name;
+        return null;
+    }
+
+    function getOutputName(e) {
+        const name = getEventName(e);
+        if (name) return name;
+        if (e && e.target && e.target.id) return e.target.id;
         return null;
     }
 
@@ -338,6 +366,12 @@
             $(document).on("shiny:connected.plotlyanim_v7vis", function () {
                 triggerTab("initial_load");
                 setTimeout(() => triggerTab("initial_load_late"), 800);
+            });
+
+            $(document).on("shiny:value.plotlyanim_v7vis", function (e) {
+                const id = getOutputName(e);
+                if (!id) return;
+                triggerOutput(id);
             });
 
             $(document).on("shiny:inputchanged.plotlyanim_v7vis", function (e) {
@@ -375,15 +409,9 @@
 
                     const plots = findPlotContainers(document);
                     plots.forEach((gd) => {
-                        const ep = gd.__pendingEpoch;
-                        if (!ep) return;
-                        if (gd.__animatedEpoch === ep) { gd.__pendingEpoch = null; return; }
-                        if (!gd.querySelector("svg")) return;
-                        if (!isVisibleInContainer(gd)) return;
-
-                        gd.__animatedEpoch = ep;
-                        gd.__pendingEpoch = null;
-                        animatePlotSvg(gd);
+                        const id = getPlotOutputId(gd);
+                        if (!id || !state.pending.has(id)) return;
+                        animateIfReady(id, "scroll", gd);
                     });
                 });
             };
