@@ -2343,10 +2343,11 @@ server <- function(input, output, session) {
         pageLength = 10,
         lengthMenu = c(5, 10, 20, 50),
         scrollX = TRUE,
-        autoWidth = TRUE
+        autoWidth = TRUE,
+        deferRender = TRUE
       )
     )
-  }, server = FALSE)
+  }, server = TRUE)
 
   observeEvent(input$main_tabs, {
     if (identical(input$main_tabs, "tab_overview")) {
