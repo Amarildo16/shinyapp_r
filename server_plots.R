@@ -942,10 +942,10 @@ server_plots <- function(input, output, session, df) {
     m    <- var_meta(input$stat_series, meta())
     xlab <- time_axis_label(d0$Time)
 
-    dd <- d0 %>%
-      dplyr::select(Time, y = dplyr::all_of(input$stat_series)) %>%
-      dplyr::arrange(Time) %>%
-      dplyr::filter(!is.na(y))
+    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 3L, context = "diferencë")
+    validate(need(isTRUE(ts_ok$ok), ts_ok$message))
+
+    dd <- ts_ok$data
 
     if (nrow(dd) < 3) {
       showNotification("Seria ka shumë pak vlera reale (jo-NA) për diferencë të parë.", type = "warning")
@@ -1021,10 +1021,10 @@ server_plots <- function(input, output, session, df) {
 
     m <- var_meta(input$stat_series, meta())
 
-    dd <- d0 %>%
-      dplyr::select(Time, y = dplyr::all_of(input$stat_series)) %>%
-      dplyr::arrange(Time) %>%
-      dplyr::filter(!is.na(y))
+    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 6L, context = "ACF/PACF")
+    validate(need(isTRUE(ts_ok$ok), ts_ok$message))
+
+    dd <- ts_ok$data
 
     if (nrow(dd) < 6) {
       showNotification("Duhet të paktën ~6 vlera reale për ACF/PACF (pas diferencës humbet 1).", type="warning")
@@ -1117,9 +1117,6 @@ server_plots <- function(input, output, session, df) {
           paste0("Kolona '", input$stat_series, "' nuk ekziston në dataset. Ndrysho serinë te dropdown-i."))
     )
 
-    y <- suppressWarnings(as.numeric(d0[[input$stat_series]]))
-    y <- y[!is.na(y)]
-
     base_tbl <- data.frame(
       Serie     = c("Original (niveli)", "First difference (Δ)"),
       Statistic = NA_real_,
@@ -1128,6 +1125,20 @@ server_plots <- function(input, output, session, df) {
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
+
+    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 20L, context = "ADF")
+    if (!isTRUE(ts_ok$ok)) {
+      base_tbl$Method <- ts_ok$message %||% TS_INCOMPLETE_MSG
+      return(list(
+        ok = FALSE, reason = "invalid_ts",
+        msg = ts_ok$message %||% TS_INCOMPLETE_MSG,
+        y_len = ts_ok$n %||% 0L,
+        table = base_tbl,
+        p_lvl = NA_real_, p_diff = NA_real_
+      ))
+    }
+
+    y <- suppressWarnings(as.numeric(ts_ok$data$y))
 
     if (!requireNamespace("tseries", quietly = TRUE)) {
       base_tbl$Method <- "Paketa 'tseries' mungon — instalo: install.packages('tseries')"
@@ -1211,6 +1222,16 @@ server_plots <- function(input, output, session, df) {
       ))
     }
 
+    if (identical(res$reason, "invalid_ts")) {
+      return(HTML(
+        paste0(
+          "<p style='margin-top:10px; font-size: 13px; line-height: 1.45;'>",
+          "<b>Interpretim (ADF):</b> ", res$msg %||% TS_INCOMPLETE_MSG,
+          "</p>"
+        )
+      ))
+    }
+
     m <- var_meta(input$stat_series, meta())
 
     alpha <- 0.05
@@ -1263,10 +1284,12 @@ server_plots <- function(input, output, session, df) {
 
     d0 <- df_dyn()
 
-    dd <- d0 %>%
-      dplyr::select(Time, y = dplyr::all_of(input$model_series)) %>%
-      dplyr::arrange(Time) %>%
-      dplyr::filter(!is.na(y))
+    ts_ok <- validate_ts_ready(d0, input$model_series, input$data_freq %||% "auto", min_n = 20L, context = "modelim")
+    if (!isTRUE(ts_ok$ok)) {
+      return(list(ok = FALSE, msg = ts_ok$message %||% TS_INCOMPLETE_MSG))
+    }
+
+    dd <- ts_ok$data
 
     n <- nrow(dd)
     if (n < 20) {
@@ -1277,7 +1300,7 @@ server_plots <- function(input, output, session, df) {
 
     spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
     y_ts <- stats::ts(y_raw, frequency = spec$freq, start = spec$start)
-    y_mod <- if (anyNA(y_ts)) forecast::na.interp(y_ts) else y_ts
+    y_mod <- y_ts
 
     key <- paste0(
       input$model_series, "|", (input$data_freq %||% "auto"), "|",
@@ -1490,25 +1513,10 @@ server_plots <- function(input, output, session, df) {
       return(NULL)
     }
 
-    dd <- d0 %>%
-      dplyr::select(Time, y = dplyr::all_of(input$forecast_series)) %>%
-      dplyr::filter(!is.na(Time)) %>%
-      dplyr::arrange(Time)
+    ts_ok <- validate_ts_ready(d0, input$forecast_series, input$data_freq %||% "auto", min_n = 2L, context = "parashikim")
+    validate(need(isTRUE(ts_ok$ok), ts_ok$message))
 
-    if (any(duplicated(dd$Time))) {
-      dd <- dd %>%
-        dplyr::group_by(Time) %>%
-        dplyr::summarise(y = mean(y, na.rm = TRUE), .groups = "drop") %>%
-        dplyr::arrange(Time)
-
-      dd$y[is.nan(dd$y)] <- NA_real_
-      showNotification("U gjetën duplikate në kohë; u agreguan me mesatare (mean).", type = "message")
-    }
-
-    if (sum(!is.na(dd$y)) < 2) {
-      showNotification("Duhet të paktën 2 pika reale (jo-NA) për parashikim.", type = "warning")
-      return(NULL)
-    }
+    dd <- ts_ok$data
 
     if (stats::sd(dd$y, na.rm = TRUE) < 1e-12) {
       showNotification("Seria është (pothuaj) konstante — parashikimi s’ka kuptim.", type = "warning")
@@ -1525,7 +1533,6 @@ server_plots <- function(input, output, session, df) {
     spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
     yts  <- stats::ts(as.numeric(dd$y), frequency = spec$freq, start = spec$start)
 
-    if (anyNA(yts)) yts <- forecast::na.interp(yts)
     yts
   })
 

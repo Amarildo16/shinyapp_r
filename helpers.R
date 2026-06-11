@@ -805,7 +805,7 @@ apply_dup_policy <- function(d, vc, method = "mean") {
 
   fun <- switch(
     method,
-    "sum"  = function(x) sum(x, na.rm = TRUE),
+    "sum"  = function(x) if (all(is.na(x))) NA_real_ else sum(x, na.rm = TRUE),
     "mean" = function(x) mean(x, na.rm = TRUE),
     function(x) mean(x, na.rm = TRUE)
   )
@@ -858,7 +858,41 @@ apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
     )
     if (is.null(by)) return(d)
 
+    if (f %in% c("month", "quarter")) {
+      key <- if (f == "month") "monthly" else "quarterly"
+      obs_key <- date_period_key(tt_ok, key)
+      if (any(duplicated(obs_key))) return(d)
+
+      full_time <- expected_time_grid(tt_ok, key)
+      if (is.null(full_time) || length(full_time) < 2) return(d)
+
+      full_key <- date_period_key(full_time, key)
+      if (!all(sort(unique(obs_key)) %in% full_key)) return(d)
+
+      d_obs <- d[, c("Time", vc), drop = FALSE]
+      d_obs$.period_key <- date_period_key(d_obs$Time, key)
+      names(d_obs)[names(d_obs) == "Time"] <- "Time.obs"
+
+      full <- data.frame(
+        .period_key = full_key,
+        .order = seq_along(full_key),
+        Time.grid = full_time,
+        stringsAsFactors = FALSE
+      )
+
+      out <- merge(full, d_obs, by = ".period_key", all.x = TRUE, sort = FALSE)
+      out <- out[order(out$.order), , drop = FALSE]
+
+      out$Time <- out$Time.grid
+      idx <- !is.na(out$Time.obs)
+      out$Time[idx] <- out$Time.obs[idx]
+
+      return(out[, c("Time", vc), drop = FALSE])
+    }
+
     full_time <- seq.Date(min(tt_ok), max(tt_ok), by = by)
+    if (!all(sort(unique(tt_ok)) %in% full_time)) return(d)
+
     full <- data.frame(Time = full_time)
     out <- merge(full, d[, c("Time", vc), drop = FALSE], by = "Time", all.x = TRUE, sort = TRUE)
     return(out)
@@ -869,6 +903,8 @@ apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
     if (is.null(step)) return(d)
 
     full_time <- seq(min(tt_ok), max(tt_ok), by = step)
+    if (!all(sort(unique(tt_ok)) %in% full_time)) return(d)
+
     full <- data.frame(Time = full_time)
     out <- merge(full, d[, c("Time", vc), drop = FALSE], by = "Time", all.x = TRUE, sort = TRUE)
     return(out)
@@ -1056,6 +1092,297 @@ detect_freq_from_time <- function(Time) {
   }
 
   "index"
+}
+
+TS_INCOMPLETE_MSG <- "Seria ka periudha që mungojnë, data të parregullta ose vlera bosh. Plotet EDA mund të shfaqen, por analizat statistikore dhe parashikimi kërkojnë seri kohore të rregullt pa boshllëqe."
+TS_SHORT_MSG <- "Seria ka shumë pak vëzhgime të vlefshme për këtë analizë."
+TS_FREQ_MSG <- "Nuk u identifikua dot frekuenca e serisë kohore. Zgjidhni një kolonë kohe të rregullt ose kontrolloni të dhënat."
+
+canonical_freq_key <- function(Time, freq_choice = "auto") {
+  tt <- Time[!is.na(Time)]
+  if (length(tt) < 2) return(NULL)
+
+  key <- tolower(as.character(freq_choice %||% "auto")[1])
+  key <- switch(key,
+    "auto"      = "auto",
+    "year"      = "yearly",
+    "yearly"    = "yearly",
+    "quarter"   = "quarterly",
+    "quarterly" = "quarterly",
+    "month"     = "monthly",
+    "monthly"   = "monthly",
+    "week"      = "weekly",
+    "weekly"    = "weekly",
+    "day"       = "daily",
+    "daily"     = "daily",
+    key
+  )
+
+  if (identical(key, "auto")) {
+    det <- tryCatch(detect_freq_from_time(tt), error = function(e) "index")
+    key <- switch(tolower(det %||% "index"),
+      "year"    = "yearly",
+      "quarter" = "quarterly",
+      "month"   = "monthly",
+      "week"    = "weekly",
+      "day"     = "daily",
+      NA_character_
+    )
+  }
+
+  if (is.null(key) || is.na(key) || !(key %in% c("yearly", "quarterly", "monthly", "weekly", "daily"))) {
+    return(NULL)
+  }
+
+  if (inherits(tt, "Date")) return(key)
+
+  if (is.numeric(tt)) {
+    if (!identical(key, "yearly")) return(NULL)
+    if (!all(is.finite(tt))) return(NULL)
+    if (!all(abs(tt - round(tt)) < 1e-8, na.rm = TRUE)) return(NULL)
+    return(key)
+  }
+
+  NULL
+}
+
+date_period_key <- function(Time, freq_key) {
+  if (!inherits(Time, "Date")) return(as.character(Time))
+
+  if (identical(freq_key, "monthly")) {
+    return(format(Time, "%Y-%m"))
+  }
+
+  if (identical(freq_key, "quarterly")) {
+    m <- as.integer(format(Time, "%m"))
+    q <- ((m - 1L) %/% 3L) + 1L
+    return(paste0(format(Time, "%Y"), "-Q", q))
+  }
+
+  as.character(Time)
+}
+
+date_period_start <- function(Time, freq_key) {
+  if (!inherits(Time, "Date")) return(Time)
+
+  y <- as.integer(format(Time, "%Y"))
+  m <- as.integer(format(Time, "%m"))
+
+  if (identical(freq_key, "monthly")) {
+    return(as.Date(sprintf("%04d-%02d-01", y, m)))
+  }
+
+  if (identical(freq_key, "quarterly")) {
+    qm <- ((m - 1L) %/% 3L) * 3L + 1L
+    return(as.Date(sprintf("%04d-%02d-01", y, qm)))
+  }
+
+  Time
+}
+
+expected_time_grid <- function(Time, freq_choice = "auto") {
+  tt <- Time[!is.na(Time)]
+  if (length(tt) < 2) return(tt)
+
+  key <- canonical_freq_key(tt, freq_choice)
+  if (is.null(key)) return(NULL)
+
+  if (inherits(tt, "Date")) {
+    if (key %in% c("monthly", "quarterly")) {
+      start <- min(date_period_start(tt, key))
+      end   <- max(date_period_start(tt, key))
+      by    <- if (identical(key, "monthly")) "month" else "quarter"
+      return(tryCatch(seq.Date(start, end, by = by), error = function(e) NULL))
+    }
+
+    by <- switch(key,
+      "yearly"    = "year",
+      "quarterly" = "quarter",
+      "monthly"   = "month",
+      "weekly"    = "week",
+      "daily"     = "day",
+      NULL
+    )
+    if (is.null(by)) return(NULL)
+    return(tryCatch(seq.Date(min(tt), max(tt), by = by), error = function(e) NULL))
+  }
+
+  if (is.numeric(tt) && identical(key, "yearly")) {
+    from <- as.integer(min(round(tt), na.rm = TRUE))
+    to   <- as.integer(max(round(tt), na.rm = TRUE))
+    if (is.na(from) || is.na(to) || to < from) return(NULL)
+    return(seq(from, to, by = 1L))
+  }
+
+  NULL
+}
+
+assess_time_regular <- function(Time, freq_choice = "auto") {
+  empty <- Time[0]
+  tt <- Time[!is.na(Time)]
+
+  if (length(tt) < 2) {
+    return(list(
+      ok = FALSE, freq_key = NULL, message = TS_SHORT_MSG,
+      missing_periods = empty, off_grid_periods = empty,
+      expected_n = 0L, observed_n = length(tt)
+    ))
+  }
+
+  key <- canonical_freq_key(tt, freq_choice)
+  if (is.null(key)) {
+    return(list(
+      ok = FALSE, freq_key = NULL, message = TS_FREQ_MSG,
+      missing_periods = empty, off_grid_periods = empty,
+      expected_n = NA_integer_, observed_n = length(unique(tt))
+    ))
+  }
+
+  if (inherits(tt, "Date") && key %in% c("monthly", "quarterly")) {
+    observed_key <- date_period_key(tt, key)
+    dup_key <- sort(unique(observed_key[duplicated(observed_key)]))
+    if (length(dup_key) > 0) {
+      return(list(
+        ok = FALSE, freq_key = key, message = TS_INCOMPLETE_MSG,
+        missing_periods = empty,
+        off_grid_periods = sort(unique(tt[observed_key %in% dup_key])),
+        expected_n = NA_integer_,
+        observed_n = length(unique(observed_key))
+      ))
+    }
+
+    grid <- expected_time_grid(tt, key)
+    if (is.null(grid) || length(grid) < 2) {
+      return(list(
+        ok = FALSE, freq_key = key, message = TS_FREQ_MSG,
+        missing_periods = empty, off_grid_periods = empty,
+        expected_n = length(grid %||% empty), observed_n = length(unique(observed_key))
+      ))
+    }
+
+    expected_key <- date_period_key(grid, key)
+    observed <- sort(unique(observed_key))
+    expected <- sort(unique(expected_key))
+    missing_key <- expected[!(expected %in% observed)]
+    off_key <- observed[!(observed %in% expected)]
+
+    missing_periods <- grid[match(missing_key, expected_key)]
+    off_grid_periods <- sort(unique(tt[observed_key %in% off_key]))
+    ok <- length(missing_key) == 0 && length(off_key) == 0
+
+    return(list(
+      ok = ok,
+      freq_key = key,
+      message = if (ok) NULL else TS_INCOMPLETE_MSG,
+      missing_periods = missing_periods,
+      off_grid_periods = off_grid_periods,
+      expected_n = length(expected),
+      observed_n = length(observed)
+    ))
+  }
+
+  dup <- sort(unique(tt[duplicated(tt)]))
+  if (length(dup) > 0) {
+    return(list(
+      ok = FALSE, freq_key = key, message = TS_INCOMPLETE_MSG,
+      missing_periods = empty, off_grid_periods = dup,
+      expected_n = NA_integer_, observed_n = length(unique(tt))
+    ))
+  }
+
+  grid <- expected_time_grid(tt, key)
+  if (is.null(grid) || length(grid) < 2) {
+    return(list(
+      ok = FALSE, freq_key = key, message = TS_FREQ_MSG,
+      missing_periods = empty, off_grid_periods = empty,
+      expected_n = length(grid %||% empty), observed_n = length(unique(tt))
+    ))
+  }
+
+  observed <- sort(unique(tt))
+  expected <- sort(unique(grid))
+  missing_periods <- expected[!(expected %in% observed)]
+  off_grid_periods <- observed[!(observed %in% expected)]
+  ok <- length(missing_periods) == 0 && length(off_grid_periods) == 0
+
+  list(
+    ok = ok,
+    freq_key = key,
+    message = if (ok) NULL else TS_INCOMPLETE_MSG,
+    missing_periods = missing_periods,
+    off_grid_periods = off_grid_periods,
+    expected_n = length(expected),
+    observed_n = length(observed)
+  )
+}
+
+assess_complete_series <- function(d, value_col, freq_choice = "auto") {
+  if (is.null(d) || !is.data.frame(d) || !("Time" %in% names(d))) {
+    return(list(ok = FALSE, message = "Mungon kolona Time.", data = NULL,
+                freq_key = NULL, n = 0L, missing_periods = NULL, off_grid_periods = NULL))
+  }
+
+  if (is.null(value_col) || length(value_col) != 1 || !(value_col %in% names(d))) {
+    return(list(ok = FALSE, message = "Seria e zgjedhur nuk gjendet në dataset.", data = NULL,
+                freq_key = NULL, n = 0L, missing_periods = NULL, off_grid_periods = NULL))
+  }
+
+  dd <- d[, c("Time", value_col), drop = FALSE]
+  names(dd) <- c("Time", "y")
+
+  if (any(is.na(dd$Time))) {
+    return(list(ok = FALSE, message = TS_INCOMPLETE_MSG, data = dd,
+                freq_key = NULL, n = sum(!is.na(dd$y)), missing_periods = NULL, off_grid_periods = NULL))
+  }
+
+  dd <- dd[order(dd$Time), , drop = FALSE]
+
+  reg <- assess_time_regular(dd$Time, freq_choice)
+  if (!isTRUE(reg$ok)) {
+    return(list(ok = FALSE, message = reg$message, data = dd,
+                freq_key = reg$freq_key, n = sum(!is.na(dd$y)),
+                missing_periods = reg$missing_periods, off_grid_periods = reg$off_grid_periods))
+  }
+
+  dd$y <- suppressWarnings(as.numeric(dd$y))
+  n_real <- sum(!is.na(dd$y))
+
+  if (n_real < 2) {
+    return(list(ok = FALSE, message = TS_SHORT_MSG, data = dd,
+                freq_key = reg$freq_key, n = n_real,
+                missing_periods = reg$missing_periods, off_grid_periods = reg$off_grid_periods))
+  }
+
+  if (any(is.na(dd$y))) {
+    return(list(ok = FALSE, message = TS_INCOMPLETE_MSG, data = dd,
+                freq_key = reg$freq_key, n = n_real,
+                missing_periods = reg$missing_periods, off_grid_periods = reg$off_grid_periods))
+  }
+
+  list(
+    ok = TRUE,
+    message = NULL,
+    data = dd,
+    freq_key = reg$freq_key,
+    n = nrow(dd),
+    missing_periods = reg$missing_periods,
+    off_grid_periods = reg$off_grid_periods
+  )
+}
+
+validate_ts_ready <- function(d, value_col, freq_choice = "auto", min_n = 2L, context = "analizë") {
+  res <- assess_complete_series(d, value_col, freq_choice)
+  if (!isTRUE(res$ok)) return(res)
+
+  min_n <- suppressWarnings(as.integer(min_n))
+  if (is.na(min_n) || min_n < 2L) min_n <- 2L
+
+  if (res$n < min_n) {
+    res$ok <- FALSE
+    res$message <- TS_SHORT_MSG
+  }
+
+  res
 }
 
 # =========================================================
