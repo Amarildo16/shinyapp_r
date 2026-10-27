@@ -1,13 +1,13 @@
 # Gjendja aktuale
 
-Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 18:57 (Faza 0 e zbatuar; mbetet vendimi për Q01).
+Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 19:10 (Faza 0 e përfunduar; Q01 sipas V-13).
 
 ## E verifikuar
 
 - Analiza e plotë e kodit në commit-in `976dce0` (branch-i `main`): `app.R`, `helpers.R`, `server_plots.R`, `www/js/*`, `www/css/*`, `data/*`, historia e git-it. Rezultati te Obsidian `01 - Analiza e gjendjes aktuale.md` dhe te [ISSUES.md](ISSUES.md).
 - Branch-i `ultimate_version` = `976dce0` + `79a36f7` (dokumentacioni, commit i përdoruesit). `git diff 976dce0 -- app.R helpers.R server_plots.R` është bosh: **kodi i app-it nuk është prekur.**
 - Faza 0 u zbatua nga Claude Code në Windows-in e përdoruesit (shih "Faza 0" më poshtë).
-- **Ndryshimet e Fazës 0 nuk janë bërë commit.**
+- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13 (dokumentet, 19:10) nuk është bërë ende commit.
 
 ## Mjedisi (verifikuar 2026-10-27 nga Claude Code)
 
@@ -31,7 +31,7 @@ Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 18:57 (Faza 0 e zba
 | App-i = referenca | Vlerat në UI (statistikat, ADF p, RMSE/MAE/MAPE e Modelimit, saktësia SES) = vlerat e `.rds` | browser (Playwright) + lexim i `.rds` |
 | Screenshot-et "para" | 15 foto: 6 faqe × 2 dataset-e + Settings, Background (Foto), Media Library | Obsidian `Shiny App/screenshots/para/` |
 | Rrjeti (R03) | Asnjë kërkesë jashtë `127.0.0.1` gjatë gjithë sesionit | Playwright network log |
-| **Q01** | **Nuk kalon plotësisht.** Pa errore R, por me warning-e të kodit ekzistues (B-11) dhe errore në console të browser-it te Modelimi (B-12). Faza 0 nuk lejon ndryshim kodi. | log-u i `runApp`, console e browser-it |
+| **Q01** (sipas V-13) | **Kalon.** Pa errore R. Të vetmet warning-e janë B-11 (`aes(text)` ×2, `adf.test` "p-value smaller…" ×1); të vetmet errore në browser janë B-12 (progresi i `model_plot`, 2 herë × 3 mesazhe). Asnjë tjetër. | log-u i `runApp` dhe console e browser-it nga nisja e 2026-10-27 18:51 (Claude); nuk u rinis pas vendimit, sepse kodi nuk ndryshoi |
 
 App-i për screenshot-e u nis nga një **kopje** e projektit në scratchpad, me paketat e `renv`, që `data/` e repo-s të mos preket. `git status` pas gjithë punës: vetëm skedarët e Fazës 0.
 
@@ -39,13 +39,14 @@ App-i për screenshot-e u nis nga një **kopje** e projektit në scratchpad, me 
 
 ## Kufizime dhe shënime
 
-- Q01 pret vendimin e përdoruesit (shih "Pika e vazhdimit").
+- Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime.
+- **Ndryshim jashtë Claude-it (2026-10-27 19:02):** `data/background_state.json` u rishkrua dhe ndryshoi vetëm `"version"` (1773411658 → 1793124137); `active_mode` mbeti `none`. `datasets_state.json` u rishkrua me të njëjtën përmbajtje. Ka gjasa që app-i të jetë nisur nga dosja e projektit. Claude nuk e preku dhe nuk e ktheu mbrapsht (të dhëna state). Nuk është pjesë e Fazës 0: mos e përfshi në commit-in e fazës, përveçse kur përdoruesi e do. Ky është pikërisht problemi U-04, që zgjidhet në Fazën 3 (`storage/`).
 - `all.equal(tolerance)` mat **diferencën mesatare relative** për çdo vektor, si e përcakton QUALITY.md. Një devijim i vogël në një element të vetëm të një vektori të gjatë "hollohet". Provat negative më lart tregojnë që devijimet e rëndësishme kapen.
 - Testet `testthat` (Q29) nuk ekzistojnë ende; krijohen në Fazën 2.
 
 ## Pika e vazhdimit
 
-Faza 0 është zbatuar, por **nuk shënohet e përfunduar** derisa përdoruesi të vendosë për Q01: ose (rekomandim) Q01 për Fazat 0–4 = "pa errore; lejohen vetëm warning-et e njohura B-11/B-12", dhe Q01 i plotë nga Faza 5 kur ato rregullohen; ose rregullim i B-11/B-12 më herët. Pastaj: commit i përdoruesit dhe "vazhdo" për [Fazën 1](steps/01-pastrimi.md).
+**Faza 0 është e përfunduar** (2026-10-27): çdo kriter ka provë, Q01 sipas V-13. Commit-i i fazës: `531bc0c`. Dokumentet e mbylljes (V-13) presin një commit të vogël nga përdoruesi. Hapi i radhës: "vazhdo" për [Fazën 1](steps/01-pastrimi.md).
 
 ## Regjistri i dorëzesave
 
@@ -54,7 +55,7 @@ Faza 0 është zbatuar, por **nuk shënohet e përfunduar** derisa përdoruesi t
 | 2026-10-27 | Analiza + plani | 7 shënime në vault | Lidhjet e brendshme u kontrolluan me skript | Pasqyruar (`10 - Projects\Shiny App`) |
 | 2026-10-27 | Udhëzimet e projektit | CLAUDE.md, SKILL.md, docs/ai | Shih "Evidenca e kontrollit të dokumentacionit" | Pasqyruar te ditari |
 | 2026-10-27 | Mbyllja e vendimeve V-08 – V-12, R26 (dygjuhësia) | DECISIONS, SPEC, TASKS, steps, QUALITY, ARCHITECTURE, ISSUES, HANDOFF | Lidhjet u rikontrolluan | Pasqyruar te ditari dhe `05 - Vendimet` |
-| 2026-10-27 | Faza 0 — Përgatitja (Claude Code) | `.gitattributes`, `.gitignore`, `install_packages.R`, renv, `tests/reference/` (3 skripte + 2 `.rds`), 15 screenshot-e | Shih "Faza 0 — rezultati"; Q01 i pambyllur | Pasqyruar (ditari, plani, problemet, faqja kryesore, screenshots/para) |
+| 2026-10-27 | Faza 0 — Përgatitja (Claude Code) | `.gitattributes`, `.gitignore`, `install_packages.R`, renv, `tests/reference/` (3 skripte + 2 `.rds`), 15 screenshot-e | Shih "Faza 0 — rezultati"; Q01 sipas V-13 | Pasqyruar (ditari, plani, problemet, faqja kryesore, screenshots/para) |
 
 ## Formati për vazhdimet
 

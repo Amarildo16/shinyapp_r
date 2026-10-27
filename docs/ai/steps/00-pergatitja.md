@@ -1,6 +1,6 @@
 # Faza 00 — Përgatitja
 
-Statusi: **në punë** (2026-10-27): veprimet 1–8 u kryen nga Claude Code; mbetet kriteri Q01, që pret vendimin e përdoruesit (DECISIONS "Pyetje të hapura"). Kërkesat: R21, R24, R25. Problemet: U-03, U-06. Vendimet: V-06, V-07, V-12 (discard), T-01 – T-04.
+Statusi: **i përfunduar** (2026-10-27): veprimet 1–8 u kryen nga Claude Code; Q01 kalon sipas V-13. Kërkesat: R21, R24, R25. Problemet: U-03, U-06. Vendimet: V-06, V-07, V-12 (discard), V-13, T-01 – T-04.
 
 > [!note] Ndryshime nga plani fillestar (2026-10-27)
 > - R ishte i arritshëm nga Claude Code (QUALITY rruga 0), prandaj `renv::init()`, `make_reference.R` dhe screenshot-et u bënë nga Claude, jo nga përdoruesi.
@@ -49,7 +49,7 @@ Terren i sigurt para çdo ndryshimi kodi: versione të fiksuara, një "fotografi
 - `renv.lock` ekziston dhe `renv::status()` është i pastër.
 - `make_reference.R` u ekzekutua nga përdoruesi; `.rds` janë në repo. `compare_reference.R` kalon mbi kodin aktual.
 - Screenshot-et "para" janë në Obsidian.
-- Q01 kalon.
+- Q01 kalon (në Fazat 0–4 sipas V-13: lejohen vetëm B-11/B-12).
 
 ## Dorëzimi
 

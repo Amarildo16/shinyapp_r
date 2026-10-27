@@ -58,7 +58,7 @@ Asnjë test nuk përdor të dhënat reale të përdoruesit te `storage/`.
 
 | ID | Skenari | Rezultati i kërkuar |
 |---|---|---|
-| Q01 | Nisja me "Run App" | Pa errore dhe pa warning në console. |
+| Q01 | Nisja me "Run App" | Pa errore dhe pa warning në console. **Fazat 0–4 (V-13):** pa errore R; lejohen vetëm B-11 (warning-et `ggplot2 aes(text)` dhe `adf.test` "p-value smaller…") dhe B-12 (erroret e progresit te `model_plot` në browser). Çdo tjetër = dështim. Nga Faza 5: pa përjashtime. |
 | Q02 | `storage/` bosh (klon i ri) | Shembujt kopjohen; app-i hapet me dataset aktiv. |
 | Q03 | Migrim nga struktura e vjetër (`data/*.csv` + JSON) | Dataset-et dhe konfigurimet ruhen; ka kopje rezervë; origjinalet mbeten të paprekura. |
 | Q04 | Aktivizim i një dataset-i tjetër | Të gjitha faqet përditësohen **një herë** (pa render të dyfishtë). |

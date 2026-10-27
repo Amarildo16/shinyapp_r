@@ -1,6 +1,6 @@
 # Vendimet dhe pyetjet e hapura
 
-Gjendja fillestare: 2026-10-27. Përditësuar: 2026-10-27 18:57 — Faza 0: vendimet teknike T-01 – T-04 dhe pyetja e hapur për Q01. Më herët (18:33): V-08 – V-12 u mbyllën; V-09 u ndryshua nga përdoruesi në UI dygjuhëshe. Përditëso datën dhe regjistro arsyen kur ndryshon një vendim. **Mos ripyet një vendim që përdoruesi e ka dhënë.**
+Gjendja fillestare: 2026-10-27. Përditësuar: 2026-10-27 19:10 — V-13 (Q01 në Fazat 0–4). Më herët (18:57): vendimet teknike T-01 – T-04. Më herët (18:33): V-08 – V-12 u mbyllën; V-09 u ndryshua nga përdoruesi në UI dygjuhëshe. Përditëso datën dhe regjistro arsyen kur ndryshon një vendim. **Mos ripyet një vendim që përdoruesi e ka dhënë.**
 
 ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 
@@ -20,6 +20,7 @@ ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 | V-10 | 2026-10-27 | Rreshti "Opsionale: simulime ARMA, VAR/IRF dhe GARCH" **hiqet** nga Metodologjia. | Mbajtja si "planifikuar". | Përdoruesi i la zgjedhjen AI-së. App-i përdoret në mësim dhe nuk duhet të premtojë analiza që nuk ekzistojnë. Bashkë me të hiqen `vars`/`rugarch` nga instalimi (D-04). Nëse një ditë shtohen, bëhen kërkesë e re. |
 | V-11 | 2026-10-27 | Kolona e kohës numerike që nuk është vit: **vetëm mesazh më i qartë**, pa ndryshim sjelljeje. | Mbështetje me frekuencë 1. | Përdoruesi i la zgjedhjen AI-së. Mbështetja do ndryshonte sjelljen dhe rezultatet (kundër R21). Mesazhi i ri i thotë përdoruesit pse dhe çfarë formati kohe të përdorë. Nëse kërkohet më vonë, bëhet kërkesë e re. |
 | V-12 | 2026-10-27 | Ndryshimi i line endings te `data/datasets_state.json` **hidhet poshtë (discard)** në Fazën 0, para `.gitattributes`. | Commit. | Përdoruesi i la zgjedhjen AI-së. Përmbajtja është identike (`git diff --ignore-cr-at-eol` bosh); një commit do shtonte vetëm zhurmë. `.gitattributes` e parandalon herët e tjera. |
+| V-13 | 2026-10-27 | **Q01 në Fazat 0–4:** pa errore në R; lejohen vetëm warning-et/erroret e njohura **B-11** dhe **B-12**. **Nga Faza 5**, Q01 i plotë (pa errore dhe pa warning). | Rregullim i B-11/B-12 para Fazës 5. | Përdoruesi: "Prano propozimin … Q01 i plotë nga Faza 5". B-11/B-12 vijnë nga kodi ekzistues dhe zhduken natyrshëm në Fazën 5 (`plot_ly`, `model_store`). Çdo warning/error tjetër i ri mbetet dështim i Q01. |
 
 ## V-09 — si zbatohet (vendim teknik i AI-së, brenda V-09)
 
@@ -52,7 +53,7 @@ ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 
 ## Pyetje të hapura
 
-- **Q01 në Fazat 0–4** (2026-10-27): kodi ekzistues jep warning-e në R (B-11) dhe errore në console të browser-it (B-12), që rregullohen në Fazën 5. Propozimi: deri në Fazën 5, Q01 = "pa errore R; lejohen vetëm warning-et/erroret e njohura B-11/B-12"; Q01 i plotë nga Faza 5. Pret përgjigjen e përdoruesit.
+Asnjë më 2026-10-27 19:10 (pyetja për Q01 u mbyll me V-13).
 
 ## Vendime teknike që AI mund t'i marrë brenda detyrës
 
