@@ -3,7 +3,7 @@
 > [!important] Përditësim nga sesioni 3 (Claude Code, Windows)
 > - Faza 3 u bë commit nga përdoruesi (`5daa8fc`).
 > - **Faza 4 është e përfunduar** (STATUS.md "Faza 4 — rezultati"), pa commit. Përdoruesi pranoi të katër rekomandimet me "Vazhdo me rekomandimet" (V-15). `active()` nga `mod_datasets_server("datasets")` është burimi i vetëm; `series()` = `prepare_series(active())`; asnjë input i fshehur.
-> - **E hapur:** B-16 (FilePond në console gjatë Upload-it, i trashëguar). Propozimi: përjashtim i përkohshëm te V-13 dhe rregullim në Fazën 7 (DECISIONS "Pyetje të hapura").
+> - **B-16** (FilePond në console gjatë Upload-it, i trashëguar) përjashtohet përkohësisht nga Q01 dhe rregullohet në Fazën 7 (V-16, përdoruesi: "Përjashtim deri Faza 7").
 > - ID-të e modulit kanë prefiksin `datasets-` (edhe në CSS/JS). Q04 matet me numërimin e `shiny:value` në browser (V-15 d).
 > - Zgjedhësit e serive të faqeve (`eda_series`…) janë ende globalë te `app.R`. Me aktivizim kur faqja e analizës është e dukshme, ata japin një render të dytë (mbyllet në Fazën 5).
 > - Mësim praktik: në Bash, heredoc-u ha backslash-et edhe në Python inline. Për skripte me `\` përdor Write ose Edit.

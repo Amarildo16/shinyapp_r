@@ -1,6 +1,9 @@
 # Faza 07 — Frontend: CSS dhe JS
 
-Statusi: **i pafilluar**. Kërkesat: R03, R20. Problemet: U-05, B-10.
+Statusi: **i pafilluar**. Kërkesat: R03, R20. Problemet: U-05, B-10, B-16 (V-16).
+
+> [!important] Nga Faza 4
+> Rregullo B-16 (FilePond: `404 /[object Object]` dhe warning-u `updatefiles` gjatë Upload-it). Me mbylljen e kësaj faze, përjashtimi V-16 te Q01 bie.
 
 ## Qëllimi
 

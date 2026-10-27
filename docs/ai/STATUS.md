@@ -1,6 +1,6 @@
 # Gjendja aktuale
 
-Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 (Faza 4 e përfunduar, pa commit; pyetja B-16/Q01 e hapur).
+Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 (Faza 4 e përfunduar, pa commit; B-16 → V-16).
 
 ## E verifikuar
 
@@ -138,7 +138,7 @@ Vendimet: V-15 (përdoruesi: "Vazhdo me rekomandimet"), T-14 – T-17. Burimi i 
 | Q30 | 24/24; të 14 warning-et janë `adf.test` "p-value smaller…" (B-11) | `compare_reference.R` |
 | Q04 (V-15 d) | Aktivizim nga Settings + vizitë e çdo faqeje: 27 output-e, secili **1 herë**, 0 errore. Aktivizim me faqen e dukshme (sintetik, `Shiny.setInputValue`): Përmbledhja **5 → 1**, faqet e analizës **5 → 2**. Kalimi i dytë vjen nga zgjedhësit globalë të serive dhe mbyllet në Fazën 5 | numërim `shiny:value`/`shiny:error` në browser, para dhe pas |
 | Q09–Q14 | 16 fusha × 2 dataset-e (tabelat, ADF, saktësia, parashikimi, titujt, kufijtë e slider-ave, burimi) **identike** me kodin `5daa8fc`; 0 `shiny-output-error` | browser, dy kopje (para/pas) krahasuar me skript |
-| Q01 (V-13) | R: vetëm B-11 në të gjitha rrjedhat reale të UI-së (2 nisje). Browser: B-12 + **B-16** (FilePond gjatë Upload-it, i trashëguar: del edhe me `5daa8fc`). Varianti sintetik i Q04 jep edhe errore R (seria e vjetër te `eda_series`), njësoj si kodi i vjetër; UI-ja nuk e lejon këtë rrjedhë | log-u i `runApp`, console; **B-16 pret vendimin** (DECISIONS "Pyetje të hapura") |
+| Q01 (V-13) | R: vetëm B-11 në të gjitha rrjedhat reale të UI-së (2 nisje). Browser: B-12 + **B-16** (FilePond gjatë Upload-it, i trashëguar: del edhe me `5daa8fc`). Varianti sintetik i Q04 jep edhe errore R (seria e vjetër te `eda_series`), njësoj si kodi i vjetër; UI-ja nuk e lejon këtë rrjedhë | log-u i `runApp`, console; **kalon sipas V-13 + V-16** (B-16 i përjashtuar përkohësisht deri në Fazën 7) |
 | R03 | Asnjë kërkesë jashtë `127.0.0.1` | Playwright network + `performance` |
 
 **B-15 (i ri):** dialogu i vjetër i fshirjes kishte tekst të bardhë mbi sfond të bardhë, ndaj nuk lexohej. Me `glass_modal` lexohet (screenshot-e para/pas në Obsidian `screenshots/faza-4/`).
@@ -149,14 +149,14 @@ Vendimet: V-15 (përdoruesi: "Vazhdo me rekomandimet"), T-14 – T-17. Burimi i 
 
 ## Kufizime dhe shënime
 
-- Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime.
+- Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime, përveç B-16 deri në Fazën 7 (V-16).
 - **Ndryshim jashtë Claude-it (2026-10-27 19:02):** `data/background_state.json` u rishkrua dhe ndryshoi vetëm `"version"` (1773411658 → 1793124137); `active_mode` mbeti `none`. `datasets_state.json` u rishkrua me të njëjtën përmbajtje. Ka gjasa që app-i të jetë nisur nga dosja e projektit. Claude nuk e preku dhe nuk e ktheu mbrapsht (të dhëna state). Nuk është pjesë e Fazës 0: mos e përfshi në commit-in e fazës, përveçse kur përdoruesi e do. Ky është pikërisht problemi U-04, që zgjidhet në Fazën 3 (`storage/`).
 - `all.equal(tolerance)` mat **diferencën mesatare relative** për çdo vektor, si e përcakton QUALITY.md. Një devijim i vogël në një element të vetëm të një vektori të gjatë "hollohet". Provat negative më lart tregojnë që devijimet e rëndësishme kapen.
 - Testet `testthat` (Q29) ekzistojnë që nga Faza 2 (`tests/testthat/`).
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (2026-10-27), pa commit. E hapur: vendimi për B-16 te Q01 (DECISIONS "Pyetje të hapura"). Hapi i radhës: përgjigja për B-16, commit i përdoruesit, pastaj "vazhdo" për [Fazën 5](steps/05-faqet-e-analizes.md) (ose Fazën 6, që varet vetëm nga 3).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (2026-10-27), pa commit. B-16 u përjashtua përkohësisht nga Q01 deri në Fazën 7 (V-16). Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për [Fazën 5](steps/05-faqet-e-analizes.md) (ose Fazën 6, që varet vetëm nga 3).
 
 ## Regjistri i dorëzesave
 

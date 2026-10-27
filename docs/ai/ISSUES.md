@@ -84,7 +84,7 @@
 
 - [ ] **B-15 — Dialogu i konfirmimit të fshirjes nuk lexohej** (gjetur në Fazën 4, 2026-10-27). `showModal(modalDialog())` delte me sfond të bardhë dhe tekst të bardhë: titulli dhe pyetja nuk shiheshin, vetëm butonat. Screenshot-i "para" në Obsidian `screenshots/faza-4/`.
   - Dataset-et: rregulluar në Fazën 4 (V-15 a): `glass_modal` me pamjen e modalit Upload; teksti lexohet (screenshot "pas"). **Mbetet:** konfirmimi i fshirjes së fotos te Background përdor po `showModal` (e paverifikuar nëse ka të njëjtin problem), Faza 6.
-- [ ] **B-16 — Console e browser-it gjatë Upload-it me FilePond** (gjetur në Fazën 4, 2026-10-27). Pas zgjedhjes së skedarit: `404 /[object Object]` dhe warning-u "Pond -> Shiny updatefiles sync failed: … parameter 1 is not of type 'File'" (`custom.js:193`). Dalin njësoj edhe me kodin e commit-it `5daa8fc` (para Fazës 4), pra nuk janë regresion. Ngarkimi punon: CSV-ja lexohet dhe ruhet md5-identike. Provuar vetëm me file chooser-in e Playwright; mbetet të shihet nëse ndodh edhe me klikim/drag-and-drop real. · Faza: 7 (FilePond bridge)
+- [ ] **B-16 — Console e browser-it gjatë Upload-it me FilePond** (gjetur në Fazën 4, 2026-10-27). Pas zgjedhjes së skedarit: `404 /[object Object]` dhe warning-u "Pond -> Shiny updatefiles sync failed: … parameter 1 is not of type 'File'" (`custom.js:193`). Dalin njësoj edhe me kodin e commit-it `5daa8fc` (para Fazës 4), pra nuk janë regresion. Ngarkimi punon: CSV-ja lexohet dhe ruhet md5-identike. Provuar vetëm me file chooser-in e Playwright; mbetet të shihet nëse ndodh edhe me klikim/drag-and-drop real. Përjashtuar përkohësisht nga Q01 me V-16. · Faza: 7 (FilePond bridge)
 
 ## D — Kod dhe asete të vdekura
 

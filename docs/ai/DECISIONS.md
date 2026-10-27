@@ -1,6 +1,6 @@
 # Vendimet dhe pyetjet e hapura
 
-Gjendja fillestare: 2026-10-27. Përditësuar: 2026-10-27 (Faza 4: V-15, T-14 – T-17). Më herët: Faza 3 (T-08 – T-13) — T-05 – T-07 dhe dy pyetje nga Faza 2 (B-13, P-03 kopja 6). Më herët (19:10): V-13 (Q01 në Fazat 0–4). Më herët (18:57): vendimet teknike T-01 – T-04. Më herët (18:33): V-08 – V-12 u mbyllën; V-09 u ndryshua nga përdoruesi në UI dygjuhëshe. Përditëso datën dhe regjistro arsyen kur ndryshon një vendim. **Mos ripyet një vendim që përdoruesi e ka dhënë.**
+Gjendja fillestare: 2026-10-27. Përditësuar: 2026-10-27 (Faza 4: V-15, V-16, T-14 – T-17). Më herët: Faza 3 (T-08 – T-13) — T-05 – T-07 dhe dy pyetje nga Faza 2 (B-13, P-03 kopja 6). Më herët (19:10): V-13 (Q01 në Fazat 0–4). Më herët (18:57): vendimet teknike T-01 – T-04. Më herët (18:33): V-08 – V-12 u mbyllën; V-09 u ndryshua nga përdoruesi në UI dygjuhëshe. Përditëso datën dhe regjistro arsyen kur ndryshon një vendim. **Mos ripyet një vendim që përdoruesi e ka dhënë.**
 
 ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 
@@ -23,6 +23,7 @@ ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 | V-13 | 2026-10-27 | **Q01 në Fazat 0–4:** pa errore në R; lejohen vetëm warning-et/erroret e njohura **B-11** dhe **B-12**. **Nga Faza 5**, Q01 i plotë (pa errore dhe pa warning). | Rregullim i B-11/B-12 para Fazës 5. | Përdoruesi: "Prano propozimin … Q01 i plotë nga Faza 5". B-11/B-12 vijnë nga kodi ekzistues dhe zhduken natyrshëm në Fazën 5 (`plot_ly`, `model_store`). Çdo warning/error tjetër i ri mbetet dështim i Q01. |
 | V-14 | 2026-10-27 | **(a)** Kopja e 6-të e P-03 (`time_col()` te `R/legacy_server_plots.R`) **shtyhet te Faza 4** (zhduket me P-05). **(b) B-13 rregullohet në Fazën 2:** te `parse_time_safe`, një format i provuar pranohet vetëm kur teksti ka formën e plotë të formatit. | (a) Zëvendësim tani me ndryshim të default-eve. (b) Lënia e bug-ut. | Përdoruesi: "Po: kopja e 6-të e P-03 shtyhet te Faza 4, dhe B-13 rregullohet tani në Fazën 2." (b) ndryshon rezultatin vetëm kur teksti nuk përputhet plotësisht me formatin, p.sh. dd-mm-YYYY që lexohej si viti 15. |
 | V-15 | 2026-10-27 | **Faza 4, katër zgjedhje:** (a) modalet e dataset-eve hapen e mbyllen në një mënyrë të vetme (`toggle_modal` me një helper); konfirmimi i fshirjes bëhet `glass_modal` me të njëjtin tekst dhe butona. (b) `ns()` i plotë te `mod_datasets`; selektorët në CSS/JS riemërtohen mekanikisht. (c) Tekstet që thonë "data/" korrigjohen në `storage/datasets`. (d) Q04 provohet duke numëruar ngjarjet `shiny:value` për çdo output në browser, pa `reactlog`. | (a) `showModal` për konfirmimin; (b) ID globale për modalet, si te T-10; (c) tekstet mbeten deri në Fazën 8; (d) `reactlog` te renv (paketë e re). | Përdoruesi: "Vazhdo me rekomandimet". (a) mbyll P-08 për dataset-et; pamja e dialogut të fshirjes mund të ndryshojë pak (krahasohet me screenshot). (b) zbaton rregullin e moduleve. (c) nga Faza 3 dataset-et ruhen te `storage/datasets`, ndaj teksti ishte i pasaktë. (d) pa paketë të re dhe pa prekur kodin e app-it. Me "vazhdo" pranohet edhe B-03: Upload ofron vetëm kolonat numerike, si Edit. |
+| V-16 | 2026-10-27 | **B-16 përjashtohet përkohësisht nga Q01** (V-13): gjatë Upload-it me FilePond lejohen në console vetëm `404 /[object Object]` dhe warning-u "Pond -> Shiny updatefiles sync failed". Rregullohet në Fazën 7 (FilePond bridge); nga Faza 7, Q01 pa këtë përjashtim. | Rregullim në Fazën 4. | Përdoruesi: "Përjashtim deri Faza 7". B-16 është i trashëguar (del edhe me `5daa8fc`) dhe ngarkimi punon. Çdo error/warning tjetër i ri mbetet dështim i Q01. |
 
 ## V-09 — si zbatohet (vendim teknik i AI-së, brenda V-09)
 
@@ -68,9 +69,7 @@ ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 
 ## Pyetje të hapura
 
-- **B-16 dhe Q01 (Faza 4, 2026-10-27).** Gjatë Upload-it me FilePond, console e browser-it tregon një 404 (`/[object Object]`) dhe një warning. Të dyja dalin edhe me kodin para Fazës 4 (`5daa8fc`), pra janë të trashëguara, jo regresion. V-13 lejon në browser vetëm B-12. Propozimi: (a) **rekomanduar:** B-16 shtohet përkohësisht te përjashtimet e V-13 dhe rregullohet në Fazën 7 (FilePond bridge), si B-11/B-12 në Fazën 5; (b) rregullohet tani, para mbylljes së Fazës 4. Pret përgjigjen e përdoruesit.
-
-Më herët: asnjë më 2026-10-27 20:00. Q01 u mbyll me V-13; pyetjet e Fazës 2 (B-13, kopja e 6-të e P-03) u mbyllën me V-14.
+Asnjë më 2026-10-27 (pas V-16). Më herët: asnjë më 2026-10-27 20:00. Q01 u mbyll me V-13; pyetjet e Fazës 2 (B-13, kopja e 6-të e P-03) u mbyllën me V-14.
 
 ## Vendime teknike që AI mund t'i marrë brenda detyrës
 
