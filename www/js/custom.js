@@ -29,8 +29,8 @@
 // ===============================
 (function () {
     function getHost(inputId) {
-        if (inputId === "csv_file_modal") {
-            return document.getElementById("csv_file_modal_pond_host");
+        if (inputId === "datasets-csv_file_modal") {
+            return document.getElementById("datasets-csv_file_modal_pond_host");
         }
         if (inputId === "bg_media_upload") {
             return document.getElementById("bg_media_upload_pond_host");
@@ -41,7 +41,7 @@
     function detectConfig(shinyInput, inputId) {
         const accept = (shinyInput.getAttribute("accept") || "").toLowerCase();
 
-        if (inputId === "csv_file_modal" || accept.includes("csv") || accept.includes(".csv")) {
+        if (inputId === "datasets-csv_file_modal" || accept.includes("csv") || accept.includes(".csv")) {
             return {
                 mode: "csv",
                 acceptedFileTypes: ["text/csv"],
@@ -214,11 +214,11 @@
         setTimeout(function () { initWithRetry(inputId, tries - 1); }, 120);
     }
 
-    $(document).on("shown.bs.modal", "#main_modal_sm", function () {
-        initWithRetry("csv_file_modal", 25);
+    $(document).on("shown.bs.modal", "#datasets-main_modal_sm", function () {
+        initWithRetry("datasets-csv_file_modal", 25);
     });
 
-    $(document).on("shown.bs.modal", "#main_modal_fs, #bg_modal_fs", function () {
+    $(document).on("shown.bs.modal", "#datasets-main_modal_fs, #bg_modal_fs", function () {
         initWithRetry("bg_media_upload", 25);
         setTimeout(function () {
             if ($.fn.dataTable) {
@@ -228,7 +228,7 @@
     });
 
     $(document).on("shiny:bound", function () {
-        initWithRetry("csv_file_modal", 10);
+        initWithRetry("datasets-csv_file_modal", 10);
     });
 
     if (window.Shiny) {
@@ -262,25 +262,9 @@ Shiny.addCustomMessageHandler('toggle_modal', function (msg) {
     if (msg.action === 'hide') $m.modal('hide');
 });
 
-$(document).on('click', '.ajax-modal-sm, .ajax-modal-fs', function (e) {
-    e.preventDefault();
-    const $btn = $(this);
-
-    const modal = $btn.hasClass('ajax-modal-fs') ? 'fs' : 'sm';
-    const type = $btn.data('modal') || 'upload';
-    const title = $btn.data('title') || '';
-
-    Shiny.setInputValue('ajax_modal_open', {
-        modal: modal,
-        type: type,
-        title: title,
-        nonce: Date.now()
-    }, { priority: 'event' });
-});
-
-$(document).on("hidden.bs.modal", "#main_modal_sm", function () {
-    const shinyInput = document.getElementById("csv_file_modal");
-    const proxy = document.getElementById("csv_file_modal__pond_proxy");
+$(document).on("hidden.bs.modal", "#datasets-main_modal_sm", function () {
+    const shinyInput = document.getElementById("datasets-csv_file_modal");
+    const proxy = document.getElementById("datasets-csv_file_modal__pond_proxy");
 
     if (proxy && proxy._pond) {
         proxy._pond.removeFiles();

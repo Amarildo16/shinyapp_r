@@ -64,9 +64,9 @@ legacy_plots_module <- function(app_code) {
   server_plots_env <- app_code$server_plots
   body(server_plots_env) <- call("{", body(server_plots_env), quote(environment()))
 
-  function(id, df) {
+  function(id, series, active) {
     shiny::moduleServer(id, function(input, output, session) {
-      sp <- server_plots_env(input, output, session, df)
+      sp <- server_plots_env(input, output, session, series, active)
     })
   }
 }
@@ -254,13 +254,14 @@ compute_results <- function(root, ds) {
 
   out <- new.env()
 
-  shiny::testServer(legacy_plots_module(app_code), args = list(df = shiny::reactive(raw)), {
-    session$setInputs(
-      data_time_col   = ds$time_col,
-      data_value_cols = vc,
-      data_dup        = "mean",
-      data_freq       = "auto"
-    )
+  # Faza 4 (V-04): dataset-i aktiv vjen si active(), seritë nga prepare_series().
+  active <- list(file = ds$file, data = raw, time_col = ds$time_col, value_cols = vc)
+  module_args <- list(
+    series = shiny::reactive(app_code$prepare_series(active)),
+    active = shiny::reactive(active)
+  )
+
+  shiny::testServer(legacy_plots_module(app_code), args = module_args, {
 
     d0 <- sp$df_dyn()
     if (!identical(names(d0), c("Time", vc))) stop("df_dyn() nuk ka kolonat e pritura.")

@@ -1,13 +1,13 @@
 # Gjendja aktuale
 
-Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 (Faza 3 e përfunduar, pa commit).
+Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 (Faza 4 e përfunduar, pa commit; pyetja B-16/Q01 e hapur).
 
 ## E verifikuar
 
 - Analiza e plotë e kodit në commit-in `976dce0` (branch-i `main`): `app.R`, `helpers.R`, `server_plots.R`, `www/js/*`, `www/css/*`, `data/*`, historia e git-it. Rezultati te Obsidian `01 - Analiza e gjendjes aktuale.md` dhe te [ISSUES.md](ISSUES.md).
 - Branch-i `ultimate_version` = `976dce0` + `79a36f7` (dokumentacioni, commit i përdoruesit). `git diff 976dce0 -- app.R helpers.R server_plots.R` është bosh: **kodi i app-it nuk është prekur.**
 - Faza 0 u zbatua nga Claude Code në Windows-in e përdoruesit (shih "Faza 0" më poshtë).
-- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1: `069c8fc`. Faza 2 (2026-10-27): pa commit.
+- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1: `069c8fc`. Faza 2: `7ef2eed`, `c1c7048`. Faza 3: `5daa8fc`. Faza 4 (2026-10-27): pa commit.
 
 ## Mjedisi (verifikuar 2026-10-27 nga Claude Code)
 
@@ -121,6 +121,32 @@ Asgjë nuk fshihet apo mbishkruhet te `data/`, dhe një skedar që ekziston te `
 
 **Kufizime (të planifikuara):** kokat e tabelave, grafikët dhe mesazhet e faqeve janë ende shqip edhe në anglisht (kalojnë në `tr()` në Fazat 4–7). Fotot e ngarkuara shkojnë ende te `www/images/` (Faza 6). Inputet e fshehura `data_dup`/`data_freq` mbeten deri në Fazën 4 (P-11). `plotly-animate.js` ka ende hartën `AFFECTS` me ID (Faza 7).
 
+## Faza 4 — rezultati (2026-10-27, Claude Code)
+
+Vendimet: V-15 (përdoruesi: "Vazhdo me rekomandimet"), T-14 – T-17. Burimi i vetëm i së vërtetës (V-04): `active <- mod_datasets_server("datasets")`, `series <- reactive(prepare_series(active()))`. Asnjë input i fshehur.
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| `prepare_series()` (T-14) | Funksion i pastër te `data_prepare.R`; `prepare_fixture()` i testeve e përdor atë | `test-data_prepare.R`: = `df_dyn()` i vjetër (`identical`) në çdo kombinim kolonë kohe × seri të fixtures dhe shembujve; NULL pa dataset/kohë/seri |
+| `mod_datasets.R` | UI (seksioni + 3 modale), server me një observer ngarkimi (P-06, T-15), një modal konfigurimi për Upload/Edit (B-03), ruajtje me `sanitize_filename` + `is_path_inside_dir` + timestamp, fshirje me konfirmim | `test-mod_datasets.R` (`testServer`, storage i përkohshëm): nisja me/pa konfigurim, Q04, Q05 (edhe pas rinisjes), B-03, Q06 (md5, timestamp, `;` + presje dhjetore), Q07 (`.txt`, header-only), Q08 |
+| `app.R` | 5 inputet e fshehura, `active_cfg()`, `df_raw` dhe seksionet 2–7 të serverit u hoqën (2 025 → 1 243 rreshta); Përmbledhja lexon `active()` | `grep -E "data_source\|data_time_col\|data_value_cols\|data_dup\|data_freq\|active_cfg"` → asnjë |
+| `legacy_server_plots.R` | Merr `series` dhe `active`; `time_col()` (kopja e 6-të e P-03) u hoq; `DUP_POLICY`/`FREQ_POLICY` në vend të inputeve; reset-i i slider-ave me `priority = 1` | Q30 24/24; browser: kufijtë e slider-ave = para |
+| Modalet (P-08, V-15 a) | `toggle_glass_modal()`; konfirmimi i fshirjes = `glass_modal`; `ajax_modal_open` u hoq nga JS | browser: Upload, Edit, Cancel me draft, Anulo, Escape |
+| ID-të (V-15 b) | Prefiksi `datasets-` në HTML, CSS (selektorët e modaleve dhe FilePond) dhe `custom.js` | diff i HTML-së para/pas (vetëm ndryshimet e pritura); screenshot-e |
+| Tekstet (V-15 c, R26) | 28 çelësa `ds.*` në `sq.json`/`en.json`; "data/" → "storage/datasets" | `test-i18n.R` (tani kap edhe `tr("k", param = …)`); browser Q31 për modulin |
+| Q29 | 12 skedarë, 504 pritje: **0 dështime** | `testthat::test_dir()` |
+| Q30 | 24/24; të 14 warning-et janë `adf.test` "p-value smaller…" (B-11) | `compare_reference.R` |
+| Q04 (V-15 d) | Aktivizim nga Settings + vizitë e çdo faqeje: 27 output-e, secili **1 herë**, 0 errore. Aktivizim me faqen e dukshme (sintetik, `Shiny.setInputValue`): Përmbledhja **5 → 1**, faqet e analizës **5 → 2**. Kalimi i dytë vjen nga zgjedhësit globalë të serive dhe mbyllet në Fazën 5 | numërim `shiny:value`/`shiny:error` në browser, para dhe pas |
+| Q09–Q14 | 16 fusha × 2 dataset-e (tabelat, ADF, saktësia, parashikimi, titujt, kufijtë e slider-ave, burimi) **identike** me kodin `5daa8fc`; 0 `shiny-output-error` | browser, dy kopje (para/pas) krahasuar me skript |
+| Q01 (V-13) | R: vetëm B-11 në të gjitha rrjedhat reale të UI-së (2 nisje). Browser: B-12 + **B-16** (FilePond gjatë Upload-it, i trashëguar: del edhe me `5daa8fc`). Varianti sintetik i Q04 jep edhe errore R (seria e vjetër te `eda_series`), njësoj si kodi i vjetër; UI-ja nuk e lejon këtë rrjedhë | log-u i `runApp`, console; **B-16 pret vendimin** (DECISIONS "Pyetje të hapura") |
+| R03 | Asnjë kërkesë jashtë `127.0.0.1` | Playwright network + `performance` |
+
+**B-15 (i ri):** dialogu i vjetër i fshirjes kishte tekst të bardhë mbi sfond të bardhë, ndaj nuk lexohej. Me `glass_modal` lexohet (screenshot-e para/pas në Obsidian `screenshots/faza-4/`).
+
+**Ndryshime të dukshme (të vendosura):** dialogu i fshirjes (V-15 a, B-15); Upload ofron vetëm kolonat numerike (B-03); tekstet "data/" → "storage/datasets" (V-15 c); titulli i modalit të konfigurimit te Upload është gjithmonë bosh (T-17); rrugët e gabimit të leximit zbrazin faqet (T-16).
+
+`data/` dhe `storage/` e repo-s nuk u prekën; provat u bënë mbi kopje në scratchpad (T-04) dhe mbi sandbox-e të përkohshme (testet). Artefaktet e Playwright u zhvendosën jashtë repo-s.
+
 ## Kufizime dhe shënime
 
 - Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime.
@@ -130,7 +156,7 @@ Asgjë nuk fshihet apo mbishkruhet te `data/`, dhe një skedar që ekziston te `
 
 ## Pika e vazhdimit
 
-**Fazat 0, 1 dhe 2 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`). **Faza 3 është e përfunduar** (2026-10-27), pa commit. Mbetet për Fazën 4 kopja e 6-të e P-03 (V-14). Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për [Fazën 4](steps/04-moduli-datasets.md).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (2026-10-27), pa commit. E hapur: vendimi për B-16 te Q01 (DECISIONS "Pyetje të hapura"). Hapi i radhës: përgjigja për B-16, commit i përdoruesit, pastaj "vazhdo" për [Fazën 5](steps/05-faqet-e-analizes.md) (ose Fazën 6, që varet vetëm nga 3).
 
 ## Regjistri i dorëzesave
 
@@ -143,6 +169,7 @@ Asgjë nuk fshihet apo mbishkruhet te `data/`, dhe një skedar që ekziston te `
 | 2026-10-27 | Faza 1 — Pastrimi (Claude Code) | `app.R`, `helpers.R`, `server_plots.R`, README, `.gitignore`, `www/vendor/remixicon/`, `_to_delete/` | Shih "Faza 1 — rezultati" | Pasqyruar (ditari, plani, problemet, faqja kryesore) |
 | 2026-10-27 | Faza 2 — Logjika te `R/` + testet (Claude Code) | `R/` (14 skedarë), `app.R`, `tests/testthat/`, `tests/fixtures/`, `compute_results.R`, `renv.lock`, `.gitignore` + B-13 (V-14) | Shih "Faza 2 — rezultati" | Pasqyruar (ditari, plani, problemet, vendimet, faqja kryesore) |
 | 2026-10-27 | Faza 3 — Config, layout, storage, i18n (Claude Code) | `R/config.R`, `R/storage.R`, `R/i18n.R`, `R/ui_components.R`, `R/mod_nav.R`, `i18n/`, `app.R`, `www/js/sidebar.js`, `www/js/bg.js`, `data/samples/`, testet | Shih "Faza 3 — rezultati" | Pasqyruar (ditari, plani, problemet, vendimet, arkitektura, faqja kryesore) |
+| 2026-10-27 | Faza 4 — Moduli i dataset-eve (Claude Code) | `R/mod_datasets.R`, `R/data_prepare.R`, `R/ui_components.R`, `app.R`, `R/legacy_server_plots.R`, `i18n/`, `www/css/custom-style.css`, `www/js/custom.js`, `tests/reference/compute_results.R`, testet | Shih "Faza 4 — rezultati" | Pasqyruar (ditari, plani, problemet, vendimet, arkitektura, faqja kryesore, screenshots/faza-4) |
 
 ## Formati për vazhdimet
 

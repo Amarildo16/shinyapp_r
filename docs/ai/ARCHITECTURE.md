@@ -48,7 +48,7 @@ shinyapp_r/
 │   ├── ui_components.R       # sidebar, topbar, preloader, glass_modal(), section_box()
 │   │
 │   ├── mod_nav.R             # navigimi mes faqeve + titulli
-│   ├── mod_datasets.R        # Settings → Dataset
+│   ├── mod_datasets.R        # Settings → Dataset (Faza 4): ui, modals_ui, server → active()
 │   ├── mod_background.R      # Settings → Background + Media Library
 │   ├── mod_overview.R        # Përmbledhje
 │   ├── mod_eda_ts.R          # EDA – Seri kohore
@@ -105,7 +105,8 @@ shinyapp_r/
         ├── test-ts_models.R  # Faza 5
         ├── test-utils_format.R
         ├── test-utils_paths.R
-        └── test-i18n.R       # Faza 3
+        ├── test-i18n.R       # Faza 3
+        └── test-mod_datasets.R  # Faza 4 (testServer, Q04–Q08)
 ```
 
 ### Nga ku vjen çdo pjesë e kodit aktual
@@ -162,6 +163,7 @@ list(
 )
 # ose NULL kur nuk ka dataset
 ```
+Zbatuar në Fazën 4. Kolona e kohës dhe seritë zgjidhen te moduli: konfigurimi i ruajtur → zgjedhja e dataset-it të mëparshëm → default-et (T-15). Modalet e modulit hapen e mbyllen vetëm me `toggle_glass_modal(session, id, "show" | "hide")` (P-08); `mod_datasets_modals_ui()` i vendos në fund të faqes (`app_page(main_tabs, modals)`).
 
 ### `series()` — nga `prepare_series(active())`
 ```r
@@ -174,7 +176,7 @@ list(
   step_unit  = "muaj" | "vite" | ...
 )
 ```
-`prepare_series()` është funksion i pastër (pa Shiny). Testohet direkt.
+`prepare_series()` është funksion i pastër (pa Shiny). Testohet direkt. Në Fazën 4 kthen vetëm `data`, `value_cols` dhe `meta` (T-14); `time_label`, `freq_key` dhe `step_unit` shtohen në Fazën 5.
 
 ### Modulet e analizës
 Çdo faqe ka të njëjtën formë:

@@ -1,4 +1,12 @@
-# Handoff — sesioni i parë (2026-10-27, claude.ai) + sesioni 2 (2026-10-27, Claude Code)
+# Handoff — sesioni i parë (2026-10-27, claude.ai) + sesionet 2–3 (2026-10-27, Claude Code)
+
+> [!important] Përditësim nga sesioni 3 (Claude Code, Windows)
+> - Faza 3 u bë commit nga përdoruesi (`5daa8fc`).
+> - **Faza 4 është e përfunduar** (STATUS.md "Faza 4 — rezultati"), pa commit. Përdoruesi pranoi të katër rekomandimet me "Vazhdo me rekomandimet" (V-15). `active()` nga `mod_datasets_server("datasets")` është burimi i vetëm; `series()` = `prepare_series(active())`; asnjë input i fshehur.
+> - **E hapur:** B-16 (FilePond në console gjatë Upload-it, i trashëguar). Propozimi: përjashtim i përkohshëm te V-13 dhe rregullim në Fazën 7 (DECISIONS "Pyetje të hapura").
+> - ID-të e modulit kanë prefiksin `datasets-` (edhe në CSS/JS). Q04 matet me numërimin e `shiny:value` në browser (V-15 d).
+> - Zgjedhësit e serive të faqeve (`eda_series`…) janë ende globalë te `app.R`. Me aktivizim kur faqja e analizës është e dukshme, ata japin një render të dytë (mbyllet në Fazën 5).
+> - Mësim praktik: në Bash, heredoc-u ha backslash-et edhe në Python inline. Për skripte me `\` përdor Write ose Edit.
 
 > [!important] Përditësim nga sesioni 2 (Claude Code, Windows)
 > - **Faza 0 është e përfunduar** (STATUS.md "Faza 0 — rezultati"). Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13, vendim i përdoruesit). Commit-et: `531bc0c`, `517a1ae`.

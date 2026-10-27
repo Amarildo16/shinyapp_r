@@ -1,62 +1,22 @@
-server_plots <- function(input, output, session, df) {
+# I përkohshëm (zhduket në Fazën 5). Merr series() dhe active() nga app.R (V-04):
+# koha, seritë dhe dublikatat/frekuenca vijnë të gatshme nga prepare_series().
+server_plots <- function(input, output, session, series, active) {
   need     <- shiny::need
   validate <- shiny::validate
-  # =========================================================
-  # 0) Dynamic selectors
-  # =========================================================
-
-  time_col <- reactive({
-    req(df())
-    nm <- names(df())
-    req(length(nm) > 0)
-
-    tc <- input$data_time_col %||% NULL
-    if (!is.null(tc) && tc %in% nm) return(tc)
-
-    if ("Year" %in% nm) return("Year")
-
-    cand <- tryCatch(detect_time_candidates(df()), error = function(e) data.frame(col = nm, score = 0))
-    best <- cand$col[1] %||% NULL
-    if (is.null(best) || is.na(best) || !(best %in% nm)) best <- nm[1]
-    best
-  })
 
   value_cols <- reactive({
-    req(df())
-    nm <- names(df())
-
-    vc <- input$data_value_cols %||% NULL
-    if (!is.null(vc)) {
-      vc <- vc[vc %in% nm]
-      if (length(vc) > 0) return(vc)
-    }
-
-    detect_numeric_cols(df(), exclude = time_col(), fallback_all = FALSE)
+    req(series())
+    series()$value_cols
   })
 
   meta <- reactive({
-    vc <- value_cols()
-    if (is.null(vc) || length(vc) == 0) return(list())
-    build_meta(vc)
+    req(series())
+    series()$meta
   })
 
   df_dyn <- reactive({
-    req(df(), time_col())
-    d <- df()
-
-    vc <- value_cols()
-    req(length(vc) > 0)
-
-    for (v in vc) d[[v]] <- to_numeric_safe(d[[v]])
-
-    d <- make_df_dyn(d, time_col())
-    d <- d[, c("Time", vc), drop = FALSE]
-    dup <- input$data_dup %||% "mean"
-    d <- apply_dup_policy(d, vc = vc, method = dup)
-    fr <- input$data_freq %||% "auto"
-    d <- apply_freq_policy(d, freq = fr, vc = vc)
-
-    d
+    req(series())
+    series()$data
   })
 
   # =========================================================
@@ -116,11 +76,12 @@ server_plots <- function(input, output, session, df) {
 
   .slider_once <- reactiveValues(roll_k = FALSE, model_h = FALSE, h = FALSE)
 
-  observeEvent(df(), {
+  # priority = 1: rivendoset para observer-ave të slider-ave, si me df() e vjetër.
+  observeEvent(active(), {
     .slider_once$roll_k  <- FALSE
     .slider_once$model_h <- FALSE
     .slider_once$h       <- FALSE
-  }, ignoreInit = TRUE)
+  }, ignoreInit = TRUE, priority = 1)
 
   observeEvent(list(df_dyn(), input$eda_series), {
     req(df_dyn(), input$eda_series)
@@ -165,7 +126,7 @@ server_plots <- function(input, output, session, df) {
 
 
   # -------- model_h dinamik (Modelimi) --------
-  observeEvent(list(df_dyn(), input$model_series, input$data_freq), {
+  observeEvent(list(df_dyn(), input$model_series), {
     d0 <- df_dyn()
     if (is.null(d0) || nrow(d0) == 0) return()
 
@@ -198,7 +159,7 @@ server_plots <- function(input, output, session, df) {
 
 
   # -------- h dinamik (Parashikimi) --------
-  observeEvent(list(df_dyn(), input$forecast_series, input$data_freq), {
+  observeEvent(list(df_dyn(), input$forecast_series), {
     d0 <- df_dyn()
     if (is.null(d0) || nrow(d0) == 0) return()
 
@@ -260,7 +221,7 @@ server_plots <- function(input, output, session, df) {
         fmt_time(max(tt_ok)),
         as.character(nrow(d)),
         n_series_txt(),
-        input$data_source %||% "Përdoruesi (dataset i ngarkuar)"
+        active()$file %||% "Përdoruesi (dataset i ngarkuar)"
       ),
       check.names = FALSE
     )
@@ -898,7 +859,7 @@ server_plots <- function(input, output, session, df) {
     m    <- var_meta(input$stat_series, meta())
     xlab <- time_axis_label(d0$Time)
 
-    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 3L)
+    ts_ok <- validate_ts_ready(d0, input$stat_series, FREQ_POLICY, min_n = 3L)
     validate(need(isTRUE(ts_ok$ok), ts_ok$message))
 
     dd <- ts_ok$data
@@ -977,7 +938,7 @@ server_plots <- function(input, output, session, df) {
 
     m <- var_meta(input$stat_series, meta())
 
-    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 6L)
+    ts_ok <- validate_ts_ready(d0, input$stat_series, FREQ_POLICY, min_n = 6L)
     validate(need(isTRUE(ts_ok$ok), ts_ok$message))
 
     dd <- ts_ok$data
@@ -987,7 +948,7 @@ server_plots <- function(input, output, session, df) {
       return(NULL)
     }
 
-    spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
+    spec <- ts_spec_from_time(dd$Time, FREQ_POLICY)
     y_ts <- stats::ts(as.numeric(dd$y), frequency = spec$freq, start = spec$start)
     dy   <- diff(y_ts)
     n    <- length(dy)
@@ -1082,7 +1043,7 @@ server_plots <- function(input, output, session, df) {
       stringsAsFactors = FALSE
     )
 
-    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 20L)
+    ts_ok <- validate_ts_ready(d0, input$stat_series, FREQ_POLICY, min_n = 20L)
     if (!isTRUE(ts_ok$ok)) {
       base_tbl$Method <- ts_ok$message %||% TS_INCOMPLETE_MSG
       return(list(
@@ -1240,7 +1201,7 @@ server_plots <- function(input, output, session, df) {
 
     d0 <- df_dyn()
 
-    ts_ok <- validate_ts_ready(d0, input$model_series, input$data_freq %||% "auto", min_n = 20L)
+    ts_ok <- validate_ts_ready(d0, input$model_series, FREQ_POLICY, min_n = 20L)
     if (!isTRUE(ts_ok$ok)) {
       return(list(ok = FALSE, msg = ts_ok$message %||% TS_INCOMPLETE_MSG))
     }
@@ -1254,12 +1215,12 @@ server_plots <- function(input, output, session, df) {
 
     y_raw <- as.numeric(dd$y)
 
-    spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
+    spec <- ts_spec_from_time(dd$Time, FREQ_POLICY)
     y_ts <- stats::ts(y_raw, frequency = spec$freq, start = spec$start)
     y_mod <- y_ts
 
     key <- paste0(
-      input$model_series, "|", (input$data_freq %||% "auto"), "|",
+      input$model_series, "|", FREQ_POLICY, "|",
       n, "|", fmt_time(tail(dd$Time, 1)), "|",
       sprintf("%.6f", sum(y_raw, na.rm = TRUE)), "|",
       sprintf("%.6f", stats::sd(y_raw, na.rm = TRUE))
@@ -1469,7 +1430,7 @@ server_plots <- function(input, output, session, df) {
       return(NULL)
     }
 
-    ts_ok <- validate_ts_ready(d0, input$forecast_series, input$data_freq %||% "auto", min_n = 2L)
+    ts_ok <- validate_ts_ready(d0, input$forecast_series, FREQ_POLICY, min_n = 2L)
     validate(need(isTRUE(ts_ok$ok), ts_ok$message))
 
     dd <- ts_ok$data
@@ -1486,7 +1447,7 @@ server_plots <- function(input, output, session, df) {
     req(series_dat())
     dd <- series_dat()
 
-    spec <- ts_spec_from_time(dd$Time, input$data_freq %||% "auto")
+    spec <- ts_spec_from_time(dd$Time, FREQ_POLICY)
     yts  <- stats::ts(as.numeric(dd$y), frequency = spec$freq, start = spec$start)
 
     yts
@@ -1518,7 +1479,7 @@ server_plots <- function(input, output, session, df) {
       "|last=", fmt_time(tail(dd$Time, 1)),
       "|sum=", sprintf("%.6f", sum(as.numeric(dd$y), na.rm = TRUE)),
       "|sd=",  sprintf("%.6f", stats::sd(as.numeric(dd$y), na.rm = TRUE)),
-      "|freqopt=", (input$data_freq %||% "auto")
+      "|freqopt=", FREQ_POLICY
     )
 
     if (identical(.arima_cache_key(), key)) {

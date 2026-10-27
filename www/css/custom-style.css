@@ -476,7 +476,7 @@ select,
     z-index: 2000 !important;
 }
 
-#main_modal_fs .dataTables_length select option {
+#datasets-main_modal_fs .dataTables_length select option {
     background: rgba(16, 24, 28, 0.95) !important;
     color: rgba(255, 255, 255, 0.92) !important;
 }
@@ -743,19 +743,22 @@ select,
    Upload modal (SM) – centered + glass + FilePond styling
    ========================================================= */
 
-#main_modal_sm.modal {
+#datasets-main_modal_sm.modal,
+#datasets-delete_modal.modal {
     text-align: center;
     padding: 0 !important;
 }
 
-#main_modal_sm.modal:before {
+#datasets-main_modal_sm.modal:before,
+#datasets-delete_modal.modal:before {
     content: '';
     display: inline-block;
     height: 100%;
     vertical-align: middle;
 }
 
-#main_modal_sm .modal-dialog {
+#datasets-main_modal_sm .modal-dialog,
+#datasets-delete_modal .modal-dialog {
     display: inline-block;
     vertical-align: middle;
     text-align: left;
@@ -763,7 +766,8 @@ select,
     margin: 0 auto;
 }
 
-#main_modal_sm .modal-content {
+#datasets-main_modal_sm .modal-content,
+#datasets-delete_modal .modal-content {
     background: rgba(16, 24, 28, 0.78);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 18px;
@@ -772,21 +776,25 @@ select,
     -webkit-backdrop-filter: blur(10px);
 }
 
-#main_modal_sm .modal-header {
+#datasets-main_modal_sm .modal-header,
+#datasets-delete_modal .modal-header {
     border-bottom: 1px solid rgba(255, 255, 255, 0.10);
 }
 
-#main_modal_sm .modal-body {
+#datasets-main_modal_sm .modal-body,
+#datasets-delete_modal .modal-body {
     padding: 22px 22px 26px;
 }
 
-#main_modal_sm .close {
+#datasets-main_modal_sm .close,
+#datasets-delete_modal .close {
     color: rgba(255, 255, 255, 0.90);
     opacity: 1;
     text-shadow: none;
 }
 
-#main_modal_sm .close:hover {
+#datasets-main_modal_sm .close:hover,
+#datasets-delete_modal .close:hover {
     opacity: 0.85;
 }
 
@@ -803,11 +811,11 @@ select,
     text-decoration: underline;
 }
 
-#csv_file_modal_pond_host {
+#datasets-csv_file_modal_pond_host {
     width: 100%;
 }
 
-#csv_file_modal_pond_host .filepond--root {
+#datasets-csv_file_modal_pond_host .filepond--root {
     width: 100%;
     margin-top: 6px;
 }
@@ -820,12 +828,12 @@ select,
 }
 
 #csv_upload_modal .filepond--root,
-#main_modal_sm .filepond--root {
+#datasets-main_modal_sm .filepond--root {
     min-height: 170px;
 }
 
 #csv_upload_modal .filepond--drop-label,
-#main_modal_sm .filepond--drop-label {
+#datasets-main_modal_sm .filepond--drop-label {
     min-height: 170px;
     display: flex;
     align-items: center;
@@ -833,14 +841,14 @@ select,
 }
 
 #csv_upload_modal .filepond--panel-root,
-#main_modal_sm .filepond--panel-root {
+#datasets-main_modal_sm .filepond--panel-root {
     border: 2px dashed rgba(255, 255, 255, 0.25);
     background: rgba(255, 255, 255, 0.04);
     border-radius: 14px;
 }
 
 #csv_upload_modal .pond-idle,
-#main_modal_sm .pond-idle {
+#datasets-main_modal_sm .pond-idle {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -849,14 +857,14 @@ select,
 }
 
 #csv_upload_modal .pond-idle i,
-#main_modal_sm .pond-idle i {
+#datasets-main_modal_sm .pond-idle i {
     font-size: 48px;
     opacity: 0.9;
     line-height: 1;
 }
 
 #csv_upload_modal .pond-text,
-#main_modal_sm .pond-text {
+#datasets-main_modal_sm .pond-text {
     font-size: 16px;
     opacity: 0.92;
 }
@@ -865,12 +873,12 @@ select,
    Fullscreen modal (FS) – REAL fullscreen (BS3 safe)
    ========================================================= */
 
-#main_modal_fs.modal,
+#datasets-main_modal_fs.modal,
 #bg_modal_fs.modal {
     padding: 0 !important;
 }
 
-#main_modal_fs .modal-dialog,
+#datasets-main_modal_fs .modal-dialog,
 #bg_modal_fs .modal-dialog {
     position: fixed;
     top: 10px;
@@ -882,7 +890,7 @@ select,
     margin: 0 !important;
 }
 
-#main_modal_fs .modal-content,
+#datasets-main_modal_fs .modal-content,
 #bg_modal_fs .modal-content {
     height: 100%;
     display: flex;
@@ -896,14 +904,14 @@ select,
     overflow: hidden;
 }
 
-#main_modal_fs .modal-header,
+#datasets-main_modal_fs .modal-header,
 #bg_modal_fs .modal-header {
     flex: 0 0 auto;
     border-bottom: 1px solid rgba(255, 255, 255, 0.10);
     padding: 14px 18px;
 }
 
-#main_modal_fs .modal-body,
+#datasets-main_modal_fs .modal-body,
 #bg_modal_fs .modal-body {
     flex: 1 1 auto;
     min-height: 0;
@@ -911,21 +919,21 @@ select,
     padding: 16px 18px 18px;
 }
 
-#main_modal_fs .modal-footer,
+#datasets-main_modal_fs .modal-footer,
 #bg_modal_fs .modal-footer {
     flex: 0 0 auto;
     border-top: 1px solid rgba(255, 255, 255, 0.10);
     padding: 12px 18px;
 }
 
-#main_modal_fs .close,
+#datasets-main_modal_fs .close,
 #bg_modal_fs .close {
     color: rgba(255, 255, 255, 0.90);
     opacity: 1;
     text-shadow: none;
 }
 
-#main_modal_fs .close:hover,
+#datasets-main_modal_fs .close:hover,
 #bg_modal_fs .close:hover {
     opacity: 0.85;
 }
@@ -954,12 +962,12 @@ select,
    DataTables DARK GLASS
    ========================================================= */
 
-#main_modal_fs .dataTables_wrapper {
+#datasets-main_modal_fs .dataTables_wrapper {
     width: 100%;
     color: rgba(255, 255, 255, 0.78) !important;
 }
 
-#main_modal_fs .dt-top {
+#datasets-main_modal_fs .dt-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -968,13 +976,13 @@ select,
     flex-wrap: wrap;
 }
 
-#main_modal_fs .dt-top-right {
+#datasets-main_modal_fs .dt-top-right {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-#main_modal_fs .dt-bottom {
+#datasets-main_modal_fs .dt-bottom {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -983,14 +991,14 @@ select,
     flex-wrap: wrap;
 }
 
-#main_modal_fs .dataTables_length label,
-#main_modal_fs .dataTables_filter label,
-#main_modal_fs .dataTables_info {
+#datasets-main_modal_fs .dataTables_length label,
+#datasets-main_modal_fs .dataTables_filter label,
+#datasets-main_modal_fs .dataTables_info {
     color: rgba(255, 255, 255, 0.70) !important;
 }
 
-#main_modal_fs .dataTables_filter input,
-#main_modal_fs .dataTables_length select {
+#datasets-main_modal_fs .dataTables_filter input,
+#datasets-main_modal_fs .dataTables_length select {
     background: rgba(255, 255, 255, 0.08) !important;
     border: 1px solid rgba(255, 255, 255, 0.18) !important;
     color: rgba(255, 255, 255, 0.92) !important;
@@ -999,11 +1007,11 @@ select,
     outline: none !important;
 }
 
-#main_modal_fs .dataTables_filter input::placeholder {
+#datasets-main_modal_fs .dataTables_filter input::placeholder {
     color: rgba(255, 255, 255, 0.55) !important;
 }
 
-#main_modal_fs table.dataTable {
+#datasets-main_modal_fs table.dataTable {
     width: 100% !important;
     background: rgba(255, 255, 255, 0.06) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
@@ -1011,30 +1019,30 @@ select,
     overflow: hidden !important;
 }
 
-#main_modal_fs table.dataTable thead th {
+#datasets-main_modal_fs table.dataTable thead th {
     background: rgba(255, 255, 255, 0.08) !important;
     color: rgba(255, 255, 255, 0.88) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
 }
 
-#main_modal_fs table.dataTable tbody td {
+#datasets-main_modal_fs table.dataTable tbody td {
     color: rgba(255, 255, 255, 0.82) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-#main_modal_fs table.dataTable tbody tr {
+#datasets-main_modal_fs table.dataTable tbody tr {
     background: transparent !important;
 }
 
-#main_modal_fs table.dataTable tbody tr:nth-child(even) {
+#datasets-main_modal_fs table.dataTable tbody tr:nth-child(even) {
     background: rgba(255, 255, 255, 0.03) !important;
 }
 
-#main_modal_fs table.dataTable tbody tr:hover {
+#datasets-main_modal_fs table.dataTable tbody tr:hover {
     background: rgba(255, 255, 255, 0.07) !important;
 }
 
-#main_modal_fs .dataTables_paginate .paginate_button {
+#datasets-main_modal_fs .dataTables_paginate .paginate_button {
     color: rgba(255, 255, 255, 0.72) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     background: rgba(255, 255, 255, 0.06) !important;
@@ -1043,22 +1051,22 @@ select,
     margin-left: 6px !important;
 }
 
-#main_modal_fs .dataTables_paginate .paginate_button:hover {
+#datasets-main_modal_fs .dataTables_paginate .paginate_button:hover {
     background: rgba(255, 255, 255, 0.10) !important;
 }
 
-#main_modal_fs .dataTables_paginate .paginate_button.current {
+#datasets-main_modal_fs .dataTables_paginate .paginate_button.current {
     background: rgba(255, 255, 255, 0.14) !important;
     color: rgba(255, 255, 255, 0.92) !important;
 }
 
-#main_modal_fs table.dataTable thead .sorting:after,
-#main_modal_fs table.dataTable thead .sorting_asc:after,
-#main_modal_fs table.dataTable thead .sorting_desc:after {
+#datasets-main_modal_fs table.dataTable thead .sorting:after,
+#datasets-main_modal_fs table.dataTable thead .sorting_asc:after,
+#datasets-main_modal_fs table.dataTable thead .sorting_desc:after {
     opacity: 0.45 !important;
 }
 
-#main_modal_fs .dt-buttons button {
+#datasets-main_modal_fs .dt-buttons button {
     margin-left: 6px;
     padding: 6px 10px;
     border-radius: 8px;

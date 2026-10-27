@@ -152,6 +152,25 @@ apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
 }
 
 
+# Seritë e gatshme për analizë nga dataset-i aktiv (V-04, T-14). Të njëjtët hapa si
+# df_dyn() i vjetër: numrat, koha, dublikatat (DUP_POLICY), grid-i (FREQ_POLICY).
+# active: list(file, data, time_col, value_cols) nga mod_datasets_server(); NULL -> NULL.
+prepare_series <- function(active) {
+  if (is.null(active) || is.null(active$data)) return(NULL)
+  vc <- active$value_cols
+  if (is.null(active$time_col) || length(vc) == 0) return(NULL)
+
+  d <- active$data
+  for (v in vc) d[[v]] <- to_numeric_safe(d[[v]])
+
+  d <- make_df_dyn(d, active$time_col)
+  d <- d[, c("Time", vc), drop = FALSE]
+  d <- apply_dup_policy(d, vc = vc, method = DUP_POLICY)
+  d <- apply_freq_policy(d, freq = FREQ_POLICY, vc = vc)
+
+  list(data = d, value_cols = vc, meta = build_meta(vc))
+}
+
 # Seritë e zgjedhura: `preferred` (p.sh. nga state-i), pastaj `current` (inputi),
 # përndryshe 3 kolonat e para numerike.
 pick_value_cols <- function(num_cols, preferred = NULL, current = NULL) {

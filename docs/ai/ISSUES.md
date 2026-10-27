@@ -16,27 +16,32 @@
   - `server_plots.R`: 41
   - Zgjidhja: një funksion `detect_numeric_cols(d, exclude)`. · Faza: 2
   - Mbyllur 2026-10-27: `detect_numeric_cols(d, exclude, threshold = 0.70, fallback_all = TRUE)` te `R/data_parse.R` zëvendëson të 8 kopjet (te `legacy_server_plots.R` me `fallback_all = FALSE`, siç ishte). Prova: `grep "0.70"` nuk gjen kopje; `test-data_parse.R`; 10 010 kombinime të njëjta me kodin e vjetër (Claude).
-- [ ] **P-03 — Zbulimi i kolonës së kohës + vlerat default janë kopjuar 6 herë.**
+- [x] **P-03 — Zbulimi i kolonës së kohës + vlerat default janë kopjuar 6 herë.**
   - `app.R`: 882, 982, 1202, 1325, 1533
   - `server_plots.R`: 18
   - Zgjidhja: `resolve_dataset_defaults(d, cfg)` që kthen `time_choices`, `time_col`, `num_cols`, `value_cols`. · Faza: 2
   - Faza 2 (2026-10-27): `resolve_dataset_defaults(d, cfg, current_time, current_values)` + `pick_value_cols()` te `R/data_prepare.R` zëvendësojnë 5 kopjet e `app.R`, si edhe pjesën e serive te observer-at `modal_time_col` dhe `data_time_col`. Prova: `test-data_prepare.R`; 10 010 kombinime (kopja 1 dhe 3) identike me kodin e vjetër.
   - **Mbetet:** `time_col()` te `R/legacy_server_plots.R` ka rregulla të tjera (inputi → "Year" → kandidati i parë). Zëvendësimi do ndryshonte default-et; propozohet ta mbyllë Faza 4 (P-05). Shtyrë te Faza 4 me V-14.
+  - Mbyllur 2026-10-27 (Faza 4): `time_col()` u hoq nga `legacy_server_plots.R`; koha dhe seritë vijnë nga `active()` / `prepare_series()`. Prova: `grep` pa `time_col <-`; vlerat e të 6 faqeve identike para/pas në browser (16 fusha × 2 dataset-e); Q30 24/24 (Claude).
 - [ ] **P-04 — Tema e grafikëve është kopjuar 9 herë.** Sfondi transparent, teksti i bardhë dhe `layout()` i njëjtë përsëriten në çdo grafik.
   - Zgjidhja: `plot_theme.R` me `glass_layout()`. · Faza: 5
-- [ ] **P-05 — Dy burime të së vërtetës për konfigurimin.** JSON-i (`active_cfg()`) dhe inputet e fshehura (`data_time_col`, `data_value_cols`). Përmbledhja preferon JSON-in, grafikët preferojnë inputet. Kjo shkakton render të dyfishtë kur ndryshon dataset-i.
+- [x] **P-05 — Dy burime të së vërtetës për konfigurimin.** JSON-i (`active_cfg()`) dhe inputet e fshehura (`data_time_col`, `data_value_cols`). Përmbledhja preferon JSON-in, grafikët preferojnë inputet. Kjo shkakton render të dyfishtë kur ndryshon dataset-i.
   - Zgjidhja: `mod_datasets` kthen një `active()` të vetëm. · Faza: 4
-- [ ] **P-06 — Dataset-i aktiv ngarkohet dy herë në startup.** `observe()` (`app.R:1151`) dhe `observeEvent(active_dataset_file())` (`app.R:910`) ngarkojnë të dy.
+  - Mbyllur 2026-10-27: `active()` + `series()`; inputet e fshehura dhe `active_cfg()` u hoqën; edhe Përmbledhja lexon `active()`. Prova (Claude, browser, numërim `shiny:value`, V-15 d): aktivizimi nga Settings → 27 output-e, secili 1 herë, 0 errore (edhe para). Aktivizim me faqen e dukshme: Përmbledhja 5 → 1 render, faqet e analizës 5 → 2. Kalimi i dytë vjen nga zgjedhësit globalë të serive (`eda_series`…), që përditësohen me një vajtje-ardhje te browser-i; mbyllet në Fazën 5, kur zgjedhësi kalon brenda modulit.
+- [x] **P-06 — Dataset-i aktiv ngarkohet dy herë në startup.** `observe()` (`app.R:1151`) dhe `observeEvent(active_dataset_file())` (`app.R:910`) ngarkojnë të dy.
   - Faza: 4
+  - Mbyllur 2026-10-27: një observer i vetëm ngarkimi te `mod_datasets_server()` (T-15). Prova: `test-mod_datasets.R` (nisja me/pa konfigurim).
 - [ ] **P-07 — ARIMA llogaritet dy herë, me dy cache manuale.** Modelimi (`.model_cache_*`) dhe Parashikimi (`.arima_cache_*`) llogaritin të njëjtin `auto.arima`.
   - Zgjidhja: `model_store` i përbashkët me `bindCache`. · Faza: 5
 - [ ] **P-08 — Modalet hapen me tre mënyra.** Mesazhi `toggle_modal`, `shinyjs::runjs` me Bootstrap (`modal_show_bg`) dhe `showModal`.
   - Zgjidhja: një mënyrë e vetme + `glass_modal()` në `ui_components.R`. · Faza: 3–6
+  - Faza 4 (2026-10-27, V-15 a): modalet e dataset-eve (Upload, konfigurimi, fshirja) hapen e mbyllen vetëm me `toggle_glass_modal()`; `showModal` dhe `ajax_modal_open` u hoqën për dataset-et. **Mbetet:** background-i (`modal_show_bg`, `showModal` i fshirjes së fotos), Faza 6.
 - [ ] **P-09 — `BG_STATE` lexohet dy herë** (`app.R:4` dhe `app.R:1657`). · Faza: 6
 - [ ] **P-10 — `BG_PLACEHOLDER_SVG` definohet pasi përdoret** (`app.R:1743`). Punon vetëm falë vlerësimit të vonuar. · Faza: 6
-- [ ] **P-11 — Inputet `data_dup` dhe `data_freq` janë të fshehura.** Janë gjithmonë `mean` / `auto`, pra kod që nuk zgjidhet kurrë nga përdoruesi.
+- [x] **P-11 — Inputet `data_dup` dhe `data_freq` janë të fshehura.** Janë gjithmonë `mean` / `auto`, pra kod që nuk zgjidhet kurrë nga përdoruesi.
   - Zgjidhja: konstante në `config.R`, ose opsion në konfigurimin e dataset-it. · Faza: 4
   - Faza 3 (2026-10-27): `DUP_POLICY`/`FREQ_POLICY` te `config.R` (vlerat default të inputeve të fshehura). Inputet hiqen në Fazën 4.
+  - Mbyllur 2026-10-27: inputet u hoqën; `prepare_series()` dhe `legacy_server_plots.R` përdorin `DUP_POLICY`/`FREQ_POLICY`. Prova: `grep` pa `data_dup`/`data_freq`; Q30 24/24.
 - [ ] **P-12 — Lista e faqeve përsëritet në 5 vende.** Butonat në UI, `TITLE_MAP`, `BG_TABS`, `MAP` te `sidebar.js` dhe `AFFECTS` te `plotly-animate.js`.
   - Zgjidhja: `PAGES` në `config.R`, ku UI dhe JS gjenerohen prej saj. · Faza: 3
   - Faza 3 (2026-10-27): butonat e sidebar-it, tab-et, `TITLE_MAP` (→ `page_title()`), `BG_TABS` dhe harta e `sidebar.js` gjenerohen nga `PAGES`; `bg.js` nuk ka më ID. Prova: diff i HTML-së, `grep`, browser. **Mbetet:** `AFFECTS` te `plotly-animate.js` (Faza 7).
@@ -50,8 +55,9 @@
   - Shënim: hover-at e Parashikimit thërrasin ende `fmt_unit()` për çdo vlerë veç e veç (4 decimale); rishkruhen në Fazën 5 (B-05, V-08).
 - [ ] **B-02 — Slider-at përditësohen vetëm një herë për dataset.** Për shkak të `.slider_once` (`server_plots.R:141`), kur ndërron serinë, maksimumi mbetet ai i serisë së vjetër.
   - Faza: 5
-- [ ] **B-03 — Upload dhe Edit ofrojnë seri të ndryshme.** Te upload, "Proceed" ofron çdo kolonë që nuk është koha (`app.R:1381`), ndërsa Edit ofron vetëm kolonat numerike.
+- [x] **B-03 — Upload dhe Edit ofrojnë seri të ndryshme.** Te upload, "Proceed" ofron çdo kolonë që nuk është koha (`app.R:1381`), ndërsa Edit ofron vetëm kolonat numerike.
   - Faza: 4
+  - Mbyllur 2026-10-27: një funksion i vetëm `open_config_modal()` me `resolve_dataset_defaults()$num_cols`. Prova: testi B-03 te `test-mod_datasets.R` (HTML-ja e zgjedhësit të serive pa kolonat tekst); browser: `text_cols.csv` ofron vetëm `Value`. Shënim: në browser, kodi i vjetër e korrigjonte listën kur ndryshonte `modal_time_col`, ndaj gabimi dukej vetëm kur modali rivizatohej me të njëjtën kolonë kohe.
 - [ ] **B-04 — Te Parashikimi, vija e vëzhguar dhe parashikimi janë të dyja të bardha.** Nuk dallohen. · Faza: 5
 - [ ] **B-05 — Hover-i i Parashikimit lidhet me vijat sipas gjatësisë.** `nx == nrow(...)` (`server_plots.R:1760`) prishet kur h = n.
   - Zgjidhja: `plot_ly` direkt me `text` për çdo trace. · Faza: 5
@@ -75,6 +81,10 @@
 - [x] **B-13 — Formati dd-mm-YYYY lexohet gabim** (mbyllur 2026-10-27 me V-14: formati pranohet vetëm kur teksti ka formën e plotë; prova: 300/300 raste dd-mm-YYYY të sakta, 2 100 raste të formateve të tjera identike me kodin e vjetër, Q29 0 dështime, Q30 24/24, në app dataset-i dd-mm-YYYY lexohet saktë — Claude) (gjetur në Fazën 2, 2026-10-27). `parse_time_safe(c("15-03-2021", "16-03-2021"))` → `0015-03-20`, `0016-03-20`: formati `%Y-%m-%d` provohet i pari dhe `as.Date` injoron karakteret e tepërta. R08 e liston dd-mm-YYYY si të mbështetur.
   - Zgjidhja (V-14, `c1c7048`): një format pranohet vetëm kur teksti ka formën e plotë të formatit. Testi te `test-data_parse.R` ekzekutohet dhe kalon. · Faza: 2
 - [ ] **B-14 — `to_numeric_safe()` lexon tekstin me shifra si numër** (gjetur në Fazën 2). Shkronjat hiqen, kështu që "shenim 2015" → 2015, dhe një kolonë shënimesh mund të dalë "numerike" (pragu 0.70). Sjellje ekzistuese, e dokumentuar në test; ndryshimi do prekte zbulimin e kolonave (R05). Diskutohet para çdo ndryshimi. · Faza: e pacaktuar
+
+- [ ] **B-15 — Dialogu i konfirmimit të fshirjes nuk lexohej** (gjetur në Fazën 4, 2026-10-27). `showModal(modalDialog())` delte me sfond të bardhë dhe tekst të bardhë: titulli dhe pyetja nuk shiheshin, vetëm butonat. Screenshot-i "para" në Obsidian `screenshots/faza-4/`.
+  - Dataset-et: rregulluar në Fazën 4 (V-15 a): `glass_modal` me pamjen e modalit Upload; teksti lexohet (screenshot "pas"). **Mbetet:** konfirmimi i fshirjes së fotos te Background përdor po `showModal` (e paverifikuar nëse ka të njëjtin problem), Faza 6.
+- [ ] **B-16 — Console e browser-it gjatë Upload-it me FilePond** (gjetur në Fazën 4, 2026-10-27). Pas zgjedhjes së skedarit: `404 /[object Object]` dhe warning-u "Pond -> Shiny updatefiles sync failed: … parameter 1 is not of type 'File'" (`custom.js:193`). Dalin njësoj edhe me kodin e commit-it `5daa8fc` (para Fazës 4), pra nuk janë regresion. Ngarkimi punon: CSV-ja lexohet dhe ruhet md5-identike. Provuar vetëm me file chooser-in e Playwright; mbetet të shihet nëse ndodh edhe me klikim/drag-and-drop real. · Faza: 7 (FilePond bridge)
 
 ## D — Kod dhe asete të vdekura
 

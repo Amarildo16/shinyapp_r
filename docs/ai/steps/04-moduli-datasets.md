@@ -1,6 +1,6 @@
 # Faza 04 — Moduli i dataset-eve
 
-Statusi: **i pafilluar**. Kërkesat: R05, R06, R07, R22. Problemet: P-05, P-06, P-08 (pjesë), B-03. Vendimet: V-04.
+Statusi: **i përfunduar** (2026-10-27; rezultati te [STATUS.md](../STATUS.md#faza-4--rezultati-2026-10-27-claude-code)). Kërkesat: R05, R06, R07, R22. Problemet: P-05, P-06, P-08 (pjesë), B-03. Vendimet: V-04, V-15, T-14 – T-17.
 
 ## Qëllimi
 
@@ -8,7 +8,7 @@ Një burim i vetëm i së vërtetës për dataset-in aktiv. Asnjë input i fsheh
 
 ## Veprimet
 
-1. `mod_datasets_ui(id)`: seksioni "Dataset" i Settings (kartat + "Ngarko CSV") dhe modalet përkatëse me `glass_modal()`.
+1. `mod_datasets_ui(id)` (+ `mod_datasets_modals_ui(id)` për modalet në fund të faqes): seksioni "Dataset" i Settings (kartat + "Ngarko CSV") dhe modalet përkatëse me `glass_modal()`.
 2. `mod_datasets_server(id)` kthen `active()` sipas kontratës te ARCHITECTURE.md ("Kontratat mes pjesëve").
 3. Upload dhe Edit përdorin **të njëjtin** funksion për modalin e konfigurimit dhe të njëjtën logjikë ruajtjeje. Seritë e ofruara janë kolonat numerike (`detect_numeric_cols`) në të dyja rastet (B-03).
 4. Hiq inputet e fshehura `data_source`, `data_time_col`, `data_value_cols`, `data_dup`, `data_freq` dhe `active_cfg()` (P-05).

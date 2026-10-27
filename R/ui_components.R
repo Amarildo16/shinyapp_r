@@ -145,23 +145,14 @@ glass_modal <- function(id, title_output, body_output, footer, dialog_class = "m
   )
 }
 
+# Modalet glass hapen e mbyllen vetëm kështu (P-08); id është ID-ja brenda modulit.
+toggle_glass_modal <- function(session, id, action = c("show", "hide")) {
+  session$sendCustomMessage("toggle_modal", list(id = session$ns(id), action = match.arg(action)))
+}
+
+# Modali i background-it (Faza 6 e kalon te mod_background).
 app_modals <- function() {
   tagList(
-    glass_modal(
-      "main_modal_sm", "modal_sm_title", "modal_sm_body",
-      tagList(
-        actionButton("btn_cancel_upload", tr("common.cancel"), class = "btn btn-light"),
-        actionButton("btn_proceed_upload", tr("common.proceed"), class = "btn btn-success")
-      )
-    ),
-    glass_modal(
-      "main_modal_fs", "modal_fs_title", "modal_fs_body",
-      tagList(
-        actionButton("btn_cancel_config", tr("common.cancel"), class = "btn btn-light"),
-        actionButton("btn_save_config", tr("common.save"), class = "btn btn-success")
-      ),
-      dialog_class = "modal-dialog modal-lg"
-    ),
     glass_modal(
       "bg_modal_fs", "bg_modal_fs_title", "bg_modal_fs_body",
       tagList(
@@ -174,12 +165,11 @@ app_modals <- function() {
 }
 
 # Faqja e plotë: renditja e elementeve është ajo e app.R të vjetër.
-app_page <- function(hidden_inputs, main_tabs) {
+app_page <- function(main_tabs, modals) {
   fluidPage(
     shinyjs::useShinyjs(),
     app_head(),
     preloader(),
-    hidden_inputs,
     bg_layers(),
     div(
       class = "app-shell",
@@ -198,6 +188,6 @@ app_page <- function(hidden_inputs, main_tabs) {
         )
       )
     ),
-    app_modals()
+    modals
   )
 }

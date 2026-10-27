@@ -13,8 +13,10 @@ test_that("sq.json dhe en.json kanë të njëjtët çelësa dhe asnjë vlerë bo
 test_that("çdo çelës i përdorur në kod ekziston te përkthimet", {
   files <- c(file.path(APP_ROOT, "app.R"), list.files(file.path(APP_ROOT, "R"), "[.]R$", full.names = TRUE))
   code  <- unlist(lapply(files, readLines, encoding = "UTF-8", warn = FALSE))
-  used  <- unique(unlist(regmatches(code, gregexpr('tr\\("[^"]+"\\)', code))))
-  used  <- sub('^tr\\("([^"]+)"\\)$', "\\1", used)
+  # tr("çelësi") dhe tr("çelësi", param = ...), jashtë komenteve
+  code  <- code[!grepl("^\\s*#", code)]
+  used  <-unique(unlist(regmatches(code, gregexpr('\\btr\\("[^"]+"[,)]', code, perl = TRUE))))
+  used  <- sub('^tr\\("([^"]+)"[,)]$', "\\1", used)
   pages <- c(paste0("page.", page_ids(), ".menu"), paste0("page.", page_ids(), ".title"))
 
   keys <- names(load_translations()$sq)

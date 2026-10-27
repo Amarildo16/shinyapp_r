@@ -23,12 +23,8 @@ set_lang("sq")
 
 fixture <- function(name) file.path(APP_ROOT, "tests", "fixtures", name)
 
-# Seria e përgatitur si te df_dyn() i app-it: numrat, koha, dublikatat, grid-i.
+# Seria e përgatitur si te app-i: prepare_series() mbi fixture-in.
 prepare_fixture <- function(name, time_col, value_cols) {
   d <- read_data_safe(fixture(name), name)
-  for (v in value_cols) d[[v]] <- to_numeric_safe(d[[v]])
-  d <- make_df_dyn(d, time_col)
-  d <- d[, c("Time", value_cols), drop = FALSE]
-  d <- apply_dup_policy(d, vc = value_cols, method = "mean")
-  apply_freq_policy(d, freq = "auto", vc = value_cols)
+  prepare_series(list(file = name, data = d, time_col = time_col, value_cols = value_cols))$data
 }

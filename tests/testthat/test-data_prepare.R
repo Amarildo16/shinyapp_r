@@ -73,3 +73,54 @@ test_that("resolve_dataset_defaults ruan rregullat e default-eve (P-03)", {
   expect_equal(cur$time_col, "Year")
   expect_equal(cur$value_cols, "b")
 })
+
+# df_dyn() i vjetër (legacy_server_plots.R para Fazës 4), për krahasim me prepare_series().
+legacy_df_dyn <- function(d, time_col, vc) {
+  for (v in vc) d[[v]] <- to_numeric_safe(d[[v]])
+  d <- make_df_dyn(d, time_col)
+  d <- d[, c("Time", vc), drop = FALSE]
+  d <- apply_dup_policy(d, vc = vc, method = "mean")
+  apply_freq_policy(d, freq = "auto", vc = vc)
+}
+
+test_that("prepare_series = df_dyn() i vjetër për fixtures dhe shembujt (V-04, T-14)", {
+  csvs <- c(
+    list.files(file.path(APP_ROOT, "tests", "fixtures"), "[.]csv$", full.names = TRUE),
+    list.files(file.path(APP_ROOT, "data", "samples"), "[.]csv$", full.names = TRUE)
+  )
+  n_cmp <- 0L
+  for (f in csvs) {
+    d <- tryCatch(read_data_safe(f, basename(f)), error = function(e) NULL)
+    if (is.null(d) || ncol(d) < 2) next
+    def <- resolve_dataset_defaults(d)
+    for (tc in def$time_choices) {
+      num <- detect_numeric_cols(d, exclude = tc)
+      for (vc in list(num, head(num, 1), rev(num))) {
+        if (!length(vc)) next
+        old <- tryCatch(legacy_df_dyn(d, tc, vc), error = function(e) conditionMessage(e))
+        new <- tryCatch(
+          prepare_series(list(file = basename(f), data = d, time_col = tc, value_cols = vc)),
+          error = function(e) conditionMessage(e)
+        )
+        if (is.character(old)) {
+          expect_identical(new, old, info = paste(basename(f), tc))
+        } else {
+          expect_identical(new$data, old, info = paste(basename(f), tc))
+          expect_identical(new$value_cols, vc)
+          expect_identical(new$meta, build_meta(vc))
+        }
+        n_cmp <- n_cmp + 1L
+      }
+    }
+  }
+  expect_gt(n_cmp, 20)
+})
+
+test_that("prepare_series kthen NULL pa dataset, pa kohë ose pa seri", {
+  d <- data.frame(Year = c("2000", "2001"), v = c("1", "2"), stringsAsFactors = FALSE)
+  expect_null(prepare_series(NULL))
+  expect_null(prepare_series(list(file = "x.csv", data = NULL, time_col = "Year", value_cols = "v")))
+  expect_null(prepare_series(list(file = "x.csv", data = d, time_col = NULL, value_cols = "v")))
+  expect_null(prepare_series(list(file = "x.csv", data = d, time_col = "Year", value_cols = character(0))))
+  expect_equal(prepare_series(list(file = "x.csv", data = d, time_col = "Year", value_cols = "v"))$data$v, c(1, 2))
+})
