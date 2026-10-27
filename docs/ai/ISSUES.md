@@ -10,14 +10,18 @@
 
 - [ ] **P-01 — Tre file monolitike.** `app.R` ka UI + server (2 365 rreshta); `helpers.R` përzien librari, globale, I/O, matematikë dhe background; `server_plots.R` është një funksion i vetëm 1 867 rreshta.
   - Zgjidhja: folderi `R/` + module Shiny ([ARCHITECTURE.md](ARCHITECTURE.md)). · Faza: 2–5
-- [ ] **P-02 — Zbulimi i kolonave numerike është kopjuar 8 herë.** Kontrolli `mean(!is.na(to_numeric_safe(x))) >= 0.70`.
+  - Faza 2 (2026-10-27): `helpers.R` u nda në 13 skedarë te `R/` (62 objekte, identike me origjinalin); `server_plots.R` → `R/legacy_server_plots.R`. Mbetet `app.R` (Fazat 3–6) dhe `legacy_server_plots.R` (Faza 5).
+- [x] **P-02 — Zbulimi i kolonave numerike është kopjuar 8 herë.** Kontrolli `mean(!is.na(to_numeric_safe(x))) >= 0.70`.
   - `app.R`: 893, 992, 1221, 1333, 1410, 1548, 1622
   - `server_plots.R`: 41
   - Zgjidhja: një funksion `detect_numeric_cols(d, exclude)`. · Faza: 2
+  - Mbyllur 2026-10-27: `detect_numeric_cols(d, exclude, threshold = 0.70, fallback_all = TRUE)` te `R/data_parse.R` zëvendëson të 8 kopjet (te `legacy_server_plots.R` me `fallback_all = FALSE`, siç ishte). Prova: `grep "0.70"` nuk gjen kopje; `test-data_parse.R`; 10 010 kombinime të njëjta me kodin e vjetër (Claude).
 - [ ] **P-03 — Zbulimi i kolonës së kohës + vlerat default janë kopjuar 6 herë.**
   - `app.R`: 882, 982, 1202, 1325, 1533
   - `server_plots.R`: 18
   - Zgjidhja: `resolve_dataset_defaults(d, cfg)` që kthen `time_choices`, `time_col`, `num_cols`, `value_cols`. · Faza: 2
+  - Faza 2 (2026-10-27): `resolve_dataset_defaults(d, cfg, current_time, current_values)` + `pick_value_cols()` te `R/data_prepare.R` zëvendësojnë 5 kopjet e `app.R`, si edhe pjesën e serive te observer-at `modal_time_col` dhe `data_time_col`. Prova: `test-data_prepare.R`; 10 010 kombinime (kopja 1 dhe 3) identike me kodin e vjetër.
+  - **Mbetet:** `time_col()` te `R/legacy_server_plots.R` ka rregulla të tjera (inputi → "Year" → kandidati i parë). Zëvendësimi do ndryshonte default-et; propozohet ta mbyllë Faza 4 (P-05). Pret miratimin (DECISIONS "Pyetje të hapura").
 - [ ] **P-04 — Tema e grafikëve është kopjuar 9 herë.** Sfondi transparent, teksti i bardhë dhe `layout()` i njëjtë përsëriten në çdo grafik.
   - Zgjidhja: `plot_theme.R` me `glass_layout()`. · Faza: 5
 - [ ] **P-05 — Dy burime të së vërtetës për konfigurimin.** JSON-i (`active_cfg()`) dhe inputet e fshehura (`data_time_col`, `data_value_cols`). Përmbledhja preferon JSON-in, grafikët preferojnë inputet. Kjo shkakton render të dyfishtë kur ndryshon dataset-i.
@@ -37,9 +41,11 @@
 
 ## B — Bug-e
 
-- [ ] **B-01 — Tabelat tregojnë gjithmonë 4 decimale.** `fmt_by_series()` thirret për një vlerë të vetme, kështu që hapësira e vlerave është 0 dhe zgjidhet formati me 4 decimale.
+- [x] **B-01 — Tabelat tregojnë gjithmonë 4 decimale.** `fmt_by_series()` thirret për një vlerë të vetme, kështu që hapësira e vlerave është 0 dhe zgjidhet formati me 4 decimale.
   - Vendet: `server_plots.R` 372–380 (statistikat përmbledhëse), 1495–1497 (saktësia e modelimit), 1859–1861 (saktësia e parashikimit)
   - Zgjidhja: formatimi i gjithë kolonës njëherësh, ose një funksion i dedikuar për vlera të vetme. · Faza: 2
+  - Mbyllur 2026-10-27: `fmt_table_value()` (T-05) në të tre tabelat. Prova: testi B-01 te `test-utils_format.R` kalon mbi kodin e ri dhe dështon mbi formatimin e vjetër; në browser "63,5000" → "63,50" (Claude). Shembujt para/pas te STATUS.md.
+  - Shënim: hover-at e Parashikimit thërrasin ende `fmt_unit()` për çdo vlerë veç e veç (4 decimale); rishkruhen në Fazën 5 (B-05, V-08).
 - [ ] **B-02 — Slider-at përditësohen vetëm një herë për dataset.** Për shkak të `.slider_once` (`server_plots.R:141`), kur ndërron serinë, maksimumi mbetet ai i serisë së vjetër.
   - Faza: 5
 - [ ] **B-03 — Upload dhe Edit ofrojnë seri të ndryshme.** Te upload, "Proceed" ofron çdo kolonë që nuk është koha (`app.R:1381`), ndërsa Edit ofron vetëm kolonat numerike.
@@ -64,6 +70,9 @@
 - [ ] **B-12 — Errore në console të browser-it te Modelimi** (gjetur në Fazën 0, 2026-10-27).
   - "Shiny server has sent a progress message for model_plot, but the output is in an unexpected state" (+ "recalculating"/"recalculated" … "idle"). Vjen nga `shiny::withProgress()` brenda reaktivit `.model_fits()` (`server_plots.R:1316`); i njëjti model te `arima_fit()` (`server_plots.R:1572`). Grafiku dhe tabela shfaqen saktë.
   - Zgjidhja: llogaritja e modeleve jashtë render-it (`model_store`, P-07), progres pa `withProgress` brenda `reactive()`. · Faza: 5
+- [ ] **B-13 — Formati dd-mm-YYYY lexohet gabim** (gjetur në Fazën 2, 2026-10-27). `parse_time_safe(c("15-03-2021", "16-03-2021"))` → `0015-03-20`, `0016-03-20`: formati `%Y-%m-%d` provohet i pari dhe `as.Date` injoron karakteret e tepërta. R08 e liston dd-mm-YYYY si të mbështetur.
+  - Zgjidhja e propozuar: një format pranohet vetëm kur teksti përputhet plotësisht. Ndryshon rezultatin e parsimit, ndaj pret vendimin (DECISIONS "Pyetje të hapura"). Testi ekziston me `skip` te `test-data_parse.R`. · Faza: 2 (pas vendimit)
+- [ ] **B-14 — `to_numeric_safe()` lexon tekstin me shifra si numër** (gjetur në Fazën 2). Shkronjat hiqen, kështu që "shenim 2015" → 2015, dhe një kolonë shënimesh mund të dalë "numerike" (pragu 0.70). Sjellje ekzistuese, e dokumentuar në test; ndryshimi do prekte zbulimin e kolonave (R05). Diskutohet para çdo ndryshimi. · Faza: e pacaktuar
 
 ## D — Kod dhe asete të vdekura
 
@@ -71,7 +80,7 @@
   - Mbyllur 2026-10-27: `tags$link` u hoq; skedari u zhvendos te `_to_delete/` (pa leje fshirjeje). Përmbante edhe një kopje të vjetër të Remix që mbishkruante `remixicon.css`. Kodet e 8 ikonave të përdorura u krahasuan: identike, me të njëjtat fonte, pra pamja nuk ndryshon. Prova: kërkim me `grep`; në browser, të 8 ikonat shfaqen me fontin `remixicon` (Claude).
 - [x] **D-02 — ~16 MB fonte të papërdorura.** `boxicons.*`, `la-*`, `materialdesignicons-*`, `hkgrotesk-*`, `summernote.*`. Mbahen vetëm `remixicon.*`. · Faza: 1
   - Mbyllur 2026-10-27: 42 skedarë (10,3 MB, jo 16 MB siç ishte vlerësuar) u zhvendosën te `_to_delete/`. Remix kaloi te `www/vendor/remixicon/` dhe `url(...)` u rregulluan. `www/` ra nga 20 MB në 8,8 MB. Prova: asnjë kërkesë 404 në browser; `woff2` ngarkohet nga rruga e re (Claude).
-- [ ] **D-03 — Funksione dhe output-e të papërdorura:** (Faza 1, 2026-10-27: u hoqën të gjitha përveç parametrit `context`, që i takon Fazës 2)
+- [x] **D-03 — Funksione dhe output-e të papërdorura:** (Faza 1: të gjitha përveç `context`. Faza 2, 2026-10-27: `context` u hoq nga `validate_ts_ready` dhe nga 5 thirrjet; u hoqën edhe `has_zoo`/`has_readxl` globale, të papërdorura. Prova: `grep` pa mbetje; Q29, Q30.)
   - `pick()` (`helpers.R:1065`)
   - `fmt_pct` (`server_plots.R:388`)
   - `time_range_txt` (`server_plots.R:257`)
@@ -83,7 +92,8 @@
   - parametri `context` te `validate_ts_ready`
   - Faza: 1–2
 - [ ] **D-04 — README dhe Metodologjia premtojnë gjëra që nuk ekzistojnë.** (Faza 1, 2026-10-27: rreshti ARMA/VAR/GARCH u hoq nga Metodologjia; `vars`/`rugarch` u hoqën nga README. Mbetet kontrolli i Metodologjisë kundrejt app-it në Fazën 8.) Vendimi: hiqen (V-10). README instalon `vars` dhe `rugarch`; Metodologjia përmend ARMA, VAR/IRF dhe GARCH, që nuk janë implementuar. · Faza: 1 dhe 8
-- [ ] **D-05 — Dega numerike e `parse_time_safe` ka kod të tepërt.** Kontrolli i hapit kthen `xn` në të dyja rastet. · Faza: 2
+- [x] **D-05 — Dega numerike e `parse_time_safe` ka kod të tepërt.** Kontrolli i hapit kthen `xn` në të dyja rastet. · Faza: 2
+  - Mbyllur 2026-10-27: blloku `xu`/`steps` u hoq. Prova: 308 raste numerike me dalje identike me kodin e vjetër; `test-data_parse.R` (Claude).
 
 ## U — Konsistencë dhe UX
 

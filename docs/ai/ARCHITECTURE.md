@@ -93,14 +93,19 @@ shinyapp_r/
 │
 └── tests/
     ├── reference/            # vlerat referencë nga versioni aktual
+    ├── fixtures/             # 10 CSV për raste të veçanta (QUALITY.md)
     └── testthat/
+        ├── helper-app.R      # ngarkon R/ me loadSupport() në një sandbox
+        ├── test-config.R
         ├── test-data_parse.R
         ├── test-data_prepare.R
+        ├── test-plot_theme.R
+        ├── test-state.R
         ├── test-ts_validate.R
-        ├── test-ts_models.R
+        ├── test-ts_models.R  # Faza 5
         ├── test-utils_format.R
         ├── test-utils_paths.R
-        └── test-i18n.R
+        └── test-i18n.R       # Faza 3
 ```
 
 ### Nga ku vjen çdo pjesë e kodit aktual

@@ -1,13 +1,13 @@
 # Gjendja aktuale
 
-Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 19:25 (Faza 1 e përfunduar, pa commit; Faza 0 në `531bc0c` + `517a1ae`).
+Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 19:50 (Faza 2 e zbatuar, pret 2 vendime; Faza 1 në `069c8fc`).
 
 ## E verifikuar
 
 - Analiza e plotë e kodit në commit-in `976dce0` (branch-i `main`): `app.R`, `helpers.R`, `server_plots.R`, `www/js/*`, `www/css/*`, `data/*`, historia e git-it. Rezultati te Obsidian `01 - Analiza e gjendjes aktuale.md` dhe te [ISSUES.md](ISSUES.md).
 - Branch-i `ultimate_version` = `976dce0` + `79a36f7` (dokumentacioni, commit i përdoruesit). `git diff 976dce0 -- app.R helpers.R server_plots.R` është bosh: **kodi i app-it nuk është prekur.**
 - Faza 0 u zbatua nga Claude Code në Windows-in e përdoruesit (shih "Faza 0" më poshtë).
-- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1 (2026-10-27): pa commit.
+- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1: `069c8fc`. Faza 2 (2026-10-27): pa commit.
 
 ## Mjedisi (verifikuar 2026-10-27 nga Claude Code)
 
@@ -58,6 +58,38 @@ App-i për screenshot-e u nis nga një **kopje** e projektit në scratchpad, me 
 
 Provat u bënë mbi një kopje të projektit (T-04); `data/` e repo-s mbeti e paprekur. **Pa commit.** `_to_delete/` (43 skedarë, 11 MB) u fshi nga Claude me lejen e përdoruesit ("Po, fshije folderin _to_delete/"), pasi u verifikua që çdo skedar ekziston në git (`517a1ae`). Rreshti `_to_delete/` mbetet te `.gitignore` për fazat e ardhshme.
 
+## Faza 2 — rezultati (2026-10-27, Claude Code)
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| Lëvizja (P-01 pjesë) | `helpers.R` → 13 skedarë te `R/` sipas ARCHITECTURE; `server_plots.R` → `R/legacy_server_plots.R`; `library()` + `options(scipen)` → `app.R`; `app.R` pa `source()`. Teksti u nxor me skript nga `srcref`, pa ndryshim. | 62/62 objekte identike me `HEAD` (krahasim `deparse`); Q30 24/24 menjëherë pas lëvizjes |
+| Hapi 5, `get_app_dir()` (T-06) | `getwd()` me `app.R` ka përparësi para RStudio-s | `test-config.R`; app-i i nisur nga një folder tjetër shkruan te `data/` e kopjes, pa krijuar `R/data` |
+| P-02 | `detect_numeric_cols()`; 8/8 kopjet | `test-data_parse.R` |
+| P-03 | `resolve_dataset_defaults()` + `pick_value_cols()`; 5/6 kopjet + pjesa e serive te 2 observer-a | 10 010 kombinime identike me logjikën e vjetër; `test-data_prepare.R`. **Kopja e 6-të pret miratimin** (DECISIONS). |
+| B-01 (T-05) | `fmt_table_value()` në 3 tabelat | Testi dështon mbi formatimin e vjetër dhe kalon mbi të riun; browser |
+| D-05 | Blloku i tepërt u hoq | 308 raste identike me kodin e vjetër |
+| D-03 (`context`) | U hoq nga `validate_ts_ready` dhe 5 thirrjet (+ përshtatësi i referencës) | `grep`; Q29; Q30 |
+| Fixtures | 10 CSV te `tests/fixtures/` (lista e QUALITY.md) | përdoren nga testet |
+| Testet (Q29) | 9 skedarë, 43 teste, 226 pritje: **0 dështime, 1 skip (B-13)** | `testthat::test_dir("tests/testthat")` |
+| Q30 | 24/24; `compute_results.R` ngarkon tani `R/` me `loadSupport()` | `compare_reference.R` |
+| renv (T-07) | `testthat` 3.3.2 + 11 varësi te lock-u | `renv::status()` pastër |
+| Smoke test | Q01 (V-13: vetëm B-11/B-12), Q04, Q05 (Edit → Save → 4 seri, të ruajtura te state-i), Q09–Q14 me të dy dataset-et = referenca, Holt h = 5 = referenca, Q20 (Save shkruan te kopja), Q24, asnjë `shiny-output-error` | browser mbi kopjen (T-04) |
+
+**B-01 para → pas** (vetëm paraqitja ndryshon):
+
+| Tabela | Para | Pas |
+|---|---|---|
+| Përmbledhje, Internet Pct (mesatarja / sd / min) | 63,5000 · 6,8173 · 52,0000 | 63,50 · 6,82 · 52,00 |
+| Përmbledhje, Blerje Online Karte (sd < 1) | 0,8214 | 0,8214 |
+| Përmbledhje, Production ton (mesatarja) | 8 195 454,5185 | 8 195 454,52 |
+| Modelimi, bujqësia (RMSE ETS) | 249 461,8548 | 249 461,85 |
+| Modelimi, Internet Pct (RMSE ETS, < 1) | 0,0030 | 0,0030 |
+| Parashikimi SES, bujqësia (ME) | 116 081,8665 | 116 081,87 |
+
+**Gjetur gjatë testeve (pa i ndryshuar):** B-13 (dd-mm-YYYY lexohet gabim), B-14 (teksti me shifra lexohet si numër). Edhe `parse_time_safe(c("abc","def"))` jep mesazhin e R-së, jo të app-it.
+
+`data/` e repo-s nuk u prek; testet dhe app-i punuan mbi sandbox/kopje. **Pa commit.**
+
 ## Kufizime dhe shënime
 
 - Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime.
@@ -67,9 +99,11 @@ Provat u bënë mbi një kopje të projektit (T-04); `data/` e repo-s mbeti e pa
 
 ## Pika e vazhdimit
 
-**Faza 0** e përfunduar (`531bc0c`, `517a1ae`). **Faza 1** e përfunduar më 2026-10-27, pa commit. Hapat e radhës:
-1. Përdoruesi bën commit-in e Fazës 1 (`chore(faza-1): heq asetet dhe kodin e papërdorur`). `_to_delete/` është fshirë.
-2. "vazhdo" për [Fazën 2](steps/02-logjika-ne-R.md).
+**Faza 0** (`531bc0c`, `517a1ae`) dhe **Faza 1** (`069c8fc`) janë të përfunduara. **Faza 2** është zbatuar dhe verifikuar, pa commit, por pret dy vendime (DECISIONS "Pyetje të hapura"):
+1. **P-03, kopja e 6-të:** shtyhet te Faza 4? Me miratimin, Faza 2 mbyllet.
+2. **B-13:** rregullohet dd-mm-YYYY tani, si hap i vogël i Fazës 2?
+
+Pastaj: commit i përdoruesit (`refactor(faza-2): logjika e pastër te R/ + testet`) dhe "vazhdo" për [Fazën 3](steps/03-config-layout-storage.md).
 
 ## Regjistri i dorëzesave
 
@@ -80,6 +114,7 @@ Provat u bënë mbi një kopje të projektit (T-04); `data/` e repo-s mbeti e pa
 | 2026-10-27 | Mbyllja e vendimeve V-08 – V-12, R26 (dygjuhësia) | DECISIONS, SPEC, TASKS, steps, QUALITY, ARCHITECTURE, ISSUES, HANDOFF | Lidhjet u rikontrolluan | Pasqyruar te ditari dhe `05 - Vendimet` |
 | 2026-10-27 | Faza 0 — Përgatitja (Claude Code) | `.gitattributes`, `.gitignore`, `install_packages.R`, renv, `tests/reference/` (3 skripte + 2 `.rds`), 15 screenshot-e | Shih "Faza 0 — rezultati"; Q01 sipas V-13 | Pasqyruar (ditari, plani, problemet, faqja kryesore, screenshots/para) |
 | 2026-10-27 | Faza 1 — Pastrimi (Claude Code) | `app.R`, `helpers.R`, `server_plots.R`, README, `.gitignore`, `www/vendor/remixicon/`, `_to_delete/` | Shih "Faza 1 — rezultati" | Pasqyruar (ditari, plani, problemet, faqja kryesore) |
+| 2026-10-27 | Faza 2 — Logjika te `R/` + testet (Claude Code) | `R/` (14 skedarë), `app.R`, `tests/testthat/`, `tests/fixtures/`, `compute_results.R`, `renv.lock`, `.gitignore` | Shih "Faza 2 — rezultati" | Pasqyruar (ditari, plani, problemet, vendimet, faqja kryesore) |
 
 ## Formati për vazhdimet
 

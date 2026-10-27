@@ -2,7 +2,8 @@
 
 > [!important] Përditësim nga sesioni 2 (Claude Code, Windows)
 > - **Faza 0 është e përfunduar** (STATUS.md "Faza 0 — rezultati"). Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13, vendim i përdoruesit). Commit-et: `531bc0c`, `517a1ae`.
-> - **Faza 1 është e përfunduar** (STATUS.md "Faza 1 — rezultati"), pa commit. Asetet e hequra kaluan te `_to_delete/` dhe u fshinë me lejen e përdoruesit. Fshirje të tjera kërkojnë leje të re. Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për Fazën 2.
+> - **Faza 1 është e përfunduar** (`069c8fc`). Asetet e hequra u fshinë me lejen e përdoruesit; fshirje të tjera kërkojnë leje të re.
+> - **Faza 2 është e zbatuar** (STATUS.md "Faza 2 — rezultati"), pa commit. Kodi është te `R/` dhe ngarkohet nga Shiny, kështu që `helpers.R` dhe `source()` nuk ekzistojnë më. Testet janë te `tests/testthat/` (Q29). Pret vendimin për kopjen e 6-të të P-03 dhe për B-13 (DECISIONS "Pyetje të hapura").
 > - **R punon nga Claude Code**: `"C:\Program Files\R\R-4.6.1\bin\Rscript.exe"` (jo në PATH). Ekzekuto nga rrënja e projektit, që `.Rprofile` të aktivizojë `renv`.
 > - Referenca: `tests/reference/` (`compute_results.R` = përshtatësi; `compare_reference.R` = Q30). Mos e rigjenero.
 > - App-i për prova niset nga një kopje në scratchpad (T-04). Playwright shkruan vetëm brenda repo-s (`.playwright-mcp/`): zhvendosi artefaktet jashtë pas provës.

@@ -28,6 +28,12 @@ Rrugët, sipas radhës së preferencës:
 
 Pa asnjë nga këto, Claude kontrollon vetëm statikisht (lexim, balancim kllapash, kërkim referencash) dhe e thotë qartë.
 
+### Testet (që nga Faza 2)
+
+- `tests/testthat/helper-app.R` ngarkon `R/` me `shiny::loadSupport()` dhe e drejton `APP_DIR` te një sandbox i përkohshëm. `fixture("emri.csv")` jep rrugën e një fixture-i.
+- Kur dështon një test, `testthat` 3.3 krijon `tests/testthat/_problems/` (në `.gitignore`).
+- Nga Claude Code: `"C:\Program Files\R\R-4.6.1\bin\Rscript.exe" -e "testthat::test_dir('tests/testthat')"` nga rrënja e projektit.
+
 ### Komandat (nga rrënja e projektit, në RStudio)
 
 ```r

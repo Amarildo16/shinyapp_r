@@ -1,6 +1,7 @@
 # Llogarit rezultatet statistike të app-it për një dataset shembull (V-07, R21).
 #
-# Faza 0: thërret kodin aktual (helpers.R + server_plots.R).
+# Faza 0: thërriste helpers.R + server_plots.R. Që nga Faza 2 ngarkon R/ me
+# shiny::loadSupport(), njësoj si app-i (server_plots() jeton te R/legacy_server_plots.R).
 #   - Pjesët reaktive (df_dyn, ADF, modelet, parashikimet, kufijtë e slider-ave)
 #     merren nga vetë server_plots() me shiny::testServer.
 #   - Llogaritjet që jetojnë brenda render*-ave (mesatarja lëvizëse, regresioni,
@@ -39,14 +40,20 @@ dataset_path <- function(root, file) {
   hit[1]
 }
 
+# Paketat që app.R ngarkon me library().
+APP_PACKAGES <- c("shiny", "shinyjs", "plotly", "ggplot2", "dplyr", "tidyr", "readr",
+                  "forecast", "scales", "tseries", "DT", "jsonlite", "zoo")
+
 # Ngarkon kodin e app-it në një mjedis të veçantë. APP_DIR drejtohet te një
 # sandbox i përkohshëm, që asgjë të mos shkruhet te data/ e projektit.
 load_app_code <- function(root, sandbox) {
+  for (p in APP_PACKAGES) suppressPackageStartupMessages(library(p, character.only = TRUE))
+  options(scipen = 999)
+
   app_code <- new.env(parent = globalenv())
   old <- options(shiny.appdir = sandbox)
   on.exit(options(old), add = TRUE)
-  sys.source(file.path(root, "helpers.R"), envir = app_code, keep.source = FALSE)
-  sys.source(file.path(root, "server_plots.R"), envir = app_code, keep.source = FALSE)
+  shiny::loadSupport(root, renv = app_code, globalrenv = NULL)
   app_code
 }
 
@@ -160,7 +167,7 @@ correlation_matrix <- function(d0) {
 
 # output$stat_diff_plot
 first_difference <- function(app_code, d0, series) {
-  ts_ok <- app_code$validate_ts_ready(d0, series, "auto", min_n = 3L, context = "diferencë")
+  ts_ok <- app_code$validate_ts_ready(d0, series, "auto", min_n = 3L)
   if (!isTRUE(ts_ok$ok) || nrow(ts_ok$data) < 3) return(list(ok = FALSE))
 
   dd <- ts_ok$data
@@ -169,7 +176,7 @@ first_difference <- function(app_code, d0, series) {
 
 # output$stat_acf_pacf
 acf_pacf <- function(app_code, d0, series) {
-  ts_ok <- app_code$validate_ts_ready(d0, series, "auto", min_n = 6L, context = "ACF/PACF")
+  ts_ok <- app_code$validate_ts_ready(d0, series, "auto", min_n = 6L)
   if (!isTRUE(ts_ok$ok) || nrow(ts_ok$data) < 6) return(list(ok = FALSE))
 
   dd <- ts_ok$data
@@ -197,7 +204,7 @@ acf_pacf <- function(app_code, d0, series) {
 
 # adf_res() rrumbullakos statistikën; këtu ruhen edhe vlerat e plota.
 adf_raw <- function(app_code, d0, series) {
-  ts_ok <- app_code$validate_ts_ready(d0, series, "auto", min_n = 20L, context = "ADF")
+  ts_ok <- app_code$validate_ts_ready(d0, series, "auto", min_n = 20L)
   if (!isTRUE(ts_ok$ok)) return(list(ok = FALSE))
 
   y <- suppressWarnings(as.numeric(ts_ok$data$y))

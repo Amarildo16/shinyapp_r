@@ -1,6 +1,6 @@
 # Vendimet dhe pyetjet e hapura
 
-Gjendja fillestare: 2026-10-27. Përditësuar: 2026-10-27 19:10 — V-13 (Q01 në Fazat 0–4). Më herët (18:57): vendimet teknike T-01 – T-04. Më herët (18:33): V-08 – V-12 u mbyllën; V-09 u ndryshua nga përdoruesi në UI dygjuhëshe. Përditëso datën dhe regjistro arsyen kur ndryshon një vendim. **Mos ripyet një vendim që përdoruesi e ka dhënë.**
+Gjendja fillestare: 2026-10-27. Përditësuar: 2026-10-27 19:50 — T-05 – T-07 dhe dy pyetje nga Faza 2 (B-13, P-03 kopja 6). Më herët (19:10): V-13 (Q01 në Fazat 0–4). Më herët (18:57): vendimet teknike T-01 – T-04. Më herët (18:33): V-08 – V-12 u mbyllën; V-09 u ndryshua nga përdoruesi në UI dygjuhëshe. Përditëso datën dhe regjistro arsyen kur ndryshon një vendim. **Mos ripyet një vendim që përdoruesi e ka dhënë.**
 
 ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 
@@ -50,10 +50,16 @@ ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 | T-02 | 2026-10-27 | `renv` me `ignored.packages = vars, rugarch, readxl`. | `vars`/`rugarch` hiqen me V-10/D-04; `readxl` nuk është i instaluar dhe UI pranon vetëm CSV (SPEC "Kufijtë"). Pa këtë, `renv::status()` nuk do ishte i pastër, ose lock-u do kishte paketa që po hiqen. Rishikohet nëse shtohet ngarkim Excel. |
 | T-03 | 2026-10-27 | Referenca: `tests/reference/compute_results.R` është përshtatësi i vetëm. Pjesët reaktive merren nga vetë `server_plots()` me `shiny::testServer` (mbështjellë si modul i hollë); llogaritjet brenda render-ave kopjohen me të njëjtat thirrje. `make_reference.R` punon vetëm kur kodi = `976dce0` dhe nuk mbishkruan `.rds`. | Referenca vjen nga kodi real, jo nga një rishkrim. Në Fazat 2–5 ndryshon vetëm `compute_results.R`; referenca mbetet e fiksuar (V-07). |
 | T-04 | 2026-10-27 | Provat me app-in bëhen mbi një kopje të projektit (scratchpad) me paketat e `renv`. | App-i shkruan state te `data/`; kopja mbron të dhënat (SKILL "Të dhënat e përdoruesit"). |
+| T-05 | 2026-10-27 | **B-01:** vlerat e veçanta në tabela formatohen me `fmt_table_value()`: \|x\| < 1 → 4 decimale, përndryshe 2 (pragjet e `fmt_by_series(for_axis = FALSE)`, me madhësinë e vlerës si shkallë). | Nga dy zgjidhjet e ISSUES, kjo nuk varet nga seritë e tjera në të njëjtën kolonë. Ndryshon vetëm paraqitja; vlerat jo (shembujt para/pas te STATUS.md). |
+| T-06 | 2026-10-27 | `get_app_dir()`: pas `shiny.appdir`, `getwd()` ka përparësi kur aty ndodhet `app.R`; pastaj RStudio, pastaj `getwd()`. | Shiny bën `setwd(appDir)` para se të ngarkojë `R/`. Me kodin te `R/`, dokumenti aktiv i RStudio-s mund të ishte `R/x.R` dhe `DATA_DIR` do dilte `R/data`. Në çdo rast ku kodi i vjetër jepte rezultatin e saktë, rezultati mbetet i njëjtë. |
+| T-07 | 2026-10-27 | `testthat` (dhe 11 varësitë e tij) te `renv.lock`, nga libraria e përdoruesit me `renv::hydrate()`; `library(testthat)` te `tests/testthat/helper-app.R`. | QUALITY.md kërkon `testthat::test_dir()`; pa `library()`, `renv` nuk e regjistronte. Asnjë version ekzistues nuk ndryshoi. |
 
 ## Pyetje të hapura
 
-Asnjë më 2026-10-27 19:10 (pyetja për Q01 u mbyll me V-13).
+Pyetja për Q01 u mbyll me V-13 (2026-10-27 19:10). Të hapura nga Faza 2 (2026-10-27 19:50):
+
+- **B-13 — dd-mm-YYYY lexohet gabim** (`"15-03-2021"` → 0015-03-20). R08 e liston si format të mbështetur. Propozimi: në Fazën 2, `parse_time_safe` pranon një format vetëm kur teksti përputhet plotësisht (p.sh. `format(as.Date(x, f), f) == x`). Ndryshon parsimin vetëm për të dhëna që sot lexohen gabim; dataset-et e referencës nuk preken.
+- **P-03, kopja e 6-të** (`time_col()` te `R/legacy_server_plots.R`): ka rregulla të ndryshme (inputi, pastaj "Year", pastaj kandidati i parë). Zëvendësimi do ndryshonte default-et (ndalohet te hapi 02). Propozimi: shtyhet te Faza 4, ku `time_col()` zhduket bashkë me inputet e fshehura (P-05).
 
 ## Vendime teknike që AI mund t'i marrë brenda detyrës
 

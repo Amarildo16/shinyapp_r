@@ -31,17 +31,7 @@ server_plots <- function(input, output, session, df) {
       if (length(vc) > 0) return(vc)
     }
 
-    d <- df()
-    tc <- time_col()
-
-    cols <- setdiff(names(d), tc)
-
-    num_candidates <- cols[vapply(d[cols], function(x) {
-      xn <- to_numeric_safe(x)
-      mean(!is.na(xn)) >= 0.70
-    }, logical(1))]
-
-    num_candidates
+    detect_numeric_cols(df(), exclude = time_col(), fallback_all = FALSE)
   })
 
   meta <- reactive({
@@ -362,7 +352,7 @@ server_plots <- function(input, output, session, df) {
 
     fmt_safe <- function(x) {
       if (is.na(x)) return(NA_character_)
-      fmt_by_series(as.numeric(x), for_axis = FALSE)
+      fmt_table_value(x)
     }
 
     out$Mesatarja <- vapply(mean_num, fmt_safe, character(1))
@@ -922,7 +912,7 @@ server_plots <- function(input, output, session, df) {
     m    <- var_meta(input$stat_series, meta())
     xlab <- time_axis_label(d0$Time)
 
-    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 3L, context = "diferencë")
+    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 3L)
     validate(need(isTRUE(ts_ok$ok), ts_ok$message))
 
     dd <- ts_ok$data
@@ -1001,7 +991,7 @@ server_plots <- function(input, output, session, df) {
 
     m <- var_meta(input$stat_series, meta())
 
-    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 6L, context = "ACF/PACF")
+    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 6L)
     validate(need(isTRUE(ts_ok$ok), ts_ok$message))
 
     dd <- ts_ok$data
@@ -1106,7 +1096,7 @@ server_plots <- function(input, output, session, df) {
       stringsAsFactors = FALSE
     )
 
-    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 20L, context = "ADF")
+    ts_ok <- validate_ts_ready(d0, input$stat_series, input$data_freq %||% "auto", min_n = 20L)
     if (!isTRUE(ts_ok$ok)) {
       base_tbl$Method <- ts_ok$message %||% TS_INCOMPLETE_MSG
       return(list(
@@ -1264,7 +1254,7 @@ server_plots <- function(input, output, session, df) {
 
     d0 <- df_dyn()
 
-    ts_ok <- validate_ts_ready(d0, input$model_series, input$data_freq %||% "auto", min_n = 20L, context = "modelim")
+    ts_ok <- validate_ts_ready(d0, input$model_series, input$data_freq %||% "auto", min_n = 20L)
     if (!isTRUE(ts_ok$ok)) {
       return(list(ok = FALSE, msg = ts_ok$message %||% TS_INCOMPLETE_MSG))
     }
@@ -1472,8 +1462,8 @@ server_plots <- function(input, output, session, df) {
 
     data.frame(
       Modeli = c("ETS", "ARIMA"),
-      RMSE   = vapply(rmse_vals, function(v) add_unit(fmt_by_series(v, for_axis = FALSE)), character(1)),
-      MAE    = vapply(mae_vals,  function(v) add_unit(fmt_by_series(v, for_axis = FALSE)), character(1)),
+      RMSE   = vapply(rmse_vals, function(v) add_unit(fmt_table_value(v)), character(1)),
+      MAE    = vapply(mae_vals,  function(v) add_unit(fmt_table_value(v)), character(1)),
       MAPE   = fmt_fixed(mape_vals, digits = 2),
       check.names = FALSE
     )
@@ -1493,7 +1483,7 @@ server_plots <- function(input, output, session, df) {
       return(NULL)
     }
 
-    ts_ok <- validate_ts_ready(d0, input$forecast_series, input$data_freq %||% "auto", min_n = 2L, context = "parashikim")
+    ts_ok <- validate_ts_ready(d0, input$forecast_series, input$data_freq %||% "auto", min_n = 2L)
     validate(need(isTRUE(ts_ok$ok), ts_ok$message))
 
     dd <- ts_ok$data
@@ -1836,9 +1826,9 @@ server_plots <- function(input, output, session, df) {
         "Gabimi mesatar absolut përqindor (MAPE)"
       ),
       Vlera = c(
-        add_unit(fmt_by_series(vals["ME"],   for_axis = FALSE)),
-        add_unit(fmt_by_series(vals["MAE"],  for_axis = FALSE)),
-        add_unit(fmt_by_series(vals["RMSE"], for_axis = FALSE)),
+        add_unit(fmt_table_value(vals["ME"])),
+        add_unit(fmt_table_value(vals["MAE"])),
+        add_unit(fmt_table_value(vals["RMSE"])),
         if (is.na(vals["MAPE"])) "NA" else paste0(fmt_fixed(vals["MAPE"], digits = 2), " %")
       ),
       check.names = FALSE

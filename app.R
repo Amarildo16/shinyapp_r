@@ -1,5 +1,20 @@
-source("helpers.R")
-source("server_plots.R")
+# Funksionet jetojnë te R/: Shiny i ngarkon vetë para app.R.
+suppressPackageStartupMessages({
+  library(shiny)
+  library(shinyjs)
+  library(plotly)
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+  library(readr)
+  library(forecast)
+  library(scales)
+  library(tseries)
+  library(DT)
+  library(jsonlite)
+  library(zoo)
+})
+options(scipen = 999)
 
   BG_STATE <- read_bg_state()
 
@@ -871,35 +886,15 @@ server <- function(input, output, session) {
   apply_dataset_cfg_to_main <- function(file, d) {
     req(file, d)
 
-    nm <- names(d)
-
     st  <- tryCatch(read_state(), error = function(e) list())
     cfg <- tryCatch(get_dataset_config(st, file), error = function(e) list(time_col=NULL, value_cols=NULL))
 
-    cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
-    time_choices <- unique(cand$col)
-    if (length(time_choices) == 0) time_choices <- nm
+    def <- resolve_dataset_defaults(d, cfg)
 
-    tc <- cfg$time_col %||% time_choices[1]
-    if (!(tc %in% time_choices)) tc <- time_choices[1]
-
-    cols <- setdiff(nm, tc)
-
-    num_cols <- cols[vapply(d[cols], function(x) {
-      xn <- to_numeric_safe(x)
-      mean(!is.na(xn)) >= 0.70
-    }, logical(1))]
-    if (length(num_cols) == 0) num_cols <- cols
-
-    vals <- cfg$value_cols %||% character(0)
-    vals <- setdiff(vals, tc)
-    vals <- vals[vals %in% num_cols]
-    if (!length(vals)) vals <- head(num_cols, min(3, length(num_cols)))
-
-    updateSelectInput(session, "data_time_col", choices = time_choices, selected = tc)
+    updateSelectInput(session, "data_time_col", choices = def$time_choices, selected = def$time_col)
     updateSelectizeInput(session, "data_value_cols",
-      choices  = num_cols,
-      selected = vals,
+      choices  = def$num_cols,
+      selected = def$value_cols,
       server   = TRUE
     )
   }
@@ -976,24 +971,11 @@ server <- function(input, output, session) {
     st  <- read_state()
     cfg <- get_dataset_config(st, f)
 
-    cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
-    time_choices <- unique(cand$col)
-    if (length(time_choices) == 0) time_choices <- nm
-
-    tc <- cfg$time_col %||% time_choices[1]
-    if (!(tc %in% time_choices)) tc <- time_choices[1]
-
-    cols <- setdiff(nm, tc)
-    num_cols <- cols[vapply(d[cols], function(x) {
-      xn <- to_numeric_safe(x)
-      mean(!is.na(xn)) >= 0.70
-    }, logical(1))]
-    if (length(num_cols) == 0) num_cols <- cols
-
-    vals <- cfg$value_cols %||% character(0)
-    vals <- setdiff(vals, tc)
-    vals <- vals[vals %in% num_cols]
-    if (!length(vals)) vals <- head(num_cols, min(3, length(num_cols)))
+    def <- resolve_dataset_defaults(d, cfg)
+    time_choices <- def$time_choices
+    tc           <- def$time_col
+    num_cols     <- def$num_cols
+    vals         <- def$value_cols
 
     uploaded_tmp_path(NULL)
     uploaded_tmp_name(NULL)
@@ -1195,39 +1177,18 @@ server <- function(input, output, session) {
     st0 <- tryCatch(read_state(), error = function(e) list())
     cfg <- tryCatch(get_dataset_config(st0, f0), error = function(e) list(time_col = NULL, value_cols = character(0)))
 
-    cand <- tryCatch(
-      detect_time_candidates(d),
-      error = function(e) data.frame(col = nm, score = 0)
+    def <- resolve_dataset_defaults(
+      d, cfg,
+      current_time   = isolate(input$data_time_col),
+      current_values = isolate(input$data_value_cols)
     )
-
-    time_choices <- unique(cand$col)
-    if (length(time_choices) == 0) time_choices <- nm
-
-    tc_sel <- cfg$time_col
-    if (is.null(tc_sel) || !nzchar(tc_sel) || !(tc_sel %in% time_choices)) {
-      tc_cur <- isolate(input$data_time_col)
-      tc_sel <- pick_choice(tc_cur, time_choices, time_choices[1])
-    }
+    time_choices <- def$time_choices
+    tc_sel       <- def$time_col
+    num_cols     <- def$num_cols
+    vc_sel       <- def$value_cols
+    cols         <- setdiff(nm, tc_sel)
 
     updateSelectInput(session, "data_time_col", choices = time_choices, selected = tc_sel)
-
-    cols <- setdiff(nm, tc_sel)
-
-    num_cols <- cols[vapply(d[cols], function(x) {
-      xn <- to_numeric_safe(x)
-      mean(!is.na(xn)) >= 0.70
-    }, logical(1))]
-
-    if (length(num_cols) == 0) num_cols <- cols
-
-    vc_sel <- cfg$value_cols %||% character(0)
-    vc_sel <- vc_sel[vc_sel %in% num_cols]
-
-    if (length(vc_sel) == 0) {
-      vc_cur <- isolate(input$data_value_cols)
-      vc_sel <- vc_cur[vc_cur %in% num_cols]
-    }
-    if (length(vc_sel) == 0) vc_sel <- head(num_cols, min(3, length(num_cols)))
 
     updateSelectizeInput(session, "data_value_cols",
       choices  = num_cols,
@@ -1311,27 +1272,14 @@ server <- function(input, output, session) {
     )
     if (is.null(d)) return()
 
-    nm <- names(d)
-
-    cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
-    time_choices <- unique(cand$col)
-    if (length(time_choices) == 0) time_choices <- nm
-    time_default <- time_choices[1]
-
-    cols <- setdiff(nm, time_default)
-    num_cols <- cols[vapply(d[cols], function(x) {
-      xn <- to_numeric_safe(x)
-      mean(!is.na(xn)) >= 0.70
-    }, logical(1))]
-    if (length(num_cols) == 0) num_cols <- cols
-    value_default <- head(num_cols, min(3, length(num_cols)))
+    def <- resolve_dataset_defaults(d)
 
     pending_data(d)
     pending_cfg(list(
-      nm = nm,
-      time_choices = time_choices,
-      time_default = time_default,
-      value_default = value_default
+      nm = names(d),
+      time_choices = def$time_choices,
+      time_default = def$time_col,
+      value_default = def$value_cols
     ))
 
     if (nzchar(input$csv_file_modal$name)) {
@@ -1389,21 +1337,11 @@ server <- function(input, output, session) {
   observeEvent(input$modal_time_col, {
     req(pending_data())
     d  <- pending_data()
-    nm <- names(d)
 
     tc <- input$modal_time_col
 
-    cols <- setdiff(nm, tc)
-    num_cols <- cols[vapply(d[cols], function(x) {
-      xn <- to_numeric_safe(x)
-      mean(!is.na(xn)) >= 0.70
-    }, logical(1))]
-    if (length(num_cols) == 0) num_cols <- cols
-
-    sel <- isolate(input$modal_value_cols)
-    sel <- setdiff(sel, tc)
-    sel <- sel[sel %in% num_cols]
-    if (!length(sel)) sel <- head(num_cols, min(3, length(num_cols)))
+    num_cols <- detect_numeric_cols(d, exclude = tc)
+    sel <- pick_value_cols(num_cols, isolate(input$modal_value_cols))
 
     updateSelectizeInput(session, "modal_value_cols",
       choices  = num_cols,
@@ -1517,29 +1455,9 @@ server <- function(input, output, session) {
       }
     }
 
-    nm <- names(d)
-
-    cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
-    time_choices <- unique(cand$col)
-    if (length(time_choices) == 0) time_choices <- nm
-
-    chosen_tc <- tc_in
-    if (is.null(chosen_tc) || !nzchar(chosen_tc) || !(chosen_tc %in% time_choices)) {
-      chosen_tc <- time_choices[1]
-    }
-
-    vals_in <- setdiff(vals_in, chosen_tc)
-
-    cols <- setdiff(nm, chosen_tc)
-
-    chosen_num_cols <- cols[vapply(d[cols], function(x) {
-      xn <- to_numeric_safe(x)
-      mean(!is.na(xn)) >= 0.70
-    }, logical(1))]
-    if (length(chosen_num_cols) == 0) chosen_num_cols <- cols
-
-    chosen_vals <- vals_in[vals_in %in% chosen_num_cols]
-    if (length(chosen_vals) == 0) chosen_vals <- head(chosen_num_cols, min(3, length(chosen_num_cols)))
+    def <- resolve_dataset_defaults(d, list(time_col = tc_in, value_cols = vals_in))
+    chosen_tc   <- def$time_col
+    chosen_vals <- def$value_cols
 
     if (!is.null(final_file) && nzchar(final_file)) {
       ds_cfg <- resolve_saved_dataset_path(final_file, DATA_DIR)
@@ -1605,21 +1523,8 @@ server <- function(input, output, session) {
 
     cfg <- active_cfg()
 
-    cols <- setdiff(nm, tc_sel)
-    num_cols <- cols[vapply(d[cols], function(x) {
-      xn <- to_numeric_safe(x)
-      mean(!is.na(xn)) >= 0.70
-    }, logical(1))]
-    if (length(num_cols) == 0) num_cols <- cols
-
-    vc_sel <- cfg$value_cols %||% character(0)
-    vc_sel <- vc_sel[vc_sel %in% num_cols]
-
-    if (length(vc_sel) == 0) {
-      vc_cur <- isolate(input$data_value_cols)
-      vc_sel <- vc_cur[vc_cur %in% num_cols]
-    }
-    if (length(vc_sel) == 0) vc_sel <- head(num_cols, min(3, length(num_cols)))
+    num_cols <- detect_numeric_cols(d, exclude = tc_sel)
+    vc_sel   <- pick_value_cols(num_cols, cfg$value_cols, isolate(input$data_value_cols))
 
     updateSelectizeInput(session, "data_value_cols",
       choices  = num_cols,

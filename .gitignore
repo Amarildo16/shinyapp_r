@@ -16,3 +16,6 @@ renv/local/
 
 # Asete të hequra që presin fshirjen nga përdoruesi (Faza 1)
 _to_delete/
+
+# Skedarët që testthat krijon kur dështon një test
+tests/testthat/_problems/
