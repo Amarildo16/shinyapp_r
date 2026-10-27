@@ -9,9 +9,14 @@ test_that("parse_time_safe njeh formatet e kohës (R08)", {
   expect_equal(parse_time_safe(as.Date(c("2021-01-01", "2021-02-01"))), as.Date(c("2021-01-01", "2021-02-01")))
 })
 
-test_that("parse_time_safe lexon dd-mm-YYYY (B-13)", {
-  skip("B-13: sot '15-03-2021' lexohet si 0015-03-20; rregullimi pret vendimin e përdoruesit.")
+test_that("parse_time_safe lexon dd-mm-YYYY (B-13, V-14)", {
+  # Më parë: "15-03-2021" -> 0015-03-20 (formati %Y-%m-%d pranonte tekst të tepërt).
   expect_equal(parse_time_safe(c("15-03-2021", "16-03-2021")), as.Date(c("2021-03-15", "2021-03-16")))
+  expect_equal(parse_time_safe(c("5-3-2021", "6-3-2021")), as.Date(c("2021-03-05", "2021-03-06")))
+  expect_equal(parse_time_safe(c("1/3/2021", "2/3/2021")), as.Date(c("2021-03-01", "2021-03-02")))
+  expect_equal(parse_time_safe(c("2021-3-5", "2021-3-6")), as.Date(c("2021-03-05", "2021-03-06")))
+  # Datat me orë kalojnë te rruga rezervë as.Date(), si më parë.
+  expect_equal(parse_time_safe(c("2021-03-15 10:00:00", "2021-03-16 11:30:00")), as.Date(c("2021-03-15", "2021-03-16")))
 })
 
 test_that("parse_time_safe: vitet numerike rrumbullakohen, numrat e tjerë mbeten (D-05)", {

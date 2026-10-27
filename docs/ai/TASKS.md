@@ -6,7 +6,7 @@ Më 2026-10-27 u krye analiza, u hartua plani dhe u mbyllën të gjitha vendimet
 |---|---|---|---|---|---|
 | 00 | [Përgatitja](steps/00-pergatitja.md) | — | R21, R24, R25 | U-03, U-06 | I përfunduar (2026-10-27) |
 | 01 | [Pastrimi](steps/01-pastrimi.md) | 00 | R03, R20 | D-01–D-04 | I përfunduar (2026-10-27) |
-| 02 | [Logjika e pastër → `R/` + testet](steps/02-logjika-ne-R.md) | 01 | R05, R08, R15, R21, R22 | P-01, P-02, P-03, B-01, D-05 | Në punë (2026-10-27): e zbatuar dhe e verifikuar; pret vendimin për kopjen e 6-të të P-03 (+ B-13) |
+| 02 | [Logjika e pastër → `R/` + testet](steps/02-logjika-ne-R.md) | 01 | R05, R08, R15, R21, R22 | P-01, P-02, P-03, B-01, D-05 | I përfunduar (2026-10-27); kopja e 6-të e P-03 → Faza 4 (V-14) |
 | 03 | [Config, layout, storage, i18n](steps/03-config-layout-storage.md) | 02 | R07, R20, R22, R23, R26 | P-11, P-12, U-04 | I pafilluar |
 | 04 | [Moduli i dataset-eve](steps/04-moduli-datasets.md) | 03 | R05–R07, R22 | P-05, P-06, P-08, B-03 | I pafilluar |
 | 05 | [Faqet e analizës si module](steps/05-faqet-e-analizes.md) | 04 | R09–R16, R21, R26 | P-04, P-07, B-02, B-04–B-07, B-09 | I pafilluar |

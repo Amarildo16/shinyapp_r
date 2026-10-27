@@ -47,11 +47,20 @@ parse_time_safe <- function(x) {
     return(as.Date(sprintf("%04d-%02d-01", yr, m)))
   }
 
-  try_formats <- c("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d", "%m/%d/%Y")
+  # Forma e plotë e çdo formati: as.Date() injoron karakteret e tepërta, prandaj
+  # pa këtë kontroll "15-03-2021" lexohej me "%Y-%m-%d" si viti 15 (B-13, V-14).
+  try_formats <- c(
+    "%Y-%m-%d" = "^\\d{4}-\\d{1,2}-\\d{1,2}$",
+    "%d/%m/%Y" = "^\\d{1,2}/\\d{1,2}/\\d{4}$",
+    "%d-%m-%Y" = "^\\d{1,2}-\\d{1,2}-\\d{4}$",
+    "%Y/%m/%d" = "^\\d{4}/\\d{1,2}/\\d{1,2}$",
+    "%m/%d/%Y" = "^\\d{1,2}/\\d{1,2}/\\d{4}$"
+  )
   ok_rate <- function(v) sum(!is.na(v)) / max(1, sum(!is.na(x0)))
 
-  for (f in try_formats) {
+  for (f in names(try_formats)) {
     t <- suppressWarnings(as.Date(x0, format = f))
+    t[!grepl(try_formats[[f]], x0)] <- NA
     if (ok_rate(t) >= 0.95) return(t)
   }
 

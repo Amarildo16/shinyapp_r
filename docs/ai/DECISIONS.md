@@ -21,6 +21,7 @@ ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 | V-11 | 2026-10-27 | Kolona e kohës numerike që nuk është vit: **vetëm mesazh më i qartë**, pa ndryshim sjelljeje. | Mbështetje me frekuencë 1. | Përdoruesi i la zgjedhjen AI-së. Mbështetja do ndryshonte sjelljen dhe rezultatet (kundër R21). Mesazhi i ri i thotë përdoruesit pse dhe çfarë formati kohe të përdorë. Nëse kërkohet më vonë, bëhet kërkesë e re. |
 | V-12 | 2026-10-27 | Ndryshimi i line endings te `data/datasets_state.json` **hidhet poshtë (discard)** në Fazën 0, para `.gitattributes`. | Commit. | Përdoruesi i la zgjedhjen AI-së. Përmbajtja është identike (`git diff --ignore-cr-at-eol` bosh); një commit do shtonte vetëm zhurmë. `.gitattributes` e parandalon herët e tjera. |
 | V-13 | 2026-10-27 | **Q01 në Fazat 0–4:** pa errore në R; lejohen vetëm warning-et/erroret e njohura **B-11** dhe **B-12**. **Nga Faza 5**, Q01 i plotë (pa errore dhe pa warning). | Rregullim i B-11/B-12 para Fazës 5. | Përdoruesi: "Prano propozimin … Q01 i plotë nga Faza 5". B-11/B-12 vijnë nga kodi ekzistues dhe zhduken natyrshëm në Fazën 5 (`plot_ly`, `model_store`). Çdo warning/error tjetër i ri mbetet dështim i Q01. |
+| V-14 | 2026-10-27 | **(a)** Kopja e 6-të e P-03 (`time_col()` te `R/legacy_server_plots.R`) **shtyhet te Faza 4** (zhduket me P-05). **(b) B-13 rregullohet në Fazën 2:** te `parse_time_safe`, një format i provuar pranohet vetëm kur teksti ka formën e plotë të formatit. | (a) Zëvendësim tani me ndryshim të default-eve. (b) Lënia e bug-ut. | Përdoruesi: "Po: kopja e 6-të e P-03 shtyhet te Faza 4, dhe B-13 rregullohet tani në Fazën 2." (b) ndryshon rezultatin vetëm kur teksti nuk përputhet plotësisht me formatin, p.sh. dd-mm-YYYY që lexohej si viti 15. |
 
 ## V-09 — si zbatohet (vendim teknik i AI-së, brenda V-09)
 
@@ -56,10 +57,7 @@ ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 
 ## Pyetje të hapura
 
-Pyetja për Q01 u mbyll me V-13 (2026-10-27 19:10). Të hapura nga Faza 2 (2026-10-27 19:50):
-
-- **B-13 — dd-mm-YYYY lexohet gabim** (`"15-03-2021"` → 0015-03-20). R08 e liston si format të mbështetur. Propozimi: në Fazën 2, `parse_time_safe` pranon një format vetëm kur teksti përputhet plotësisht (p.sh. `format(as.Date(x, f), f) == x`). Ndryshon parsimin vetëm për të dhëna që sot lexohen gabim; dataset-et e referencës nuk preken.
-- **P-03, kopja e 6-të** (`time_col()` te `R/legacy_server_plots.R`): ka rregulla të ndryshme (inputi, pastaj "Year", pastaj kandidati i parë). Zëvendësimi do ndryshonte default-et (ndalohet te hapi 02). Propozimi: shtyhet te Faza 4, ku `time_col()` zhduket bashkë me inputet e fshehura (P-05).
+Asnjë më 2026-10-27 20:00. Q01 u mbyll me V-13; pyetjet e Fazës 2 (B-13, kopja e 6-të e P-03) u mbyllën me V-14.
 
 ## Vendime teknike që AI mund t'i marrë brenda detyrës
 

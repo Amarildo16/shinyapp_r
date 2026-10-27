@@ -21,7 +21,7 @@
   - `server_plots.R`: 18
   - Zgjidhja: `resolve_dataset_defaults(d, cfg)` që kthen `time_choices`, `time_col`, `num_cols`, `value_cols`. · Faza: 2
   - Faza 2 (2026-10-27): `resolve_dataset_defaults(d, cfg, current_time, current_values)` + `pick_value_cols()` te `R/data_prepare.R` zëvendësojnë 5 kopjet e `app.R`, si edhe pjesën e serive te observer-at `modal_time_col` dhe `data_time_col`. Prova: `test-data_prepare.R`; 10 010 kombinime (kopja 1 dhe 3) identike me kodin e vjetër.
-  - **Mbetet:** `time_col()` te `R/legacy_server_plots.R` ka rregulla të tjera (inputi → "Year" → kandidati i parë). Zëvendësimi do ndryshonte default-et; propozohet ta mbyllë Faza 4 (P-05). Pret miratimin (DECISIONS "Pyetje të hapura").
+  - **Mbetet:** `time_col()` te `R/legacy_server_plots.R` ka rregulla të tjera (inputi → "Year" → kandidati i parë). Zëvendësimi do ndryshonte default-et; propozohet ta mbyllë Faza 4 (P-05). Shtyrë te Faza 4 me V-14.
 - [ ] **P-04 — Tema e grafikëve është kopjuar 9 herë.** Sfondi transparent, teksti i bardhë dhe `layout()` i njëjtë përsëriten në çdo grafik.
   - Zgjidhja: `plot_theme.R` me `glass_layout()`. · Faza: 5
 - [ ] **P-05 — Dy burime të së vërtetës për konfigurimin.** JSON-i (`active_cfg()`) dhe inputet e fshehura (`data_time_col`, `data_value_cols`). Përmbledhja preferon JSON-in, grafikët preferojnë inputet. Kjo shkakton render të dyfishtë kur ndryshon dataset-i.
@@ -70,7 +70,7 @@
 - [ ] **B-12 — Errore në console të browser-it te Modelimi** (gjetur në Fazën 0, 2026-10-27).
   - "Shiny server has sent a progress message for model_plot, but the output is in an unexpected state" (+ "recalculating"/"recalculated" … "idle"). Vjen nga `shiny::withProgress()` brenda reaktivit `.model_fits()` (`server_plots.R:1316`); i njëjti model te `arima_fit()` (`server_plots.R:1572`). Grafiku dhe tabela shfaqen saktë.
   - Zgjidhja: llogaritja e modeleve jashtë render-it (`model_store`, P-07), progres pa `withProgress` brenda `reactive()`. · Faza: 5
-- [ ] **B-13 — Formati dd-mm-YYYY lexohet gabim** (gjetur në Fazën 2, 2026-10-27). `parse_time_safe(c("15-03-2021", "16-03-2021"))` → `0015-03-20`, `0016-03-20`: formati `%Y-%m-%d` provohet i pari dhe `as.Date` injoron karakteret e tepërta. R08 e liston dd-mm-YYYY si të mbështetur.
+- [x] **B-13 — Formati dd-mm-YYYY lexohet gabim** (mbyllur 2026-10-27 me V-14: formati pranohet vetëm kur teksti ka formën e plotë; prova: 300/300 raste dd-mm-YYYY të sakta, 2 100 raste të formateve të tjera identike me kodin e vjetër, Q29 0 dështime, Q30 24/24, në app dataset-i dd-mm-YYYY lexohet saktë — Claude) (gjetur në Fazën 2, 2026-10-27). `parse_time_safe(c("15-03-2021", "16-03-2021"))` → `0015-03-20`, `0016-03-20`: formati `%Y-%m-%d` provohet i pari dhe `as.Date` injoron karakteret e tepërta. R08 e liston dd-mm-YYYY si të mbështetur.
   - Zgjidhja e propozuar: një format pranohet vetëm kur teksti përputhet plotësisht. Ndryshon rezultatin e parsimit, ndaj pret vendimin (DECISIONS "Pyetje të hapura"). Testi ekziston me `skip` te `test-data_parse.R`. · Faza: 2 (pas vendimit)
 - [ ] **B-14 — `to_numeric_safe()` lexon tekstin me shifra si numër** (gjetur në Fazën 2). Shkronjat hiqen, kështu që "shenim 2015" → 2015, dhe një kolonë shënimesh mund të dalë "numerike" (pragu 0.70). Sjellje ekzistuese, e dokumentuar në test; ndryshimi do prekte zbulimin e kolonave (R05). Diskutohet para çdo ndryshimi. · Faza: e pacaktuar
 
