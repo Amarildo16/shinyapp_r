@@ -51,7 +51,7 @@ load_app_code <- function(root, sandbox) {
   options(scipen = 999)
 
   app_code <- new.env(parent = globalenv())
-  old <- options(shiny.appdir = sandbox)
+  old <- options(shiny.appdir = sandbox, app.code_dir = root)
   on.exit(options(old), add = TRUE)
   shiny::loadSupport(root, renv = app_code, globalrenv = NULL)
   app_code

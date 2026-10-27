@@ -1,4 +1,4 @@
-# Shtigjet dhe konstantet e app-it.
+# Shtigjet, faqet dhe konstantet e app-it: një vend i vetëm.
 
 get_app_dir <- function() {
   d <- getOption("shiny.appdir")
@@ -21,13 +21,60 @@ get_app_dir <- function() {
   normalizePath(getwd(), winslash = "/", mustWork = FALSE)
 }
 
-APP_DIR <- get_app_dir()
+# ---- Shtigjet ----------------------------------------------------------------
+# APP_DIR: ku jetojnë të dhënat (storage/ dhe data/ e vjetër).
+# CODE_DIR: asetet që vijnë me kodin (i18n/, data/samples/). Në app janë i njëjti
+# folder; testet e drejtojnë APP_DIR te një sandbox me option "app.code_dir" (T-09).
+APP_DIR  <- get_app_dir()
+CODE_DIR <- normalizePath(getOption("app.code_dir", APP_DIR), winslash = "/", mustWork = FALSE)
 
-DATA_DIR  <- file.path(APP_DIR, "data")
+LEGACY_DATA_DIR <- file.path(APP_DIR, "data")
+SAMPLES_DIR     <- file.path(CODE_DIR, "data", "samples")
+I18N_DIR        <- file.path(CODE_DIR, "i18n")
 
-if (!dir.exists(DATA_DIR)) dir.create(DATA_DIR, recursive = TRUE)
+STORAGE_DIR  <- file.path(APP_DIR, "storage")
+DATASETS_DIR <- file.path(STORAGE_DIR, "datasets")
+IMAGES_DIR   <- file.path(STORAGE_DIR, "images")
+STATE_DIR    <- file.path(STORAGE_DIR, "state")
 
-STATE_FILE <- file.path(DATA_DIR, "datasets_state.json")
+STATE_FILE    <- file.path(STATE_DIR, "datasets_state.json")
+BG_STATE_FILE <- file.path(STATE_DIR, "background_state.json")
+SETTINGS_FILE <- file.path(STATE_DIR, "settings.json")
 
-BG_STATE_FILE <- file.path(DATA_DIR, "background_state.json")
+# ---- Faqet (P-12) -------------------------------------------------------------
+# id -> tab "tab_<id>" dhe butoni "go_<id>". ID-të janë ato ekzistuese: përdoren nga
+# JS dhe si çelësa te background_state.json (fotot për çdo faqe).
+# Tekstet: i18n "page.<id>.menu" (menyja) dhe "page.<id>.title" (topbar-i).
+PAGES <- list(
+  list(id = "settings",   nav = FALSE),
+  list(id = "overview",   nav = TRUE),
+  list(id = "eda_ts",     nav = TRUE),
+  list(id = "eda_rel",    nav = TRUE),
+  list(id = "stationary", nav = TRUE),
+  list(id = "modeling",   nav = TRUE),
+  list(id = "forecast",   nav = TRUE)
+)
+DEFAULT_PAGE <- "overview"
 
+page_ids  <- function(nav_only = FALSE) {
+  ids <- vapply(PAGES, `[[`, character(1), "id")
+  if (nav_only) ids[vapply(PAGES, `[[`, logical(1), "nav")] else ids
+}
+page_tab  <- function(id) paste0("tab_", id)
+page_btn  <- function(id) paste0("go_", id)
+
+# ---- Seritë dhe kufijtë (të njëjtat vlera si te legacy_server_plots.R) ----------
+DUP_POLICY  <- "mean"   # P-11: dublikatat e kohës
+FREQ_POLICY <- "auto"   # P-11: frekuenca
+
+SERIES_COLORS <- c(observed = "white", ets = "#0a84ff", arima = "#ff3b30")
+
+# Horizonti maksimal i parashikimit dhe dritarja lëvizëse sipas hapit të kohës.
+H_CAP    <- c(day = 90L, week = 26L, month = 24L, quarter = 12L, year = 10L)
+H_CAP_DEFAULT <- 120L
+ROLL_CAP <- c(day = 30L, week = 12L, month = 12L, quarter = 8L, year = 5L)
+ROLL_CAP_DEFAULT <- 60L
+
+# ---- Gjuhët (V-09) ---------------------------------------------------------------
+LANGS <- c(sq = "Shqip", en = "English")
+DEFAULT_LANG <- "sq"

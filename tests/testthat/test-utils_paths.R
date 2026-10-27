@@ -18,19 +18,19 @@ test_that("sanitize_filename heq shtigjet dhe karakteret e rrezikshme", {
   expect_match(sanitize_filename(NULL), "^dataset_\\d{8}_\\d{6}\\.csv$")
 })
 
-test_that("resolve_saved_dataset_path lejon vetëm dataset-et e ruajtura te DATA_DIR", {
-  file.create(file.path(DATA_DIR, "ok.csv"))
-  on.exit(unlink(file.path(DATA_DIR, "ok.csv")), add = TRUE)
+test_that("resolve_saved_dataset_path lejon vetëm dataset-et e ruajtura te DATASETS_DIR", {
+  file.create(file.path(DATASETS_DIR, "ok.csv"))
+  on.exit(unlink(file.path(DATASETS_DIR, "ok.csv")), add = TRUE)
 
   r <- resolve_saved_dataset_path("ok.csv")
   expect_true(r$ok)
-  expect_equal(r$path, normalize_app_path(file.path(DATA_DIR, "ok.csv")))
+  expect_equal(r$path, normalize_app_path(file.path(DATASETS_DIR, "ok.csv")))
 
   expect_false(resolve_saved_dataset_path("../ok.csv")$ok)
   expect_false(resolve_saved_dataset_path("mungon.csv")$ok)
   expect_false(resolve_saved_dataset_path(NULL)$ok)
   expect_false(resolve_saved_dataset_path("")$ok)
-  expect_false(resolve_saved_dataset_path(file.path(DATA_DIR, "ok.csv"))$ok)
+  expect_false(resolve_saved_dataset_path(file.path(DATASETS_DIR, "ok.csv"))$ok)
 })
 
 test_that("resolve_media_image_path lejon vetëm www/images/", {

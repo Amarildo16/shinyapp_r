@@ -1,0 +1,43 @@
+{
+  "page.settings.menu": "Settings",
+  "page.settings.title": "Settings",
+  "page.overview.menu": "Përmbledhje",
+  "page.overview.title": "Time Series Analysis",
+  "page.eda_ts.menu": "Analiza eksploruese – Seri kohore",
+  "page.eda_ts.title": "EDA – Seri kohore",
+  "page.eda_rel.menu": "Analiza eksploruese – Marrëdhënie",
+  "page.eda_rel.title": "EDA – Marrëdhënie",
+  "page.stationary.menu": "Stacionariteti",
+  "page.stationary.title": "Stacionariteti",
+  "page.modeling.menu": "Modelimi",
+  "page.modeling.title": "Modelimi",
+  "page.forecast.menu": "Parashikimi",
+  "page.forecast.title": "Parashikimi",
+
+  "sidebar.settings_aria": "Settings",
+  "modal.close_aria": "Close",
+
+  "common.save": "Save",
+  "common.cancel": "Cancel",
+  "common.proceed": "Proceed",
+  "common.close": "Mbyll",
+
+  "settings.dataset": "Dataset",
+  "settings.upload_csv": "Ngarko CSV",
+  "settings.background": "Background",
+  "settings.language": "Gjuha",
+
+  "bg.mode_label": "Zgjidh mënyrën",
+  "bg.mode.image": "Foto",
+  "bg.mode.color": "Vetëm ngjyrë",
+  "bg.mode.none": "Pa background",
+  "bg.scope_label": "Zgjidh foto",
+  "bg.scope.global": "Global",
+  "bg.scope.custom": "Custom për faqe",
+  "bg.global_title": "Foto globale",
+  "bg.tabs_title": "Foto për çdo tab",
+  "bg.blur": "Blur",
+  "bg.blur_strength": "Blur strength",
+  "bg.base_color": "Ngjyra bazë",
+  "bg.use_photo": "Përdor foton"
+}

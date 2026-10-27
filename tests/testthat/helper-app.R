@@ -13,9 +13,13 @@ options(scipen = 999)
 
 TEST_SANDBOX <- normalizePath(tempfile("app_sandbox_"), winslash = "/", mustWork = FALSE)
 dir.create(TEST_SANDBOX, recursive = TRUE)
-options(shiny.appdir = TEST_SANDBOX)
+options(shiny.appdir = TEST_SANDBOX, app.code_dir = APP_ROOT)
 
 shiny::loadSupport(APP_ROOT, renv = environment(), globalrenv = NULL)
+
+# storage/ i sandbox-it, si te nisja e app-it; gjuha e testeve është shqipja.
+init_storage()
+set_lang("sq")
 
 fixture <- function(name) file.path(APP_ROOT, "tests", "fixtures", name)
 

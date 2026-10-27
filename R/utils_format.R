@@ -17,15 +17,25 @@ var_meta <- function(var, meta = NULL) {
   list(label = make_label(var), unit = "")
 }
 
+# Shenjat e numrave sipas gjuhës (V-09): shqip 1 234,56 + mijë/mln/mld, anglisht 1,234.56 + K/M/B.
+number_style <- function(lang = current_lang()) {
+  if (identical(lang, "en")) {
+    list(big = ",", dec = ".", suffix = c(bn = "B", mn = "M", k = "K"))
+  } else {
+    list(big = " ", dec = ",", suffix = c(bn = " mld", mn = " mln", k = " mijë"))
+  }
+}
+
 fmt_fixed <- function(x, digits = 2) {
+  ns <- number_style()
   ifelse(
     is.na(x),
     NA_character_,
     format(
       round(x, digits),
       nsmall = digits,
-      big.mark = " ",
-      decimal.mark = ",",
+      big.mark = ns$big,
+      decimal.mark = ns$dec,
       scientific = FALSE,
       trim = TRUE
     )
@@ -33,25 +43,28 @@ fmt_fixed <- function(x, digits = 2) {
 }
 
 fmt_compact <- function(x, digits = 1) {
+  ns <- number_style()
+  trailing_zeros <- paste0(if (ns$dec == ".") "\\." else ns$dec, "0+$")
+
   out <- vapply(x, function(v) {
     if (is.na(v)) return(NA_character_)
     av <- abs(v)
 
-    if (av >= 1e9) { val <- v / 1e9; suf <- " mld"
-    } else if (av >= 1e6) { val <- v / 1e6; suf <- " mln"
-    } else if (av >= 1e3) { val <- v / 1e3; suf <- " mijë"
+    if (av >= 1e9) { val <- v / 1e9; suf <- ns$suffix[["bn"]]
+    } else if (av >= 1e6) { val <- v / 1e6; suf <- ns$suffix[["mn"]]
+    } else if (av >= 1e3) { val <- v / 1e3; suf <- ns$suffix[["k"]]
     } else { val <- v; suf <- "" }
 
     s <- format(
       round(val, digits),
       nsmall = digits,
-      big.mark = " ",
-      decimal.mark = ",",
+      big.mark = ns$big,
+      decimal.mark = ns$dec,
       scientific = FALSE,
       trim = TRUE
     )
 
-    s <- sub(",0+$", "", s)
+    s <- sub(trailing_zeros, "", s)
     paste0(s, suf)
   }, character(1))
 

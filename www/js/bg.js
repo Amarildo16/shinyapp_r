@@ -172,8 +172,14 @@
         return e?.value || e?.detail?.value || e?.originalEvent?.detail?.value || null;
     }
 
+    // Faqja e parë e PAGES (Settings), lexuar nga sidebar-i (P-12).
+    function firstPageTab() {
+        const el = document.querySelector("[data-nav-tab]");
+        return el ? el.getAttribute("data-nav-tab") : null;
+    }
+
     function applyStateNow() {
-        const tabId = currentTabFromShiny() || "tab_settings";
+        const tabId = currentTabFromShiny() || firstPageTab();
         setBgByTabValue(tabId);
     }
 

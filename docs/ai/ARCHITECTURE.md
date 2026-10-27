@@ -226,14 +226,16 @@ shinyApp(ui, server)
 ```
 
 ## Lista e faqeve — një vend i vetëm (`config.R`)
+Zbatuar në Fazën 3. ID-të janë ato ekzistuese (`tab_<id>`, `go_<id>`), sepse i përdorin JS dhe `background_state.json`; tekstet vijnë nga i18n (`page.<id>.menu`, `page.<id>.title`).
 ```r
 PAGES <- list(
-  list(id = "overview",     menu = "Përmbledhje",                       title = "Time Series Analysis"),
-  list(id = "eda_ts",       menu = "Analiza eksploruese – Seri kohore", title = "EDA – Seri kohore"),
-  list(id = "eda_rel",      menu = "Analiza eksploruese – Marrëdhënie", title = "EDA – Marrëdhënie"),
-  list(id = "stationarity", menu = "Stacionariteti",                    title = "Stacionariteti"),
-  list(id = "modeling",     menu = "Modelimi",                          title = "Modelimi"),
-  list(id = "forecast",     menu = "Parashikimi",                       title = "Parashikimi")
+  list(id = "settings",   nav = FALSE),
+  list(id = "overview",   nav = TRUE),
+  list(id = "eda_ts",     nav = TRUE),
+  list(id = "eda_rel",    nav = TRUE),
+  list(id = "stationary", nav = TRUE),
+  list(id = "modeling",   nav = TRUE),
+  list(id = "forecast",   nav = TRUE)
 )
 ```
 Nga kjo listë gjenerohen:
@@ -242,12 +244,14 @@ Nga kjo listë gjenerohen:
 - kartat e background-it për çdo faqe
 - harta që i dërgohet JS-it
 
-`sidebar.js` dhe `background.js` nuk kanë më ID të shkruara me dorë.
+`sidebar.js` dhe `bg.js` nuk kanë më ID të shkruara me dorë: lexojnë atributin `data-nav-tab` të butonave të sidebar-it.
 
 ## Storage dhe migrimi
 - `init_storage()` krijon `storage/datasets`, `storage/images` dhe `storage/state` nëse nuk ekzistojnë.
-- **Hapja e parë:** nëse `storage/datasets` është bosh, kopjohen dataset-et nga `data/samples/`.
-- **Migrimi nga versioni i vjetër:** nëse gjenden CSV-të ose JSON-et e vjetra direkt në `data/`, kopjohen në `storage/`. Kështu zysha nuk humbet dataset-et e saj kur përditëson.
+- **Migrimi bëhet një herë** (shënuesi `storage/state/storage.json`, T-08): kopje rezervë e JSON-eve të `data/`; CSV-të e `data/` dhe dataset-et e listuara në state që mungojnë (nga `data/samples/`); JSON-et. Çdo kopje verifikohet me md5. `data/` nuk preket.
+- **Hapja e parë pa të dhëna:** nëse `storage/datasets` mbetet bosh, kopjohen shembujt nga `data/samples/`.
+- `storage/state/settings.json` mban gjuhën (`read_settings()`/`write_settings()`).
+- `APP_DIR` (të dhënat) dhe `CODE_DIR` (`i18n/`, `data/samples/`) janë i njëjti folder në app; testet i ndajnë (T-09).
 - **Fotot:**
   - Fotot e ngarkuara shërbehen me `addResourcePath("user-images", "storage/images")`.
   - Fotot default mbeten te `www/images/`.

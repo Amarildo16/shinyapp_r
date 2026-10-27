@@ -91,14 +91,7 @@ server_plots <- function(input, output, session, df) {
   }
 
   .h_cap_by_step <- function(step) {
-    switch(step,
-      day     = 90L,
-      week    = 26L,
-      month   = 24L,
-      quarter = 12L,
-      year    = 10L,
-      120L
-    )
+    if (step %in% names(H_CAP)) H_CAP[[step]] else H_CAP_DEFAULT
   }
 
   .h_bounds <- function(n_real, Time) {
@@ -118,14 +111,7 @@ server_plots <- function(input, output, session, df) {
   }
 
   .roll_cap_by_step <- function(step) {
-    switch(step,
-      day     = 30L,
-      week    = 12L,
-      month   = 12L,
-      quarter = 8L,
-      year    = 5L,
-      60L
-    )
+    if (step %in% names(ROLL_CAP)) ROLL_CAP[[step]] else ROLL_CAP_DEFAULT
   }
 
   .slider_once <- reactiveValues(roll_k = FALSE, model_h = FALSE, h = FALSE)

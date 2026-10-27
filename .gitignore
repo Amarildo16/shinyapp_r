@@ -19,3 +19,4 @@ _to_delete/
 
 # Skedarët që testthat krijon kur dështon një test
 tests/testthat/_problems/
+tests/testthat/testthat-problems.rds

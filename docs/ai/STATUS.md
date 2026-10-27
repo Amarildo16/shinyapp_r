@@ -1,6 +1,6 @@
 # Gjendja aktuale
 
-Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 19:50 (Faza 2 e zbatuar, pret 2 vendime; Faza 1 në `069c8fc`).
+Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 (Faza 3 e përfunduar, pa commit).
 
 ## E verifikuar
 
@@ -86,24 +86,51 @@ Provat u bënë mbi një kopje të projektit (T-04); `data/` e repo-s mbeti e pa
 | Modelimi, Internet Pct (RMSE ETS, < 1) | 0,0030 | 0,0030 |
 | Parashikimi SES, bujqësia (ME) | 116 081,8665 | 116 081,87 |
 
-**Gjetur gjatë testeve (pa i ndryshuar):** B-13 (dd-mm-YYYY lexohet gabim), B-14 (teksti me shifra lexohet si numër). Edhe `parse_time_safe(c("abc","def"))` jep mesazhin e R-së, jo të app-it.
+**Gjetur gjatë testeve:** B-13 (dd-mm-YYYY lexohej gabim) dhe B-14 (teksti me shifra lexohet si numër, pa ndryshim). Edhe `parse_time_safe(c("abc","def"))` jep mesazhin e R-së, jo të app-it.
 
-`data/` e repo-s nuk u prek; testet dhe app-i punuan mbi sandbox/kopje. **Pa commit.**
+**Mbyllja me V-14 (2026-10-27):**
+- Kopja e 6-të e P-03 shtyhet te Faza 4.
+- **B-13 u rregullua:** formati pranohet vetëm kur teksti ka formën e plotë. Provat (Claude): kundrejt kodit të vjetër, dd-mm-YYYY doli i saktë në 300/300 raste; 2 100 raste të formateve të tjera dolën identike; 0 ndryshime aty ku kodi i vjetër ishte i saktë. Q29: 43 teste, 230 pritje, 0 dështime, 0 skip. Q30 24/24. Në app, `monthly_ddmmyyyy.csv` lexohet 2021-01-01 – 2022-12-01, pa errore.
+
+`data/` e repo-s nuk u prek; testet dhe app-i punuan mbi sandbox/kopje. Commit-et e përdoruesit: `7ef2eed`, `c1c7048`.
+
+## Faza 3 — rezultati (2026-10-27, Claude Code)
+
+**Migrimi i të dhënave (U-04, V-05, T-08, T-13)**
+
+Në nisjen e parë të versionit të ri, `init_storage()` (te `app.R`, para UI-së):
+1. krijon `storage/datasets`, `storage/images`, `storage/state` (`storage/` është në `.gitignore`);
+2. nëse ka JSON te `data/`, i ruan si kopje rezervë te `storage/state/backup-<data>/`;
+3. kopjon CSV-të e `data/` te `storage/datasets`. Dataset-et e listuara në state-in e vjetër që nuk janë te `data/` merren nga `data/samples/`;
+4. kopjon `datasets_state.json` dhe `background_state.json` te `storage/state`;
+5. nëse `storage/datasets` mbetet bosh, kopjon shembujt nga `data/samples/`;
+6. shkruan `storage/state/storage.json` (çfarë u kopjua, kur, ku është rezerva). Nga kjo pikë, migrimi nuk bëhet më.
+
+Asgjë nuk fshihet apo mbishkruhet te `data/`, dhe një skedar që ekziston te `storage/` nuk mbishkruhet. Çdo kopje verifikohet me md5; nëse një kopje dështon, shënuesi nuk shkruhet dhe migrimi provohet sërish herën tjetër. Emrat e skedarëve në state mbeten të njëjtë, ndaj konfigurimet (koha, seritë, dataset-i aktiv, fotot për faqe) mbeten të vlefshme. Pastrimi i `data/` të vjetër bëhet vetëm me kërkesë të përdoruesit.
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| `config.R` | `PAGES` (ID-të ekzistuese: `stationary`, jo `stationarity`), `H_CAP`/`ROLL_CAP`, `DUP_POLICY`/`FREQ_POLICY`, `SERIES_COLORS`, shtigjet e `storage/`, `LANGS` | `test-config.R`; Q30 24/24 (kufijtë e slider-ave = referenca) |
+| `storage.R` | `init_storage()`, `read_settings()`/`write_settings()` | `test-storage.R` (Q02, Q03, pa mbishkrim, migrim një herë) |
+| Shembujt | `data/*.csv` → `data/samples/` (`git mv`) | — |
+| `ui_components.R`, `mod_nav.R` | `app_page()`, sidebar/topbar/preloader/modalet nga funksione; menyja, titujt dhe kartat e background-it nga `PAGES` | HTML-ja shqip identike me të vjetrën, përveç `data-nav-tab` dhe seksionit "Gjuha" (diff i plotë) |
+| JS (P-12) | `sidebar.js` dhe `bg.js` lexojnë faqet nga `data-nav-tab` | `grep` pa ID; browser: butoni aktiv dhe titulli ndjekin faqen |
+| i18n (V-09) | `R/i18n.R`, `i18n/sq.json` + `en.json` (37 çelësa), gjuha në Settings, `session$reload()`, formati i numrave sipas gjuhës | `test-i18n.R` (Q32 i pjesshëm); browser Q31 i pjesshëm |
+| Q29 | 11 skedarë, 55 teste, 290 pritje: **0 dështime** | `testthat::test_dir()` |
+| Smoke test | Kopje me `data/` të vjetër + një CSV "i zyshës": migrimi solli 3 dataset-e dhe `data/` mbeti md5-identike. Q01 (V-13), Q04, Q09–Q14 (të 6 faqet vizatohen pa errore), Q20 (Save → `storage/state`), Q24 (390 px, Escape), Q31: anglisht → menyja, Settings, modalet dhe numrat ("63.50") në anglisht; gjuha dhe background-i ruhen pas rinisjes; kthimi në shqip punon | browser (Playwright) mbi kopjen |
+
+**Kufizime (të planifikuara):** kokat e tabelave, grafikët dhe mesazhet e faqeve janë ende shqip edhe në anglisht (kalojnë në `tr()` në Fazat 4–7). Fotot e ngarkuara shkojnë ende te `www/images/` (Faza 6). Inputet e fshehura `data_dup`/`data_freq` mbeten deri në Fazën 4 (P-11). `plotly-animate.js` ka ende hartën `AFFECTS` me ID (Faza 7).
 
 ## Kufizime dhe shënime
 
 - Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime.
 - **Ndryshim jashtë Claude-it (2026-10-27 19:02):** `data/background_state.json` u rishkrua dhe ndryshoi vetëm `"version"` (1773411658 → 1793124137); `active_mode` mbeti `none`. `datasets_state.json` u rishkrua me të njëjtën përmbajtje. Ka gjasa që app-i të jetë nisur nga dosja e projektit. Claude nuk e preku dhe nuk e ktheu mbrapsht (të dhëna state). Nuk është pjesë e Fazës 0: mos e përfshi në commit-in e fazës, përveçse kur përdoruesi e do. Ky është pikërisht problemi U-04, që zgjidhet në Fazën 3 (`storage/`).
 - `all.equal(tolerance)` mat **diferencën mesatare relative** për çdo vektor, si e përcakton QUALITY.md. Një devijim i vogël në një element të vetëm të një vektori të gjatë "hollohet". Provat negative më lart tregojnë që devijimet e rëndësishme kapen.
-- Testet `testthat` (Q29) nuk ekzistojnë ende; krijohen në Fazën 2.
+- Testet `testthat` (Q29) ekzistojnë që nga Faza 2 (`tests/testthat/`).
 
 ## Pika e vazhdimit
 
-**Faza 0** (`531bc0c`, `517a1ae`) dhe **Faza 1** (`069c8fc`) janë të përfunduara. **Faza 2** është zbatuar dhe verifikuar, pa commit, por pret dy vendime (DECISIONS "Pyetje të hapura"):
-1. **P-03, kopja e 6-të:** shtyhet te Faza 4? Me miratimin, Faza 2 mbyllet.
-2. **B-13:** rregullohet dd-mm-YYYY tani, si hap i vogël i Fazës 2?
-
-Pastaj: commit i përdoruesit (`refactor(faza-2): logjika e pastër te R/ + testet`) dhe "vazhdo" për [Fazën 3](steps/03-config-layout-storage.md).
+**Fazat 0, 1 dhe 2 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`). **Faza 3 është e përfunduar** (2026-10-27), pa commit. Mbetet për Fazën 4 kopja e 6-të e P-03 (V-14). Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për [Fazën 4](steps/04-moduli-datasets.md).
 
 ## Regjistri i dorëzesave
 
@@ -114,7 +141,8 @@ Pastaj: commit i përdoruesit (`refactor(faza-2): logjika e pastër te R/ + test
 | 2026-10-27 | Mbyllja e vendimeve V-08 – V-12, R26 (dygjuhësia) | DECISIONS, SPEC, TASKS, steps, QUALITY, ARCHITECTURE, ISSUES, HANDOFF | Lidhjet u rikontrolluan | Pasqyruar te ditari dhe `05 - Vendimet` |
 | 2026-10-27 | Faza 0 — Përgatitja (Claude Code) | `.gitattributes`, `.gitignore`, `install_packages.R`, renv, `tests/reference/` (3 skripte + 2 `.rds`), 15 screenshot-e | Shih "Faza 0 — rezultati"; Q01 sipas V-13 | Pasqyruar (ditari, plani, problemet, faqja kryesore, screenshots/para) |
 | 2026-10-27 | Faza 1 — Pastrimi (Claude Code) | `app.R`, `helpers.R`, `server_plots.R`, README, `.gitignore`, `www/vendor/remixicon/`, `_to_delete/` | Shih "Faza 1 — rezultati" | Pasqyruar (ditari, plani, problemet, faqja kryesore) |
-| 2026-10-27 | Faza 2 — Logjika te `R/` + testet (Claude Code) | `R/` (14 skedarë), `app.R`, `tests/testthat/`, `tests/fixtures/`, `compute_results.R`, `renv.lock`, `.gitignore` | Shih "Faza 2 — rezultati" | Pasqyruar (ditari, plani, problemet, vendimet, faqja kryesore) |
+| 2026-10-27 | Faza 2 — Logjika te `R/` + testet (Claude Code) | `R/` (14 skedarë), `app.R`, `tests/testthat/`, `tests/fixtures/`, `compute_results.R`, `renv.lock`, `.gitignore` + B-13 (V-14) | Shih "Faza 2 — rezultati" | Pasqyruar (ditari, plani, problemet, vendimet, faqja kryesore) |
+| 2026-10-27 | Faza 3 — Config, layout, storage, i18n (Claude Code) | `R/config.R`, `R/storage.R`, `R/i18n.R`, `R/ui_components.R`, `R/mod_nav.R`, `i18n/`, `app.R`, `www/js/sidebar.js`, `www/js/bg.js`, `data/samples/`, testet | Shih "Faza 3 — rezultati" | Pasqyruar (ditari, plani, problemet, vendimet, arkitektura, faqja kryesore) |
 
 ## Formati për vazhdimet
 

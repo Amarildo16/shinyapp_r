@@ -170,7 +170,7 @@ get_dataset_config <- function(st, file) {
 
 list_saved_datasets <- function() {
   sort(list.files(
-    DATA_DIR,
+    DATASETS_DIR,
     pattern = "\\.(csv|tsv|xlsx|xls)$",
     ignore.case = TRUE,
     full.names = FALSE

@@ -1,0 +1,43 @@
+{
+  "page.settings.menu": "Settings",
+  "page.settings.title": "Settings",
+  "page.overview.menu": "Overview",
+  "page.overview.title": "Time Series Analysis",
+  "page.eda_ts.menu": "Exploratory analysis – Time series",
+  "page.eda_ts.title": "EDA – Time series",
+  "page.eda_rel.menu": "Exploratory analysis – Relationships",
+  "page.eda_rel.title": "EDA – Relationships",
+  "page.stationary.menu": "Stationarity",
+  "page.stationary.title": "Stationarity",
+  "page.modeling.menu": "Modeling",
+  "page.modeling.title": "Modeling",
+  "page.forecast.menu": "Forecasting",
+  "page.forecast.title": "Forecasting",
+
+  "sidebar.settings_aria": "Settings",
+  "modal.close_aria": "Close",
+
+  "common.save": "Save",
+  "common.cancel": "Cancel",
+  "common.proceed": "Proceed",
+  "common.close": "Close",
+
+  "settings.dataset": "Dataset",
+  "settings.upload_csv": "Upload CSV",
+  "settings.background": "Background",
+  "settings.language": "Language",
+
+  "bg.mode_label": "Choose a mode",
+  "bg.mode.image": "Photo",
+  "bg.mode.color": "Color only",
+  "bg.mode.none": "No background",
+  "bg.scope_label": "Choose a photo",
+  "bg.scope.global": "Global",
+  "bg.scope.custom": "Per page",
+  "bg.global_title": "Global photo",
+  "bg.tabs_title": "Photo for each page",
+  "bg.blur": "Blur",
+  "bg.blur_strength": "Blur strength",
+  "bg.base_color": "Base color",
+  "bg.use_photo": "Use photo"
+}

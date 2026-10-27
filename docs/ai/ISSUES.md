@@ -36,8 +36,10 @@
 - [ ] **P-10 — `BG_PLACEHOLDER_SVG` definohet pasi përdoret** (`app.R:1743`). Punon vetëm falë vlerësimit të vonuar. · Faza: 6
 - [ ] **P-11 — Inputet `data_dup` dhe `data_freq` janë të fshehura.** Janë gjithmonë `mean` / `auto`, pra kod që nuk zgjidhet kurrë nga përdoruesi.
   - Zgjidhja: konstante në `config.R`, ose opsion në konfigurimin e dataset-it. · Faza: 4
+  - Faza 3 (2026-10-27): `DUP_POLICY`/`FREQ_POLICY` te `config.R` (vlerat default të inputeve të fshehura). Inputet hiqen në Fazën 4.
 - [ ] **P-12 — Lista e faqeve përsëritet në 5 vende.** Butonat në UI, `TITLE_MAP`, `BG_TABS`, `MAP` te `sidebar.js` dhe `AFFECTS` te `plotly-animate.js`.
   - Zgjidhja: `PAGES` në `config.R`, ku UI dhe JS gjenerohen prej saj. · Faza: 3
+  - Faza 3 (2026-10-27): butonat e sidebar-it, tab-et, `TITLE_MAP` (→ `page_title()`), `BG_TABS` dhe harta e `sidebar.js` gjenerohen nga `PAGES`; `bg.js` nuk ka më ID. Prova: diff i HTML-së, `grep`, browser. **Mbetet:** `AFFECTS` te `plotly-animate.js` (Faza 7).
 
 ## B — Bug-e
 
@@ -71,7 +73,7 @@
   - "Shiny server has sent a progress message for model_plot, but the output is in an unexpected state" (+ "recalculating"/"recalculated" … "idle"). Vjen nga `shiny::withProgress()` brenda reaktivit `.model_fits()` (`server_plots.R:1316`); i njëjti model te `arima_fit()` (`server_plots.R:1572`). Grafiku dhe tabela shfaqen saktë.
   - Zgjidhja: llogaritja e modeleve jashtë render-it (`model_store`, P-07), progres pa `withProgress` brenda `reactive()`. · Faza: 5
 - [x] **B-13 — Formati dd-mm-YYYY lexohet gabim** (mbyllur 2026-10-27 me V-14: formati pranohet vetëm kur teksti ka formën e plotë; prova: 300/300 raste dd-mm-YYYY të sakta, 2 100 raste të formateve të tjera identike me kodin e vjetër, Q29 0 dështime, Q30 24/24, në app dataset-i dd-mm-YYYY lexohet saktë — Claude) (gjetur në Fazën 2, 2026-10-27). `parse_time_safe(c("15-03-2021", "16-03-2021"))` → `0015-03-20`, `0016-03-20`: formati `%Y-%m-%d` provohet i pari dhe `as.Date` injoron karakteret e tepërta. R08 e liston dd-mm-YYYY si të mbështetur.
-  - Zgjidhja e propozuar: një format pranohet vetëm kur teksti përputhet plotësisht. Ndryshon rezultatin e parsimit, ndaj pret vendimin (DECISIONS "Pyetje të hapura"). Testi ekziston me `skip` te `test-data_parse.R`. · Faza: 2 (pas vendimit)
+  - Zgjidhja (V-14, `c1c7048`): një format pranohet vetëm kur teksti ka formën e plotë të formatit. Testi te `test-data_parse.R` ekzekutohet dhe kalon. · Faza: 2
 - [ ] **B-14 — `to_numeric_safe()` lexon tekstin me shifra si numër** (gjetur në Fazën 2). Shkronjat hiqen, kështu që "shenim 2015" → 2015, dhe një kolonë shënimesh mund të dalë "numerike" (pragu 0.70). Sjellje ekzistuese, e dokumentuar në test; ndryshimi do prekte zbulimin e kolonave (R05). Diskutohet para çdo ndryshimi. · Faza: e pacaktuar
 
 ## D — Kod dhe asete të vdekura
@@ -98,11 +100,13 @@
 ## U — Konsistencë dhe UX
 
 - [ ] **U-01 — Gjuha e përzier.** Vendimi: UI dygjuhëshe sq/en me `tr()` (V-09, R26). Etiketa në anglisht: Settings, Save, Proceed, Cancel, Library, Upload, Blur strength, Edit. · Faza: 8
+  - Faza 3 (2026-10-27): infrastruktura `tr()` + `i18n/`; layout-i, sidebar-i, topbar-i, Settings dhe modalet kalojnë nga `tr()`. Vlerat shqip janë tekstet e sotme (T-12), ndaj përzierja rregullohet te `sq.json` në Fazën 8.
 - [ ] **U-02 — Gabime drejtshkrimi.** "ndërtu", "u lexu", "Backround" (në koment). · Faza: 8
 - [x] **U-03 — `.gitignore` ka `.Rproj`.** Duhet `*.Rproj`. · Faza: 0
   - Mbyllur 2026-10-27: `.Rproj` → `*.Rproj`; u shtuan `storage/` dhe `renv/library|staging|local/`. Prova: `git diff .gitignore` (Claude).
 - [ ] **U-04 — Ngarkimet e përdoruesit shkruhen brenda kodit** (`data/`, `www/images/`).
   - Zgjidhja: folderi `storage/`. · Faza: 3
+  - Faza 3 (2026-10-27): CSV-të dhe state-i shkojnë te `storage/` me migrim që kopjon (T-08); `data/` nuk shkruhet më. Prova: `test-storage.R` (Q02, Q03), browser mbi kopje me `data/` të vjetër. **Mbetet:** fotot e ngarkuara (`www/images/` → `storage/images/`, Faza 6).
 - [ ] **U-05 — CSS ka 135 `!important` dhe selektorë të përsëritur.** P.sh. `.bg-tab-card`, `.media-card` dhe `.bg-tabs-grid` janë definuar 2–3 herë. · Faza: 7
 - [x] **U-06 — Line endings ndryshojnë vetvetiu.** Vendimi: discard i ndryshimit aktual (V-12) + `.gitattributes`. Windows i kthen në CRLF, kështu që `datasets_state.json` del si i ndryshuar edhe pa ndryshim real.
   - Zgjidhja: `.gitattributes`. · Faza: 0

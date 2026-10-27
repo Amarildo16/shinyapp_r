@@ -1,12 +1,12 @@
 # Faza 02 — Logjika e pastër → `R/` + testet
 
-Statusi: **në punë** (2026-10-27): e zbatuar dhe e verifikuar; pret vendimin për kopjen e 6-të të P-03. Kërkesat: R05, R08, R15, R21, R22. Problemet: P-01 (pjesë), P-02, P-03, B-01, D-05. Vendimet: T-05, T-06, T-07.
+Statusi: **i përfunduar** (2026-10-27; `7ef2eed`, `c1c7048`). Kopja e 6-të e P-03 shtyhet te Faza 4 (V-14). Kërkesat: R05, R08, R15, R21, R22. Problemet: P-01 (pjesë), P-02, P-03, B-01, D-05, B-13. Vendimet: T-05, T-06, T-07, V-14.
 
 > [!note] Rezultati (2026-10-27)
 > - Lëvizja u bë me skript nga `srcref`. 62/62 objekte dolën identike me origjinalin para fshirjes së `helpers.R`. `has_zoo`/`has_readxl` (të papërdorura) nuk u kaluan.
 > - Hapi 5: Shiny nuk vendos `shiny.appdir`, por bën `setwd(appDir)`. Me kodin te `R/`, dega e RStudio-s mund të jepte `R/`; u rregullua me T-06.
-> - Hapi 7: kopja e `time_col()` te `legacy_server_plots.R` ka rregulla të tjera ("Year" para kandidatëve) dhe nuk u prek (shih "Mos bëj"). Propozimi: Faza 4.
-> - Testet gjetën dy probleme ekzistuese, të regjistruara pa ndryshim: B-13, B-14.
+> - Hapi 7: kopja e `time_col()` te `legacy_server_plots.R` ka rregulla të tjera ("Year" para kandidatëve) dhe nuk u prek (shih "Mos bëj"). Shtyhet te Faza 4 (V-14).
+> - Testet gjetën dy probleme ekzistuese: B-13 u rregullua me V-14 (format i pranuar vetëm kur teksti ka formën e plotë); B-14 mbetet i regjistruar pa ndryshim.
 > - Testet: `tests/testthat/helper-app.R` ngarkon `R/` me `loadSupport()` në një sandbox. Përveç 5 skedarëve të kërkuar u shtuan `test-config.R`, `test-state.R` (funksionet e pastra të state-it) dhe `test-plot_theme.R`.
 > - Provat: STATUS.md "Faza 2 — rezultati".
 

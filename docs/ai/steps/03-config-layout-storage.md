@@ -1,6 +1,12 @@
 # Faza 03 — Config, layout, storage, i18n
 
-Statusi: **i pafilluar**. Kërkesat: R07, R20, R22, R23, R26. Problemet: P-11, P-12, U-04, U-01 (infrastruktura). Vendimet: V-05, V-09.
+Statusi: **i përfunduar** (2026-10-27, pa commit). Kërkesat: R07, R20, R22, R23, R26. Problemet: P-11 (konstantet), P-12 (pa `AFFECTS`), U-04 (pa fotot), U-01 (infrastruktura). Vendimet: V-05, V-09, T-08 – T-13.
+
+> [!note] Rezultati (2026-10-27)
+> - Migrimi bëhet një herë, me shënues; dataset-et e state-it të vjetër që mungojnë te `data/` merren nga `data/samples/`; çdo kopje verifikohet me md5 (T-08). Përshkrimi i plotë: STATUS.md "Faza 3 — rezultati".
+> - `PAGES` ruan ID-të ekzistuese (`stationary`), sepse përdoren nga JS dhe nga `background_state.json`.
+> - `ui` u bë `function(req)` (T-11); navigimi është `mod_nav_server()` pa `moduleServer()` (T-10).
+> - `sq.json` mban tekstet e sotme (T-12), që pamja shqip të mbetet identike; diff-i i HTML-së e vërteton.
 
 ## Qëllimi
 

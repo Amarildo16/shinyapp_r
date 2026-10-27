@@ -16,737 +16,513 @@ suppressPackageStartupMessages({
 })
 options(scipen = 999)
 
+# Të dhënat e përdoruesit te storage/ (migrim që kopjon) dhe gjuha nga settings.json.
+init_storage()
+set_lang(read_settings()$lang)
+
+# ui si funksion: lexohet për çdo kërkesë, që pas session$reload() të dalin
+# gjuha e re dhe state-i i ruajtur i background-it.
+ui <- function(req) {
   BG_STATE <- read_bg_state()
 
-ui <- fluidPage(
-  shinyjs::useShinyjs(),
-
-  tags$head(
-    tags$meta(name="viewport", content="width=device-width, initial-scale=1"),
-    tags$link(rel="stylesheet", href="vendor/filepond/filepond.min.css"),
-    tags$link(rel="stylesheet", type="text/css", href="css/custom-style.css"),
-    tags$link(rel="icon", type="image/png", href="favicon/favicon.png"),
-    tags$script(src="vendor/filepond/filepond.min.js"),
-    tags$script(src="vendor/filepond/filepond-plugin-file-validate-type.min.js"),
-    tags$script(src="vendor/filepond/filepond-plugin-file-validate-size.min.js"),
-    tags$script(src="js/bg.js"),
-    tags$script(src="js/sidebar.js"),
-    tags$script(src="js/plotly-animate.js"),
-    tags$link(rel = "stylesheet", href = "vendor/remixicon/remixicon.css"),
-    tags$script(src="js/custom.js")
-  ),
-
-  tags$div(
-    id = "preloader",
-    tags$div(
-      id = "status",
-      tags$div(
-        class = "loading",
-        tags$span(), tags$span(), tags$span(), tags$span(), tags$span()
-      )
-    )
-  ),
-
-  div(
-    style = "display:none;",
-    textInput("data_source", label = NULL, value = ""),
-    selectInput("data_time_col", label = NULL, choices = character(0)),
-    selectizeInput("data_value_cols", label = NULL, choices = character(0), multiple = TRUE),
-    selectInput("data_dup", label = NULL, choices = c("mean","sum","first","last"), selected = "mean"),
-    selectInput("data_freq", label = NULL, choices = c("auto","yearly","quarterly","monthly","weekly","daily"), selected = "auto")
-  ),
-
-  # Background
-  tags$div(
-    id = "bg-wrapper",
-    tags$div(
-      class = "bg-layer current",
-      style = "background-color:#0b1c24; background-image:none;"
-    ),
-    tags$div(class = "bg-layer next")
-  ),
-  tags$div(id = "bg-overlay"),
-
-  div(
-    class = "app-shell",
-
-    # Backdrop
-    tags$div(
-      id = "sidebar_backdrop",
-      class = "sidebar-backdrop",
-      `aria-hidden` = "true"
+  app_page(
+    hidden_inputs = div(
+      style = "display:none;",
+      textInput("data_source", label = NULL, value = ""),
+      selectInput("data_time_col", label = NULL, choices = character(0)),
+      selectizeInput("data_value_cols", label = NULL, choices = character(0), multiple = TRUE),
+      selectInput("data_dup", label = NULL, choices = c("mean","sum","first","last"), selected = DUP_POLICY),
+      selectInput("data_freq", label = NULL, choices = c("auto","yearly","quarterly","monthly","weekly","daily"), selected = FREQ_POLICY)
     ),
 
-    # Sidebar
-    div(
-      id = "app_sidebar",
-      class = "app-sidebar",
+    main_tabs = tabsetPanel(
+      id = "main_tabs",
+      type = "hidden",
+      selected = page_tab(DEFAULT_PAGE),
 
-      div(
-        class = "sidebar-main",
+      tabPanel(
+        title = tr("page.settings.menu"),
+        value = page_tab("settings"),
 
+        div(class="glass-divider"),
+
+        # ===== Dataset section =====
         div(
-          class = "menu-title-row",
-          div(class = "menu-title", "Time Series Analysis"),
-
+          class = "overview-top",
+          h4(tr("settings.dataset")),
           actionButton(
-            "go_settings",
-            label = NULL,
-            icon = tags$i(class = "ri-settings-5-line"),
-            class = "settings-icon-btn",
-            `aria-label` = "Settings"
+            "btn_open_upload",
+            tr("settings.upload_csv"),
+            class = "glass-btn ajax-modal-sm",
+            `data-modal` = "upload",
+            `data-title` = tr("settings.upload_csv")
           )
         ),
-        actionButton("go_overview",       "Përmbledhje",                         class = "btn btn-light nav-btn"),
-        actionButton("go_eda_ts",         "Analiza eksploruese – Seri kohore",   class = "btn btn-light nav-btn"),
-        actionButton("go_eda_rel",        "Analiza eksploruese – Marrëdhënie",   class = "btn btn-light nav-btn"),
-        actionButton("go_stationary",     "Stacionariteti",                      class = "btn btn-light nav-btn"),
-        actionButton("go_modeling",       "Modelimi",                            class = "btn btn-light nav-btn"),
-        actionButton("go_forecast",       "Parashikimi",                         class = "btn btn-light nav-btn")
+        uiOutput("saved_datasets_ui"),
+
+        div(class="glass-divider"),
+
+        # ===== Background section =====
+        section_box(
+          h4(tr("settings.background")),
+
+          radioButtons(
+            "bg_mode",
+            tr("bg.mode_label"),
+            choices  = setNames(c("image", "color", "none"),
+                                c(tr("bg.mode.image"), tr("bg.mode.color"), tr("bg.mode.none"))),
+            selected = BG_STATE$active_mode %||% "image",
+            inline   = TRUE
+          ),
+
+          conditionalPanel(
+            condition = "input.bg_mode == 'image'",
+
+            radioButtons(
+              "bg_scope",
+              tr("bg.scope_label"),
+              choices  = setNames(c("global", "custom"), c(tr("bg.scope.global"), tr("bg.scope.custom"))),
+              selected = BG_STATE$modes$image$active_scope %||% "custom",
+              inline   = TRUE
+            ),
+
+            conditionalPanel(
+              condition = "input.bg_scope == 'global'",
+              tags$div(class = "bg-tabs-title", tr("bg.global_title")),
+              uiOutput("bg_global_card")
+            ),
+
+            conditionalPanel(
+              condition = "input.bg_scope == 'custom'",
+              tags$div(class = "bg-tabs-title", tr("bg.tabs_title")),
+              uiOutput("bg_tab_cards")
+            ),
+
+            checkboxInput(
+              "bg_blur_on",
+              tr("bg.blur"),
+              value = isTRUE(BG_STATE$modes$image$blur$on)
+            ),
+
+            sliderInput(
+              "bg_blur",
+              tr("bg.blur_strength"),
+              min   = 0,
+              max   = 20,
+              value = as.numeric(BG_STATE$modes$image$blur$amount %||% 10),
+              step  = 1
+            )
+          ),
+
+          conditionalPanel(
+            condition = "input.bg_mode == 'color'",
+
+            tags$label(tr("bg.base_color")),
+
+            tags$div(
+              id = "bg_color_grid",
+              class = "bg-color-grid",
+              lapply(c(
+                "#0b1c24", "#111827", "#1f2937", "#374151", "#6b7280",
+                "#ef4444", "#f97316", "#f59e0b", "#eab308",
+                "#22c55e", "#10b981", "#06b6d4", "#3b82f6",
+                "#6366f1", "#8b5cf6", "#ec4899"
+              ), function(hex) {
+                tags$button(
+                  type = "button",
+                  class = "bg-color-swatch",
+                  `data-color` = hex,
+                  style = paste0("background:", hex, ";"),
+                  title = hex
+                )
+              })
+            ),
+
+            tags$div(
+              class = "bg-color-row",
+              tags$input(
+                id    = "bg_color",
+                type  = "color",
+                value = BG_STATE$modes$color$value %||% "#0b1c24",
+                style = "width:140px;height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:transparent;"
+              ),
+              tags$span(id="bg_color_hex_txt", class="bg-color-hex", "")
+            )
+          ),
+
+          div(
+            class = "bg-save-row",
+            actionButton("bg_save", tr("common.save"), class = "glass-btn"),
+            uiOutput("bg_dirty_badge")
+          )
+        ),
+
+        div(class = "glass-divider"),
+
+        # ===== Gjuha (V-09) =====
+        section_box(
+          h4(tr("settings.language")),
+          radioButtons(
+            "app_lang",
+            label    = NULL,
+            choices  = setNames(names(LANGS), unname(LANGS)),
+            selected = current_lang(),
+            inline   = TRUE
+          )
+        )
       ),
 
-      div(class = "glass-divider"),
-
-      div(
-        class = "sidebar-footer",
-        tags$small(class = "footer-by", "By Amarildo Alla"),
-
-        tags$div(
-          class = "footer-social",
-
-          tags$a(
-            href   = "https://instagram.com/amarildo__alla",
-            target = "_blank",
-            rel    = "noopener noreferrer",
-            class  = "social-link",
-            `aria-label` = "Instagram",
-            tags$i(class = "ri-instagram-line")
-          ),
-
-          tags$a(
-            href   = "https://al.linkedin.com/in/amarildo-alla-49a793316",
-            target = "_blank",
-            rel    = "noopener noreferrer",
-            class  = "social-link",
-            `aria-label` = "LinkedIn",
-            tags$i(class = "ri-linkedin-box-line")
-          ),
-
-          tags$a(
-            href   = "https://github.com/Amarildo16",
-            target = "_blank",
-            rel    = "noopener noreferrer",
-            class  = "social-link",
-            `aria-label` = "GitHub",
-            tags$i(class = "ri-github-line")
-          )
-        )
-      )
-    ),
-    # App content
-    div(
-      class = "app-content",
-      div(
-        class = "app-content-inner",
+      tabPanel(
+        title = tr("page.overview.menu"),
+        value = page_tab("overview"),
 
         div(
-          class = "app-topbar",
-          tags$button(
-            type = "button",
-            class = "hamburger-btn",
-            id = "toggle_sidebar",
-            tags$span(), tags$span(), tags$span()
-          ),
-          div(class = "app-title", textOutput("topbar_title"))
+          class = "section-box",
+          h4("Të dhënat e serive të zgjedhura"),
+          div(class = "table-wrap", DT::DTOutput("ts_selected_tbl"))
         ),
 
-        tabsetPanel(
-          id = "main_tabs",
-          type = "hidden",
-          selected = "tab_overview",
-          
-          tabPanel(
-            title = "Settings",
-            value = "tab_settings",
+        div(class = "glass-divider"),
 
-            div(class="glass-divider"),
+        fluidRow(
+          column(
+            6,
 
-            # ===== Dataset section =====
-            div(
-              class = "overview-top",
-              h4("Dataset"),
-              actionButton(
-                "btn_open_upload",
-                "Ngarko CSV",
-                class = "glass-btn ajax-modal-sm",
-                `data-modal` = "upload",
-                `data-title` = "Ngarko CSV"
-              )
-            ),
-            uiOutput("saved_datasets_ui"),
-
-            div(class="glass-divider"),
-
-            # ===== Background section =====
             div(
               class = "section-box",
-              h4("Background"),
+              h4("Përshkrimi i variablave"),
+              tableOutput("variables_tbl")
+            ),
 
-              radioButtons(
-                "bg_mode",
-                "Zgjidh mënyrën",
-                choices  = c("Foto" = "image", "Vetëm ngjyrë" = "color", "Pa background" = "none"),
-                selected = BG_STATE$active_mode %||% "image",
-                inline   = TRUE
-              ),
+            tags$details(
+              class = "section-box",
+              open = FALSE,
+              tags$summary(tags$strong("Metodologjia")),
+              tags$ul(
+                tags$li("Analizë eksploruese: prirje, variabilitet dhe shpërndarje"),
+                tags$li("Stacionaritet: testi ADF dhe diferencimi kur kërkohet"),
+                tags$li("Parashikim: SES/Holt dhe ARIMA")
+              )
+            )
+          ),
 
-              conditionalPanel(
-                condition = "input.bg_mode == 'image'",
+          column(
+            6,
 
-                radioButtons(
-                  "bg_scope",
-                  "Zgjidh foto",
-                  choices  = c("Global" = "global", "Custom për faqe" = "custom"),
-                  selected = BG_STATE$modes$image$active_scope %||% "custom",
-                  inline   = TRUE
-                ),
+            div(
+              class = "section-box",
+              h4("Informacion mbi të dhënat"),
+              tableOutput("data_info_tbl")
+            ),
 
-                conditionalPanel(
-                  condition = "input.bg_scope == 'global'",
-                  tags$div(class = "bg-tabs-title", "Foto globale"),
-                  uiOutput("bg_global_card")
-                ),
+            div(
+              class = "section-box",
+              h4("Statistika përmbledhëse"),
+              tableOutput("summary_tbl")
+            )
+          )
+        )
+      ),
 
-                conditionalPanel(
-                  condition = "input.bg_scope == 'custom'",
-                  tags$div(class = "bg-tabs-title", "Foto për çdo tab"),
-                  uiOutput("bg_tab_cards")
-                ),
+      tabPanel(
+        title = tr("page.eda_ts.menu"),
+        value = page_tab("eda_ts"),
 
-                checkboxInput(
-                  "bg_blur_on",
-                  "Blur",
-                  value = isTRUE(BG_STATE$modes$image$blur$on)
-                ),
+        div(class = "glass-divider"),
 
-                sliderInput(
-                  "bg_blur",
-                  "Blur strength",
-                  min   = 0,
-                  max   = 20,
-                  value = as.numeric(BG_STATE$modes$image$blur$amount %||% 10),
-                  step  = 1
-                )
-              ),
+        div(
+          class = "section-box",
+          h3("Analiza eksploruese e të dhënave – Seri kohore"),
+          p("Në këtë seksion shqyrtohen forma e serisë, prirja (trendi), variabiliteti dhe karakteristikat e shpërndarjes.")
+        ),
 
-              conditionalPanel(
-                condition = "input.bg_mode == 'color'",
+        sidebarLayout(
+          position = "left",
 
-                tags$label("Ngjyra bazë"),
+          sidebarPanel(
+            selectInput("eda_series", "Përzgjidhni serinë", choices = character(0)),
 
-                tags$div(
-                  id = "bg_color_grid",
-                  class = "bg-color-grid",
-                  lapply(c(
-                    "#0b1c24", "#111827", "#1f2937", "#374151", "#6b7280",
-                    "#ef4444", "#f97316", "#f59e0b", "#eab308",
-                    "#22c55e", "#10b981", "#06b6d4", "#3b82f6",
-                    "#6366f1", "#8b5cf6", "#ec4899"
-                  ), function(hex) {
-                    tags$button(
-                      type = "button",
-                      class = "bg-color-swatch",
-                      `data-color` = hex,
-                      style = paste0("background:", hex, ";"),
-                      title = hex
-                    )
-                  })
-                ),
+            sliderInput(
+              "roll_k",
+              "Dritarja lëvizëse",
+              min = 3,
+              max = 3,
+              value = 3,
+              step = 1
+            )
+          ),
 
-                tags$div(
-                  class = "bg-color-row",
-                  tags$input(
-                    id    = "bg_color",
-                    type  = "color",
-                    value = BG_STATE$modes$color$value %||% "#0b1c24",
-                    style = "width:140px;height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:transparent;"
-                  ),
-                  tags$span(id="bg_color_hex_txt", class="bg-color-hex", "")
-                )
-              ),
-
+          mainPanel(
+            div(
+              class = "section-box",
               div(
-                class = "bg-save-row",
-                actionButton("bg_save", "Save", class = "glass-btn"),
-                uiOutput("bg_dirty_badge")
-              )
-            )
-          ),
-
-          tabPanel(
-            title = "Përmbledhje",
-            value = "tab_overview",
-
-            div(
-              class = "section-box",
-              h4("Të dhënat e serive të zgjedhura"),
-              div(class = "table-wrap", DT::DTOutput("ts_selected_tbl"))
-            ),
-
-            div(class = "glass-divider"),
-
-            fluidRow(
-              column(
-                6,
-
-                div(
-                  class = "section-box",
-                  h4("Përshkrimi i variablave"),
-                  tableOutput("variables_tbl")
-                ),
-
-                tags$details(
-                  class = "section-box",
-                  open = FALSE,
-                  tags$summary(tags$strong("Metodologjia")),
-                  tags$ul(
-                    tags$li("Analizë eksploruese: prirje, variabilitet dhe shpërndarje"),
-                    tags$li("Stacionaritet: testi ADF dhe diferencimi kur kërkohet"),
-                    tags$li("Parashikim: SES/Holt dhe ARIMA")
-                  )
-                )
+                class = "plot-container",
+                plotlyOutput("eda_ts_raw", height = "360px")
               ),
-
-              column(
-                6,
-
-                div(
-                  class = "section-box",
-                  h4("Informacion mbi të dhënat"),
-                  tableOutput("data_info_tbl")
-                ),
-
-                div(
-                  class = "section-box",
-                  h4("Statistika përmbledhëse"),
-                  tableOutput("summary_tbl")
-                )
-              )
-            )
-          ),
-
-          tabPanel(
-            title = "Analiza eksploruese – Seri kohore",
-            value = "tab_eda_ts",
+              tags$small(textOutput("cap_eda_ts_raw"))
+            ),
 
             div(class = "glass-divider"),
 
             div(
               class = "section-box",
-              h3("Analiza eksploruese e të dhënave – Seri kohore"),
-              p("Në këtë seksion shqyrtohen forma e serisë, prirja (trendi), variabiliteti dhe karakteristikat e shpërndarjes.")
-            ),
-
-            sidebarLayout(
-              position = "left",
-
-              sidebarPanel(
-                selectInput("eda_series", "Përzgjidhni serinë", choices = character(0)),
-
-                sliderInput(
-                  "roll_k",
-                  "Dritarja lëvizëse",
-                  min = 3,
-                  max = 3,
-                  value = 3,
-                  step = 1
-                )
+              div(
+                class = "plot-container",
+                plotlyOutput("eda_ts_roll", height = "360px")
               ),
-
-              mainPanel(
-                div(
-                  class = "section-box",
-                  div(
-                    class = "plot-container",
-                    plotlyOutput("eda_ts_raw", height = "360px")
-                  ),
-                  tags$small(textOutput("cap_eda_ts_raw"))
-                ),
-
-                div(class = "glass-divider"),
-
-                div(
-                  class = "section-box",
-                  div(
-                    class = "plot-container",
-                    plotlyOutput("eda_ts_roll", height = "360px")
-                  ),
-                  tags$small(textOutput("cap_eda_ts_roll"))
-                ),
-
-                div(class = "glass-divider"),
-
-                div(
-                  class = "section-box",
-                  div(
-                    class = "plot-container",
-                    plotlyOutput("eda_ts_dist", height = "360px")
-                  ),
-                  tags$small(textOutput("cap_eda_ts_dist"))
-                )
-              )
-            )
-          ),
-
-          tabPanel(
-            title = "Analiza eksploruese – Marrëdhënie",
-            value = "tab_eda_rel",
+              tags$small(textOutput("cap_eda_ts_roll"))
+            ),
 
             div(class = "glass-divider"),
 
             div(
               class = "section-box",
-              h3("Analiza eksploruese e të dhënave – Marrëdhënie"),
-              p("Në këtë seksion analizohen marrëdhëniet ndërmjet variablave kryesore bujqësore, përmes grafikëve dhe matricës së korrelacionit.")
-            ),
-
-            sidebarLayout(
-              position = "left",
-
-              sidebarPanel(
-                selectInput("rel_x", "Përzgjidhni variablën X", choices = character(0)),
-
-                selectInput("rel_y", "Përzgjidhni variablën Y", choices = character(0))
+              div(
+                class = "plot-container",
+                plotlyOutput("eda_ts_dist", height = "360px")
               ),
-
-              mainPanel(
-                div(
-                  class = "section-box",
-                  h4("Grafiku i shpërndarjes (Scatter plot)"),
-                  div(
-                    class = "plot-wrap",
-                    plotlyOutput("eda_rel_scatter", height = "420px")
-                  ),
-                  tags$small(textOutput("cap_eda_rel_scatter"))
-                ),
-
-                div(class = "glass-divider"),
-
-                div(
-                  class = "section-box",
-                  h4("Matrica e korrelacionit"),
-                  div(
-                    class = "plot-wrap",
-                    plotlyOutput("eda_rel_corr", height = "420px")
-                  ),
-                  tags$small(textOutput("cap_eda_rel_corr"))
-                )
-              )
+              tags$small(textOutput("cap_eda_ts_dist"))
             )
+          )
+        )
+      ),
+
+      tabPanel(
+        title = tr("page.eda_rel.menu"),
+        value = page_tab("eda_rel"),
+
+        div(class = "glass-divider"),
+
+        div(
+          class = "section-box",
+          h3("Analiza eksploruese e të dhënave – Marrëdhënie"),
+          p("Në këtë seksion analizohen marrëdhëniet ndërmjet variablave kryesore bujqësore, përmes grafikëve dhe matricës së korrelacionit.")
+        ),
+
+        sidebarLayout(
+          position = "left",
+
+          sidebarPanel(
+            selectInput("rel_x", "Përzgjidhni variablën X", choices = character(0)),
+
+            selectInput("rel_y", "Përzgjidhni variablën Y", choices = character(0))
           ),
 
-          tabPanel(
-            title = "Stacionariteti",
-            value = "tab_stationary",
+          mainPanel(
+            div(
+              class = "section-box",
+              h4("Grafiku i shpërndarjes (Scatter plot)"),
+              div(
+                class = "plot-wrap",
+                plotlyOutput("eda_rel_scatter", height = "420px")
+              ),
+              tags$small(textOutput("cap_eda_rel_scatter"))
+            ),
 
             div(class = "glass-divider"),
 
             div(
               class = "section-box",
-              h3("Stacionariteti dhe transformimet"),
-              p("Në këtë seksion vlerësohet stacionariteti i serive kohore dhe paraqiten transformimet e nevojshme për modelim (p.sh. diferencimi).")
-            ),
-
-            sidebarLayout(
-              position = "left",
-
-              sidebarPanel(
-                selectInput("stat_series", "Përzgjidhni serinë", choices = character(0))
+              h4("Matrica e korrelacionit"),
+              div(
+                class = "plot-wrap",
+                plotlyOutput("eda_rel_corr", height = "420px")
               ),
-
-              mainPanel(
-                div(
-                  class = "section-box",
-                  h4("Diferenca e parë (First difference)"),
-                  div(
-                    class = "plot-wrap",
-                    plotlyOutput("stat_diff_plot", height = "360px")
-                  ),
-                  tags$small(textOutput("cap_stat_diff_plot"))
-                ),
-
-                div(class = "glass-divider"),
-
-                div(
-                  class = "section-box",
-                  h4("ACF dhe PACF"),
-                  div(
-                    class = "plot-wrap",
-                    plotlyOutput("stat_acf_pacf", height = "420px")
-                  ),
-                  tags$small(textOutput("cap_stat_acf_pacf"))
-                ),
-
-                div(class = "glass-divider"),
-
-                div(
-                  class = "section-box",
-                  h4("Testi ADF"),
-                  div(
-                    class = "table-wrap",
-                    tableOutput("stat_adf_tbl"),
-                    uiOutput("stat_adf_note")
-                  )
-                )
-              )
+              tags$small(textOutput("cap_eda_rel_corr"))
             )
+          )
+        )
+      ),
+
+      tabPanel(
+        title = tr("page.stationary.menu"),
+        value = page_tab("stationary"),
+
+        div(class = "glass-divider"),
+
+        div(
+          class = "section-box",
+          h3("Stacionariteti dhe transformimet"),
+          p("Në këtë seksion vlerësohet stacionariteti i serive kohore dhe paraqiten transformimet e nevojshme për modelim (p.sh. diferencimi).")
+        ),
+
+        sidebarLayout(
+          position = "left",
+
+          sidebarPanel(
+            selectInput("stat_series", "Përzgjidhni serinë", choices = character(0))
           ),
 
-          tabPanel(
-            title = "Modelimi",
-            value = "tab_modeling",
+          mainPanel(
+            div(
+              class = "section-box",
+              h4("Diferenca e parë (First difference)"),
+              div(
+                class = "plot-wrap",
+                plotlyOutput("stat_diff_plot", height = "360px")
+              ),
+              tags$small(textOutput("cap_stat_diff_plot"))
+            ),
 
             div(class = "glass-divider"),
 
             div(
               class = "section-box",
-              h3("Modelimi i serive kohore"),
-              p("Në këtë seksion krahasohen modelet ETS dhe ARIMA për parashikim, si dhe vlerësohet saktësia e tyre në setin e trajnimit.")
-            ),
-
-            sidebarLayout(
-              position = "left",
-
-              sidebarPanel(
-                selectInput("model_series", "Përzgjidhni serinë", choices = character(0)),
-
-                sliderInput(
-                  "model_h",
-                  "Horizonti i parashikimit",
-                  min = 1,
-                  max = 1,
-                  value = 1,
-                  step = 1
-                )
+              h4("ACF dhe PACF"),
+              div(
+                class = "plot-wrap",
+                plotlyOutput("stat_acf_pacf", height = "420px")
               ),
-
-              mainPanel(
-                div(
-                  class = "section-box",
-                  h4("Krahasimi i parashikimeve"),
-                  div(
-                    class = "plot-wrap",
-                    plotlyOutput("model_plot", height = "480px")
-                  ),
-                  tags$small(textOutput("cap_model_plot"))
-                ),
-
-                div(class = "glass-divider"),
-
-                div(
-                  class = "section-box",
-                  h4("Saktësia e modelit (seti i trajnimit)"),
-                  div(
-                    class = "table-wrap",
-                    tableOutput("model_acc_tbl")
-                  )
-                )
-              )
-            )
-          ),
-
-          tabPanel(
-            title = "Parashikimi",
-            value = "tab_forecast",
+              tags$small(textOutput("cap_stat_acf_pacf"))
+            ),
 
             div(class = "glass-divider"),
 
-            sidebarLayout(
-              position = "left",
-
-              sidebarPanel(
-                h4("Cilësimet e parashikimit"),
-
-                selectInput("forecast_series", "Seria", choices = character(0)),
-
-                selectInput(
-                  "method",
-                  "Metoda e parashikimit",
-                  choices = c(
-                    "SES (sheshim eksponencial i thjeshtë)" = "ses",
-                    "Holt (trend i zbutur)"                  = "holt",
-                    "ARIMA"                                  = "arima"
-                  )
-                ),
-
-                sliderInput(
-                  "h",
-                  "Horizonti i parashikimit", 
-                  min = 1, 
-                  max =1, 
-                  value = 1,
-                  step = 1
-                  ),
-
-                hr(),
-                p("Grafiku paraqet vlerat e vëzhguara dhe parashikimet për periudhat pasuese, së bashku me intervalet e pasigurisë.")
-              ),
-
-              mainPanel(
-                div(
-                  class = "section-box",
-                  h4("Parashikimi"),
-                  div(
-                    class = "plot-wrap",
-                    plotlyOutput("forecast_plot", height = "520px")
-                  ),
-                  tags$small(textOutput("cap_forecast_plot"))
-                ),
-
-                div(class = "glass-divider"),
-
-                div(
-                  class = "section-box",
-                  h4("Saktësia e parashikimit"),
-                  div(
-                    class = "table-wrap",
-                    uiOutput("forecast_metrics")
-                  )
-                )
+            div(
+              class = "section-box",
+              h4("Testi ADF"),
+              div(
+                class = "table-wrap",
+                tableOutput("stat_adf_tbl"),
+                uiOutput("stat_adf_note")
               )
             )
           )
         )
-      )
-    )
-  ),
-  # ========= MODAL SMALL (Upload) =========
-  tags$div(
-    class = "modal fade",
-    id = "main_modal_sm",
-    tabindex = "-1",
-    `aria-hidden` = "true",
-    tags$div(
-      class = "modal-dialog",
-      tags$div(
-        class = "modal-content",
-        tags$div(
-          class = "modal-header",
-          uiOutput("modal_sm_title"),
-          tags$button(
-            type = "button",
-            class = "close",
-            `data-dismiss` = "modal",
-            `aria-label` = "Close",
-            tags$span(`aria-hidden` = "true", HTML("&times;"))
-          )
-        ),
-        tags$div(class = "modal-body", uiOutput("modal_sm_body")),
-        tags$div(
-          class = "modal-footer",
-          actionButton("btn_cancel_upload", "Cancel", class = "btn btn-light"),
-          actionButton("btn_proceed_upload", "Proceed", class = "btn btn-success")
-        )
-      )
-    )
-  ),
+      ),
 
-  # ========= MODAL FULLSCREEN (Config) =========
-  tags$div(
-    class = "modal fade",
-    id = "main_modal_fs",
-    tabindex = "-1",
-    `aria-hidden` = "true",
-    tags$div(
-      class = "modal-dialog modal-lg",
-      tags$div(
-        class = "modal-content",
-        tags$div(
-          class = "modal-header",
-          uiOutput("modal_fs_title"),
-          tags$button(
-            type = "button",
-            class = "close",
-            `data-dismiss` = "modal",
-            `aria-label` = "Close",
-            tags$span(`aria-hidden` = "true", HTML("&times;"))
-          )
+      tabPanel(
+        title = tr("page.modeling.menu"),
+        value = page_tab("modeling"),
+
+        div(class = "glass-divider"),
+
+        div(
+          class = "section-box",
+          h3("Modelimi i serive kohore"),
+          p("Në këtë seksion krahasohen modelet ETS dhe ARIMA për parashikim, si dhe vlerësohet saktësia e tyre në setin e trajnimit.")
         ),
-        tags$div(class = "modal-body", uiOutput("modal_fs_body")),
-        tags$div(
-          class = "modal-footer",
-          actionButton("btn_cancel_config", "Cancel", class = "btn btn-light"),
-          actionButton("btn_save_config", "Save", class = "btn btn-success")
+
+        sidebarLayout(
+          position = "left",
+
+          sidebarPanel(
+            selectInput("model_series", "Përzgjidhni serinë", choices = character(0)),
+
+            sliderInput(
+              "model_h",
+              "Horizonti i parashikimit",
+              min = 1,
+              max = 1,
+              value = 1,
+              step = 1
+            )
+          ),
+
+          mainPanel(
+            div(
+              class = "section-box",
+              h4("Krahasimi i parashikimeve"),
+              div(
+                class = "plot-wrap",
+                plotlyOutput("model_plot", height = "480px")
+              ),
+              tags$small(textOutput("cap_model_plot"))
+            ),
+
+            div(class = "glass-divider"),
+
+            div(
+              class = "section-box",
+              h4("Saktësia e modelit (seti i trajnimit)"),
+              div(
+                class = "table-wrap",
+                tableOutput("model_acc_tbl")
+              )
+            )
+          )
         )
-      )
-    )
-  ),
-  # ========= MODAL FULLSCREEN (Background Media Library) =========
-  tags$div(
-    class = "modal fade",
-    id = "bg_modal_fs",
-    tabindex = "-1",
-    `aria-hidden` = "true",
-    tags$div(
-      class = "modal-dialog modal-lg",
-      tags$div(
-        class = "modal-content",
-        tags$div(
-          class = "modal-header",
-          uiOutput("bg_modal_fs_title"),
-          tags$button(
-            type = "button",
-            class = "close",
-            `data-dismiss` = "modal",
-            `aria-label` = "Close",
-            tags$span(`aria-hidden` = "true", HTML("&times;"))
+      ),
+
+      tabPanel(
+        title = tr("page.forecast.menu"),
+        value = page_tab("forecast"),
+
+        div(class = "glass-divider"),
+
+        sidebarLayout(
+          position = "left",
+
+          sidebarPanel(
+            h4("Cilësimet e parashikimit"),
+
+            selectInput("forecast_series", "Seria", choices = character(0)),
+
+            selectInput(
+              "method",
+              "Metoda e parashikimit",
+              choices = c(
+                "SES (sheshim eksponencial i thjeshtë)" = "ses",
+                "Holt (trend i zbutur)"                  = "holt",
+                "ARIMA"                                  = "arima"
+              )
+            ),
+
+            sliderInput(
+              "h",
+              "Horizonti i parashikimit", 
+              min = 1, 
+              max =1, 
+              value = 1,
+              step = 1
+              ),
+
+            hr(),
+            p("Grafiku paraqet vlerat e vëzhguara dhe parashikimet për periudhat pasuese, së bashku me intervalet e pasigurisë.")
+          ),
+
+          mainPanel(
+            div(
+              class = "section-box",
+              h4("Parashikimi"),
+              div(
+                class = "plot-wrap",
+                plotlyOutput("forecast_plot", height = "520px")
+              ),
+              tags$small(textOutput("cap_forecast_plot"))
+            ),
+
+            div(class = "glass-divider"),
+
+            div(
+              class = "section-box",
+              h4("Saktësia e parashikimit"),
+              div(
+                class = "table-wrap",
+                uiOutput("forecast_metrics")
+              )
+            )
           )
-        ),
-        tags$div(class = "modal-body", uiOutput("bg_modal_fs_body")),
-        tags$div(
-          class = "modal-footer",
-          actionButton("bg_btn_close", "Mbyll", class = "btn btn-light"),
-          actionButton("bg_btn_use", "Përdor foton", class = "btn btn-success")
         )
       )
     )
   )
-)
+}
 
 server <- function(input, output, session) {
-  observeEvent(input$go_settings,   { updateTabsetPanel(session, "main_tabs", "tab_settings") })
-  observeEvent(input$go_overview,   { updateTabsetPanel(session, "main_tabs", "tab_overview") })
-  observeEvent(input$go_eda_ts,     { updateTabsetPanel(session, "main_tabs", "tab_eda_ts") })
-  observeEvent(input$go_eda_rel,    { updateTabsetPanel(session, "main_tabs", "tab_eda_rel") })
-  observeEvent(input$go_stationary, { updateTabsetPanel(session, "main_tabs", "tab_stationary") })
-  observeEvent(input$go_modeling,   { updateTabsetPanel(session, "main_tabs", "tab_modeling") })
-  observeEvent(input$go_forecast,   { updateTabsetPanel(session, "main_tabs", "tab_forecast") })
+  mod_nav_server(input, output, session)
+
+  # Gjuha (V-09): ruhet te settings.json, pastaj faqja rifreskohet në gjuhën e re.
+  observeEvent(input$app_lang, {
+    lang <- input$app_lang
+    if (!lang %in% names(LANGS) || identical(lang, current_lang())) return()
+    write_settings(modifyList(read_settings(), list(lang = lang)))
+    set_lang(lang)
+    session$reload()
+  }, ignoreInit = TRUE)
 
   uploaded_tmp_path <- reactiveVal(NULL)
   uploaded_tmp_name <- reactiveVal(NULL)
-
-  TITLE_MAP <- c(
-    tab_overview    = "Time Series Analysis",
-    tab_eda_ts      = "EDA – Seri kohore",
-    tab_eda_rel     = "EDA – Marrëdhënie",
-    tab_stationary  = "Stacionariteti",
-    tab_modeling    = "Modelimi",
-    tab_forecast    = "Parashikimi",
-    tab_settings    = "Settings"
-  )
-
-  output$topbar_title <- renderText({
-    key <- input$main_tabs %||% "tab_overview"
-    TITLE_MAP[[key]] %||% "Time Series Analysis"
-  })
-
-  # =========================================================
-  # 1) PATHS
-  # =========================================================
-  DATA_DIR  <- get0("DATA_DIR",  inherits = TRUE)
-
-  if (is.null(DATA_DIR))  DATA_DIR  <- file.path(getwd(), "data")
-  if (!dir.exists(DATA_DIR)) dir.create(DATA_DIR, recursive = TRUE)
 
   # =========================================================
   # 2) HELPERS
@@ -869,7 +645,7 @@ server <- function(input, output, session) {
     sel <- input$activate_dataset
     req(sel)
 
-    ds <- resolve_saved_dataset_path(sel, DATA_DIR)
+    ds <- resolve_saved_dataset_path(sel, DATASETS_DIR)
     if (!isTRUE(ds$ok)) {
       showNotification(ds$msg %||% "Dataset i pavlefshëm.", type = "error", duration = 6)
       return()
@@ -917,11 +693,11 @@ server <- function(input, output, session) {
       updateSelectizeInput(session, "data_value_cols", choices = character(0), selected = character(0), server = TRUE)
 
       showNotification("S’ka databazë. Ngarko një dataset.", type = "warning", duration = 5)
-      updateTabsetPanel(session, "main_tabs", selected = "tab_settings")
+      updateTabsetPanel(session, "main_tabs", selected = page_tab("settings"))
       return()
     }
 
-    ds <- resolve_saved_dataset_path(sel, DATA_DIR)
+    ds <- resolve_saved_dataset_path(sel, DATASETS_DIR)
     if (!isTRUE(ds$ok)) {
       showNotification(ds$msg %||% "Dataset aktiv s’u gjet (mund të jetë fshirë).", type = "warning", duration = 6)
       active_dataset_file(NULL)
@@ -948,7 +724,7 @@ server <- function(input, output, session) {
     f <- input$edit_dataset
     req(f)
 
-    ds <- resolve_saved_dataset_path(f, DATA_DIR)
+    ds <- resolve_saved_dataset_path(f, DATASETS_DIR)
     if (!isTRUE(ds$ok)) {
       showNotification(ds$msg %||% "Dataset i pavlefshëm.", type = "error", duration = 6)
       return()
@@ -1052,7 +828,7 @@ server <- function(input, output, session) {
     sel <- pending_delete_file()
     req(sel)
 
-    ds <- resolve_saved_dataset_path(sel, DATA_DIR)
+    ds <- resolve_saved_dataset_path(sel, DATASETS_DIR)
     if (!isTRUE(ds$ok)) {
       showNotification(ds$msg %||% "Dataset i pavlefshëm.", type = "error", duration = 5)
       pending_delete_file(NULL)
@@ -1080,7 +856,7 @@ server <- function(input, output, session) {
         st <- set_active_dataset(files[1])
         active_dataset_file(st$active)
 
-        ds_next <- resolve_saved_dataset_path(st$active, DATA_DIR)
+        ds_next <- resolve_saved_dataset_path(st$active, DATASETS_DIR)
         d <- tryCatch(
           if (isTRUE(ds_next$ok)) read_data_safe(ds_next$path, ds_next$file) else stop(ds_next$msg %||% "Dataset i pavlefshëm."),
           error = function(e) {
@@ -1135,7 +911,7 @@ server <- function(input, output, session) {
     st <- tryCatch(sync_state(files), error = function(e) list(active = NULL))
     act <- st$active %||% NULL
 
-    ds_act <- if (!is.null(act) && nzchar(act)) resolve_saved_dataset_path(act, DATA_DIR) else list(ok = FALSE)
+    ds_act <- if (!is.null(act) && nzchar(act)) resolve_saved_dataset_path(act, DATASETS_DIR) else list(ok = FALSE)
 
     if (isTRUE(ds_act$ok)) {
       d <- tryCatch(read_data_safe(ds_act$path, ds_act$file), error = function(e) NULL)
@@ -1392,9 +1168,9 @@ server <- function(input, output, session) {
       if (!is.null(up_path) && file.exists(up_path) && !is.null(up_name) && nzchar(up_name)) {
 
         safe <- sanitize_filename(up_name, default_ext = "csv")
-        target <- normalize_app_path(file.path(DATA_DIR, safe))
+        target <- normalize_app_path(file.path(DATASETS_DIR, safe))
 
-        if (!is_path_inside_dir(target, DATA_DIR)) {
+        if (!is_path_inside_dir(target, DATASETS_DIR)) {
           showNotification("Emri i dataset-it nuk lejohet.", type = "error", duration = 8)
           session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "show"))
           return()
@@ -1404,7 +1180,7 @@ server <- function(input, output, session) {
           stem <- tools::file_path_sans_ext(safe)
           ext  <- tools::file_ext(safe)
           safe <- paste0(stem, "_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".", ext)
-          target <- normalize_app_path(file.path(DATA_DIR, safe))
+          target <- normalize_app_path(file.path(DATASETS_DIR, safe))
         }
 
         ok <- file.copy(up_path, target, overwrite = FALSE)
@@ -1440,7 +1216,7 @@ server <- function(input, output, session) {
 
     d <- d_pending
     if (!is.null(final_file) && nzchar(final_file)) {
-      ds_final <- resolve_saved_dataset_path(final_file, DATA_DIR)
+      ds_final <- resolve_saved_dataset_path(final_file, DATASETS_DIR)
       if (isTRUE(ds_final$ok)) {
         final_file <- ds_final$file
         d2 <- tryCatch(
@@ -1460,7 +1236,7 @@ server <- function(input, output, session) {
     chosen_vals <- def$value_cols
 
     if (!is.null(final_file) && nzchar(final_file)) {
-      ds_cfg <- resolve_saved_dataset_path(final_file, DATA_DIR)
+      ds_cfg <- resolve_saved_dataset_path(final_file, DATASETS_DIR)
       if (!isTRUE(ds_cfg$ok)) {
         showNotification(ds_cfg$msg %||% "Dataset i pavlefshëm.", type = "error", duration = 8)
         session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "show"))
@@ -1474,7 +1250,7 @@ server <- function(input, output, session) {
     }
 
     if (!is.null(final_file) && nzchar(final_file)) {
-      ds_final <- resolve_saved_dataset_path(final_file, DATA_DIR)
+      ds_final <- resolve_saved_dataset_path(final_file, DATASETS_DIR)
       if (isTRUE(ds_final$ok)) {
         d2 <- tryCatch(read_data_safe(ds_final$path, ds_final$file), error = function(e) NULL)
         if (!is.null(d2)) d <- d2
@@ -1538,15 +1314,9 @@ server <- function(input, output, session) {
   # 8) BACKGROUND SETTINGS
   # =========================================================
 
-  BG_TABS <- list(
-    list(id="tab_settings",   label="Settings"),
-    list(id="tab_overview",   label="Përmbledhje"),
-    list(id="tab_eda_ts",     label="Analiza eksploruese – Seri kohore"),
-    list(id="tab_eda_rel",    label="Analiza eksploruese – Marrëdhënie"),
-    list(id="tab_stationary", label="Stacionariteti"),
-    list(id="tab_modeling",   label="Modelimi"),
-    list(id="tab_forecast",   label="Parashikimi")
-  )
+  BG_TABS <- lapply(page_ids(), function(id) {
+    list(id = page_tab(id), label = tr(paste0("page.", id, ".menu")))
+  })
 
   BG_STATE <- read_bg_state()
 
@@ -2240,7 +2010,7 @@ server <- function(input, output, session) {
   }, server = TRUE)
 
   observeEvent(input$main_tabs, {
-    if (identical(input$main_tabs, "tab_overview")) {
+    if (identical(input$main_tabs, page_tab("overview"))) {
       session$sendCustomMessage("dt_adjust", "ts_selected_tbl")
     }
   }, ignoreInit = TRUE)

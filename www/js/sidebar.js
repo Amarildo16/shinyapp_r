@@ -3,20 +3,21 @@
 
     /* ======================================================
        1) SINGLE SOURCE OF TRUTH
+       Harta tab -> buton vjen nga R (PAGES te config.R), përmes
+       atributit data-nav-tab të butonave të sidebar-it (P-12).
     ====================================================== */
-    const MAP = {
-        tab_settings: "#go_settings",
-        tab_overview: "#go_overview",
-        tab_eda_ts: "#go_eda_ts",
-        tab_eda_rel: "#go_eda_rel",
-        tab_stationary: "#go_stationary",
-        tab_modeling: "#go_modeling",
-        tab_forecast: "#go_forecast",
-    };
+    let MAP = {};
+    let BTN_TO_TAB = {};
 
-    const BTN_TO_TAB = Object.fromEntries(
-        Object.entries(MAP).map(([tab, btn]) => [btn, tab])
-    );
+    function buildMap() {
+        MAP = {};
+        document.querySelectorAll("[data-nav-tab]").forEach((el) => {
+            if (el.id) MAP[el.getAttribute("data-nav-tab")] = "#" + el.id;
+        });
+        BTN_TO_TAB = Object.fromEntries(
+            Object.entries(MAP).map(([tab, btn]) => [btn, tab])
+        );
+    }
 
     /* ======================================================
        2) SIDEBAR STATE
@@ -92,9 +93,11 @@
        6) INIT
     ====================================================== */
     document.addEventListener("DOMContentLoaded", function () {
+        buildMap();
         closeSidebar();
 
-        setActiveByTab("tab_overview");
+        const firstTab = document.querySelector("#main_tabs li.active a, #main_tabs a.active");
+        if (firstTab) setActiveByTab(firstTab.getAttribute("data-value"));
 
         document.addEventListener("click", function (e) {
             if (e.target.closest("#toggle_sidebar")) {

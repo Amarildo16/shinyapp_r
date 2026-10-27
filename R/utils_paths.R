@@ -16,7 +16,7 @@ is_path_inside_dir <- function(path, dir) {
   identical(path_norm, dir_norm) || startsWith(path_norm, paste0(dir_norm, "/"))
 }
 
-resolve_saved_dataset_path <- function(file, data_dir = DATA_DIR) {
+resolve_saved_dataset_path <- function(file, data_dir = DATASETS_DIR) {
   bad <- function(msg = "Dataset i pavlefshëm.") {
     list(ok = FALSE, file = NULL, path = NULL, msg = msg)
   }
