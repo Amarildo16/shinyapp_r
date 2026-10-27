@@ -1,7 +1,15 @@
 .Rhistory
 .RData
 .Rproj.user/
-.Rproj
+*.Rproj
 rsconnect/
 .DS_Store
 Thumbs.db
+
+# Të dhënat e përdoruesit (V-05)
+storage/
+
+# renv: paketat lokale nuk shkojnë në git, vetëm renv.lock (V-06)
+renv/library/
+renv/staging/
+renv/local/

@@ -1,10 +1,10 @@
 # Hapat dhe gjurmimi i kërkesave
 
-Më 2026-10-27 u krye analiza, u hartua plani dhe u mbyllën të gjitha vendimet (V-01 – V-12). **Asnjë fazë nuk është autorizuar ende për zbatim.** Çdo fazë nis vetëm pas "vazhdo" të përdoruesit.
+Më 2026-10-27 u krye analiza, u hartua plani dhe u mbyllën të gjitha vendimet (V-01 – V-12). Faza 0 u autorizua ("vazhdo") dhe u zbatua më 2026-10-27. Çdo fazë tjetër nis vetëm pas "vazhdo" të përdoruesit.
 
 | Faza | Dokumenti | Varet nga | Kërkesat | Problemet | Statusi |
 |---|---|---|---|---|---|
-| 00 | [Përgatitja](steps/00-pergatitja.md) | — | R21, R24, R25 | U-03, U-06 | I pafilluar |
+| 00 | [Përgatitja](steps/00-pergatitja.md) | — | R21, R24, R25 | U-03, U-06 | Në punë (mbetet vetëm Q01: pret vendimin e përdoruesit) |
 | 01 | [Pastrimi](steps/01-pastrimi.md) | 00 | R03, R20 | D-01–D-04 | I pafilluar |
 | 02 | [Logjika e pastër → `R/` + testet](steps/02-logjika-ne-R.md) | 01 | R05, R08, R15, R21, R22 | P-01, P-02, P-03, B-01, D-05 | I pafilluar |
 | 03 | [Config, layout, storage, i18n](steps/03-config-layout-storage.md) | 02 | R07, R20, R22, R23, R26 | P-11, P-12, U-04 | I pafilluar |
@@ -22,7 +22,7 @@ Fazat ndjekin radhën e tabelës. Faza 06 varet vetëm nga 03 dhe mund të bëhe
 
 | Faza | Statusi | Skedarët kryesorë | Provat |
 |---|---|---|---|
-| — | — | — | Ende pa zbatim. |
+| 00 | Në punë (Q01) | `.gitattributes`, `.gitignore`, `install_packages.R`, `renv.lock`, `.Rprofile`, `renv/activate.R`, `renv/settings.json`, `tests/reference/compute_results.R`, `make_reference.R`, `compare_reference.R`, `tests/reference/*.rds` | Claude, 2026-10-27, R 4.6.1 lokal: `renv::status()` pastër; `make_reference.R` OK nga `976dce0`; Q30 `compare_reference.R` 24/24 OK; prova negative të krahasuesit OK; UI = referenca (browser); 15 screenshot-e "para" në Obsidian; R03 pa kërkesa jashtë localhost. **Q01 jo plotësisht:** warning-e B-11 dhe errore në browser B-12, nga kodi ekzistues. |
 
 Kur mbaron një fazë, shto një rresht këtu me skedarët dhe provat (ID-të e testeve, skenarët Qxx, kush i ekzekutoi).
 

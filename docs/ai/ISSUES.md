@@ -57,6 +57,13 @@
   - Vendim: ose mbështetje me frekuencë 1, ose mesazh më i qartë. · Faza: 5
 - [ ] **B-10 — Preloader-i errëson gjithë ekranin në çdo `shiny:busy`** (`custom.js:14`), edhe për një lëvizje slider-i.
   - Zgjidhja: shfaqet vetëm pas ~400 ms, ose vetëm për llogaritje të gjata. · Faza: 7
+- [ ] **B-11 — Warning-e në console të R-së gjatë përdorimit** (gjetur në Fazën 0, 2026-10-27, Q01).
+  - `ggplot2::geom_point(aes(text = hover))` → "Ignoring unknown aesthetics: text" (`server_plots.R:752`, EDA – Marrëdhënie). Zhduket me `plot_ly` (V-08).
+  - `tseries::adf.test()` → "p-value smaller than printed p-value" kur p < 0,01 (`server_plots.R:1163–1165`). Është sjellje normale e testit; vlera e shfaqur (0,0100) është ajo e `tseries`. Zgjidhja duhet të mos ndryshojë vlerën (R21), p.sh. kapja e këtij warning-u specifik.
+  - Faza: 5
+- [ ] **B-12 — Errore në console të browser-it te Modelimi** (gjetur në Fazën 0, 2026-10-27).
+  - "Shiny server has sent a progress message for model_plot, but the output is in an unexpected state" (+ "recalculating"/"recalculated" … "idle"). Vjen nga `shiny::withProgress()` brenda reaktivit `.model_fits()` (`server_plots.R:1316`); i njëjti model te `arima_fit()` (`server_plots.R:1572`). Grafiku dhe tabela shfaqen saktë.
+  - Zgjidhja: llogaritja e modeleve jashtë render-it (`model_store`, P-07), progres pa `withProgress` brenda `reactive()`. · Faza: 5
 
 ## D — Kod dhe asete të vdekura
 
@@ -80,9 +87,12 @@
 
 - [ ] **U-01 — Gjuha e përzier.** Vendimi: UI dygjuhëshe sq/en me `tr()` (V-09, R26). Etiketa në anglisht: Settings, Save, Proceed, Cancel, Library, Upload, Blur strength, Edit. · Faza: 8
 - [ ] **U-02 — Gabime drejtshkrimi.** "ndërtu", "u lexu", "Backround" (në koment). · Faza: 8
-- [ ] **U-03 — `.gitignore` ka `.Rproj`.** Duhet `*.Rproj`. · Faza: 0
+- [x] **U-03 — `.gitignore` ka `.Rproj`.** Duhet `*.Rproj`. · Faza: 0
+  - Mbyllur 2026-10-27: `.Rproj` → `*.Rproj`; u shtuan `storage/` dhe `renv/library|staging|local/`. Prova: `git diff .gitignore` (Claude).
 - [ ] **U-04 — Ngarkimet e përdoruesit shkruhen brenda kodit** (`data/`, `www/images/`).
   - Zgjidhja: folderi `storage/`. · Faza: 3
 - [ ] **U-05 — CSS ka 135 `!important` dhe selektorë të përsëritur.** P.sh. `.bg-tab-card`, `.media-card` dhe `.bg-tabs-grid` janë definuar 2–3 herë. · Faza: 7
-- [ ] **U-06 — Line endings ndryshojnë vetvetiu.** Vendimi: discard i ndryshimit aktual (V-12) + `.gitattributes`. Windows i kthen në CRLF, kështu që `datasets_state.json` del si i ndryshuar edhe pa ndryshim real.
+- [x] **U-06 — Line endings ndryshojnë vetvetiu.** Vendimi: discard i ndryshimit aktual (V-12) + `.gitattributes`. Windows i kthen në CRLF, kështu që `datasets_state.json` del si i ndryshuar edhe pa ndryshim real.
   - Zgjidhja: `.gitattributes`. · Faza: 0
+  - Mbyllur 2026-10-27: në kompjuterin e përdoruesit `core.autocrlf=input`, prandaj git nuk shfaqte më ndryshim (s'kishte çfarë të hidhej poshtë). U shtua `.gitattributes` (`* text=auto eol=lf`, binare për foto/fonte/`.rds`/`.xlsx`/`.ico`…). Prova: `git status` pa ndryshime te `data/`, `git ls-files --eol` (index LF), `git check-attr` (Claude).
+- [ ] **U-07 — "Ke ndryshime pa Save" mbetet pasi kthehet zgjedhja fillestare** (gjetur në Fazën 0, 2026-10-27). Te Background, Foto → Pa background (pa Save) e lë mesazhin edhe pse gjendja është sërish ajo e ruajtur. E vogël; vetëm UX. · Faza: 6

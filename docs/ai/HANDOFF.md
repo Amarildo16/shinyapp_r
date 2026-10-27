@@ -1,4 +1,14 @@
-# Handoff — sesioni i parë (2026-10-27, claude.ai)
+# Handoff — sesioni i parë (2026-10-27, claude.ai) + sesioni 2 (2026-10-27, Claude Code)
+
+> [!important] Përditësim nga sesioni 2 (Claude Code, Windows)
+> - **Faza 0 u zbatua** (STATUS.md "Faza 0 — rezultati"). Mbetet vetëm Q01: pret vendimin e përdoruesit (DECISIONS "Pyetje të hapura"). Pa commit.
+> - **R punon nga Claude Code**: `"C:\Program Files\R\R-4.6.1\bin\Rscript.exe"` (jo në PATH). Ekzekuto nga rrënja e projektit, që `.Rprofile` të aktivizojë `renv`.
+> - Referenca: `tests/reference/` (`compute_results.R` = përshtatësi; `compare_reference.R` = Q30). Mos e rigjenero.
+> - App-i për prova niset nga një kopje në scratchpad (T-04). Playwright shkruan vetëm brenda repo-s (`.playwright-mcp/`): zhvendosi artefaktet jashtë pas provës.
+> - Kodi ekzistues ka warning-e (B-11) dhe errore në browser (B-12): janë baseline, jo regresione.
+> - Përdoruesi miratoi instalimin e `renv` në librarinë e vet (T-01). Asnjë instalim tjetër pa leje.
+>
+> Seksionet më poshtë janë rruga e sesionit 1 dhe mbeten të vlefshme për mënyrën e punës.
 
 Ky skedar është **rruga e bisedës**: çfarë u kërkua, çfarë u propozua, çfarë zgjodhi përdoruesi dhe çfarë mësuam. Qëllimi: biseda e re të vazhdojë **në të njëjtën linje**, sikur të mos ishte ndërruar bisedë.
 

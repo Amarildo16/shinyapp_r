@@ -1,6 +1,6 @@
 # Vendimet dhe pyetjet e hapura
 
-Gjendja fillestare: 2026-10-27. Përditësuar: 2026-10-27 18:33 — V-08 – V-12 u mbyllën; V-09 u ndryshua nga përdoruesi në UI dygjuhëshe. Përditëso datën dhe regjistro arsyen kur ndryshon një vendim. **Mos ripyet një vendim që përdoruesi e ka dhënë.**
+Gjendja fillestare: 2026-10-27. Përditësuar: 2026-10-27 18:57 — Faza 0: vendimet teknike T-01 – T-04 dhe pyetja e hapur për Q01. Më herët (18:33): V-08 – V-12 u mbyllën; V-09 u ndryshua nga përdoruesi në UI dygjuhëshe. Përditëso datën dhe regjistro arsyen kur ndryshon një vendim. **Mos ripyet një vendim që përdoruesi e ka dhënë.**
 
 ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 
@@ -41,9 +41,18 @@ ID-të janë të njëjta me shënimin `05 - Vendimet.md` në Obsidian.
 - **Rregulli:** asnjë tekst i dukshëm i shkruar direkt në kod. Çdo tekst kalon nga `tr()`. Një test kontrollon që `sq.json` dhe `en.json` kanë saktësisht të njëjtët çelësa dhe asnjë vlerë bosh.
 - **Fazat:** infrastruktura në Fazën 03; çelësat shtohen ndërsa ndërtohet çdo modul (04–07); kontrolli i plotësisë në Fazën 08.
 
+## Vendime teknike të regjistruara (AI, brenda detyrës)
+
+| ID | Data | Vendimi | Arsyeja |
+|---|---|---|---|
+| T-01 | 2026-10-27 | `renv` u instalua në librarinë e përdoruesit. | Leje e shprehur e përdoruesit: "instalo renv në librarinë time të përdoruesit të R". |
+| T-02 | 2026-10-27 | `renv` me `ignored.packages = vars, rugarch, readxl`. | `vars`/`rugarch` hiqen me V-10/D-04; `readxl` nuk është i instaluar dhe UI pranon vetëm CSV (SPEC "Kufijtë"). Pa këtë, `renv::status()` nuk do ishte i pastër, ose lock-u do kishte paketa që po hiqen. Rishikohet nëse shtohet ngarkim Excel. |
+| T-03 | 2026-10-27 | Referenca: `tests/reference/compute_results.R` është përshtatësi i vetëm. Pjesët reaktive merren nga vetë `server_plots()` me `shiny::testServer` (mbështjellë si modul i hollë); llogaritjet brenda render-ave kopjohen me të njëjtat thirrje. `make_reference.R` punon vetëm kur kodi = `976dce0` dhe nuk mbishkruan `.rds`. | Referenca vjen nga kodi real, jo nga një rishkrim. Në Fazat 2–5 ndryshon vetëm `compute_results.R`; referenca mbetet e fiksuar (V-07). |
+| T-04 | 2026-10-27 | Provat me app-in bëhen mbi një kopje të projektit (scratchpad) me paketat e `renv`. | App-i shkruan state te `data/`; kopja mbron të dhënat (SKILL "Të dhënat e përdoruesit"). |
+
 ## Pyetje të hapura
 
-Asnjë më 2026-10-27 18:33.
+- **Q01 në Fazat 0–4** (2026-10-27): kodi ekzistues jep warning-e në R (B-11) dhe errore në console të browser-it (B-12), që rregullohen në Fazën 5. Propozimi: deri në Fazën 5, Q01 = "pa errore R; lejohen vetëm warning-et/erroret e njohura B-11/B-12"; Q01 i plotë nga Faza 5. Pret përgjigjen e përdoruesit.
 
 ## Vendime teknike që AI mund t'i marrë brenda detyrës
 

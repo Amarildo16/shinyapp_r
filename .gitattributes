@@ -1,0 +1,19 @@
+# Line endings: LF në repo dhe në disk, edhe në Windows (U-06, V-12)
+* text=auto eol=lf
+
+# Binare: pa konvertim dhe pa diff teksti
+*.jpg   binary
+*.jpeg  binary
+*.png   binary
+*.webp  binary
+*.gif   binary
+*.ico   binary
+*.eot   binary
+*.ttf   binary
+*.woff  binary
+*.woff2 binary
+*.rds   binary
+*.RData binary
+*.xlsx  binary
+*.xls   binary
+*.pdf   binary

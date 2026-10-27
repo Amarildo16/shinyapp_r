@@ -15,9 +15,10 @@
 ## Mjedisi i verifikimit
 
 Gjendja e verifikuar më 2026-10-27:
-- R **nuk** është i instalueshëm në workspace-in cloud të Claude-it (`apt` pa `r-base-core`, CRAN 403) as në VM-në e kompjuterit të përdoruesit (Ubuntu pa R, CRAN 403).
-- conda-forge përgjigjet nga workspace-i cloud: mund të provohet në Fazën 0 për të ekzekutuar testet e funksioneve të pastra.
+- **Rruga 0 funksionon.** Claude Code në Windows-in e përdoruesit ekzekuton R 4.6.1 me rrugë të plotë: `"C:\Program Files\R\R-4.6.1\bin\Rscript.exe"` (`Rscript` nuk është në PATH). Nga rrënja e projektit, `.Rprofile` aktivizon `renv`, pra përdoren paketat e `renv.lock`.
+- R **nuk** është i instalueshëm në workspace-in cloud të Claude-it (`apt` pa `r-base-core`, CRAN 403) as në VM-në e kompjuterit të përdoruesit (Ubuntu pa R, CRAN 403). Rrugët 2 dhe conda-forge nuk nevojiten më.
 - R dhe RStudio janë në Windows-in e përdoruesit, ku zysha e nis app-in.
+- Për prova me browser, Claude e nis app-in nga një kopje e projektit (T-04) dhe përdor Playwright. Playwright shkruan vetëm brenda projektit (`.playwright-mcp/`); artefaktet zhvendosen jashtë repo-s pas provës.
 
 Rrugët, sipas radhës së preferencës:
 0. **Claude Code lokalisht në Windows-in e përdoruesit.** Nëse `Rscript` është i arritshëm nga terminali, Claude Code ekzekuton vetë testet, referencën dhe nisjen e app-it, me paketat e `renv.lock`. Kjo është rruga më e mirë; kontrollohet në fillim të çdo sesioni (`Rscript --version`). Instalimet globale në kompjuterin e përdoruesit nuk bëhen pa leje.
@@ -44,6 +45,8 @@ shiny::runApp()                                   # nisja e app-it
   - Modelet: forma identike (rendi ARIMA, lloji ETS). Koeficientët, parashikimet, intervalet dhe saktësia: `tolerance = 1e-8`.
 - Një ndryshim i qëllimshëm (p.sh. rregullim bug-u që prek vlerat) bëhet vetëm me vendim te DECISIONS.md, me vlerat para/pas. Vetëm atëherë përditësohet referenca, me shënim në STATUS.md.
 - Formatimi (B-01) ndryshon **paraqitjen**, jo vlerat. Testet e formatimit janë të ndara nga testet e vlerave.
+- **Struktura** (Faza 0): `compute_results.R` kthen `deterministic` (1e-10), `models$forms` (`identical`) dhe `models$values` (1e-8). `compare_reference.R` raporton OK/FAIL për çdo pjesë dhe ndalon me error nëse një pjesë del jashtë tolerancës. Referenca u krijua më 2026-10-27 nga `976dce0`, me R 4.6.1 dhe paketat e `renv.lock`.
+- `all.equal` mat diferencën mesatare relative të çdo vektori. Kjo është toleranca e kërkuar; mos e zëvendëso me krahasim element pas elementi pa vendim.
 
 ## Dataset-et e testeve (`tests/fixtures/`)
 
