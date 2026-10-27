@@ -67,9 +67,11 @@
 
 ## D — Kod dhe asete të vdekura
 
-- [ ] **D-01 — `www/css/icons.css` (750 KB) ngarkohet por nuk përdoret.** · Faza: 1
-- [ ] **D-02 — ~16 MB fonte të papërdorura.** `boxicons.*`, `la-*`, `materialdesignicons-*`, `hkgrotesk-*`, `summernote.*`. Mbahen vetëm `remixicon.*`. · Faza: 1
-- [ ] **D-03 — Funksione dhe output-e të papërdorura:**
+- [x] **D-01 — `www/css/icons.css` (750 KB) ngarkohet por nuk përdoret.** · Faza: 1
+  - Mbyllur 2026-10-27: `tags$link` u hoq; skedari u zhvendos te `_to_delete/` (pa leje fshirjeje). Përmbante edhe një kopje të vjetër të Remix që mbishkruante `remixicon.css`. Kodet e 8 ikonave të përdorura u krahasuan: identike, me të njëjtat fonte, pra pamja nuk ndryshon. Prova: kërkim me `grep`; në browser, të 8 ikonat shfaqen me fontin `remixicon` (Claude).
+- [x] **D-02 — ~16 MB fonte të papërdorura.** `boxicons.*`, `la-*`, `materialdesignicons-*`, `hkgrotesk-*`, `summernote.*`. Mbahen vetëm `remixicon.*`. · Faza: 1
+  - Mbyllur 2026-10-27: 42 skedarë (10,3 MB, jo 16 MB siç ishte vlerësuar) u zhvendosën te `_to_delete/`. Remix kaloi te `www/vendor/remixicon/` dhe `url(...)` u rregulluan. `www/` ra nga 20 MB në 8,8 MB. Prova: asnjë kërkesë 404 në browser; `woff2` ngarkohet nga rruga e re (Claude).
+- [ ] **D-03 — Funksione dhe output-e të papërdorura:** (Faza 1, 2026-10-27: u hoqën të gjitha përveç parametrit `context`, që i takon Fazës 2)
   - `pick()` (`helpers.R:1065`)
   - `fmt_pct` (`server_plots.R:388`)
   - `time_range_txt` (`server_plots.R:257`)
@@ -80,7 +82,7 @@
   - variabla `title` te `csv_file_modal`
   - parametri `context` te `validate_ts_ready`
   - Faza: 1–2
-- [ ] **D-04 — README dhe Metodologjia premtojnë gjëra që nuk ekzistojnë.** Vendimi: hiqen (V-10). README instalon `vars` dhe `rugarch`; Metodologjia përmend ARMA, VAR/IRF dhe GARCH, që nuk janë implementuar. · Faza: 1 dhe 8
+- [ ] **D-04 — README dhe Metodologjia premtojnë gjëra që nuk ekzistojnë.** (Faza 1, 2026-10-27: rreshti ARMA/VAR/GARCH u hoq nga Metodologjia; `vars`/`rugarch` u hoqën nga README. Mbetet kontrolli i Metodologjisë kundrejt app-it në Fazën 8.) Vendimi: hiqen (V-10). README instalon `vars` dhe `rugarch`; Metodologjia përmend ARMA, VAR/IRF dhe GARCH, që nuk janë implementuar. · Faza: 1 dhe 8
 - [ ] **D-05 — Dega numerike e `parse_time_safe` ka kod të tepërt.** Kontrolli i hapit kthen `xn` në të dyja rastet. · Faza: 2
 
 ## U — Konsistencë dhe UX

@@ -13,3 +13,6 @@ storage/
 renv/library/
 renv/staging/
 renv/local/
+
+# Asete të hequra që presin fshirjen nga përdoruesi (Faza 1)
+_to_delete/

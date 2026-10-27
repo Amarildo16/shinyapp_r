@@ -12,8 +12,6 @@ core_pkgs <- c(
   "scales",
   "tseries",
   "zoo",
-  "vars",
-  "rugarch",
   "DT",
   "jsonlite"
 )

@@ -364,8 +364,6 @@ validate_bg_upload_file <- function(path, filename, mime = NULL, size = NULL, ma
 
 has_zoo    <- requireNamespace("zoo", quietly = TRUE)
 has_readxl <- requireNamespace("readxl", quietly = TRUE)
-has_vars   <- requireNamespace("vars", quietly = TRUE)
-has_rugarch <- requireNamespace("rugarch", quietly = TRUE)
 
 # =========================================================
 # 1) Read data safe
@@ -1060,17 +1058,6 @@ sanitize_filename <- function(x, default_ext = "csv") {
   ext <- tools::file_ext(x)
   if (!nzchar(ext)) x <- paste0(x, ".", default_ext)
   x
-}
-
-pick <- function(..., default = NULL) {
-  xs <- list(...)
-  for (x in xs) {
-    if (is.null(x)) next
-    if (length(x) == 0) next
-    if (is.character(x) && all(trimws(x) == "")) next
-    return(x)
-  }
-  default
 }
 
 detect_freq_from_time <- function(Time) {

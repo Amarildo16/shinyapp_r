@@ -254,15 +254,6 @@ server_plots <- function(input, output, session, df) {
   }, ignoreInit = FALSE)
 
 
-  time_range_txt <- reactive({
-    req(df_dyn())
-    tt <- df_dyn()$Time
-    tt_ok <- tt[!is.na(tt)]
-    validate(need(length(tt_ok) >= 2, "Kolona e kohës duhet të ketë të paktën 2 vlera jo bosh."))
-    rng <- range(tt_ok)
-    paste0(fmt_time(rng[1]), " – ", fmt_time(rng[2]))
-  })
-
   n_series_txt <- reactive({
     paste0(length(value_cols()))
   })
@@ -381,17 +372,6 @@ server_plots <- function(input, output, session, df) {
 
     out
   })
-
-  # =========================================================
-  # 4) fmt_pct
-  # =========================================================
-  fmt_pct <- function(x) {
-    if (is.na(x)) return("N/A")
-    s <- fmt_fixed(abs(x), digits = 2)  # kjo ta bën me presje
-    if (x > 0)  return(paste0("+", s, "% / vit"))
-    if (x < 0)  return(paste0("-", s, "% / vit"))
-    "0,00% / vit"
-  }
 
   # =========================
   # Captions

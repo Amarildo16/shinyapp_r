@@ -1,6 +1,14 @@
 # Faza 01 — Pastrimi
 
-Statusi: **i pafilluar**. Kërkesat: R03, R20. Problemet: D-01, D-02, D-03, D-04. Vendimet: V-10 (rreshti hiqet).
+Statusi: **i përfunduar** (2026-10-27). Kërkesat: R03, R20. Problemet: D-01, D-02, D-03, D-04. Vendimet: V-10 (rreshti hiqet).
+
+> [!note] Rezultati (2026-10-27)
+> - Pa leje fshirjeje, `icons.css` dhe 42 fonte u zhvendosën te `_to_delete/` (në `.gitignore`). Pas lejes së përdoruesit, Claude e fshiu folderin (43 skedarë, të gjithë në git te `517a1ae`).
+> - `icons.css` përmbante një Remix të vjetër që mbishkruante `remixicon.css`. Kodet e 8 ikonave dolën identike, pra heqja nuk ndryshon pamjen.
+> - `www/` ra nga 20 MB në 8,8 MB (−11 MB). "Rreth 17 MB" ishte vlerësim: fontet e papërdorura ishin realisht 10,3 MB.
+> - `has_zoo`/`has_readxl` globale janë gjithashtu të papërdorura (`read_data_safe` ka variablën e vet lokale), por nuk ishin në listë: mbeten për Fazën 2.
+> - JS-i ruan ende selektorin `.ajax-modal-fs` (pa element përkatës): pastrohet në Fazën 7.
+> - Provat: STATUS.md "Faza 1 — rezultati".
 
 ## Qëllimi
 

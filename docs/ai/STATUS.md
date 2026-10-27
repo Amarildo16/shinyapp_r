@@ -1,13 +1,13 @@
 # Gjendja aktuale
 
-Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 19:10 (Faza 0 e përfunduar; Q01 sipas V-13).
+Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 19:25 (Faza 1 e përfunduar, pa commit; Faza 0 në `531bc0c` + `517a1ae`).
 
 ## E verifikuar
 
 - Analiza e plotë e kodit në commit-in `976dce0` (branch-i `main`): `app.R`, `helpers.R`, `server_plots.R`, `www/js/*`, `www/css/*`, `data/*`, historia e git-it. Rezultati te Obsidian `01 - Analiza e gjendjes aktuale.md` dhe te [ISSUES.md](ISSUES.md).
 - Branch-i `ultimate_version` = `976dce0` + `79a36f7` (dokumentacioni, commit i përdoruesit). `git diff 976dce0 -- app.R helpers.R server_plots.R` është bosh: **kodi i app-it nuk është prekur.**
 - Faza 0 u zbatua nga Claude Code në Windows-in e përdoruesit (shih "Faza 0" më poshtë).
-- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13 (dokumentet, 19:10) nuk është bërë ende commit.
+- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1 (2026-10-27): pa commit.
 
 ## Mjedisi (verifikuar 2026-10-27 nga Claude Code)
 
@@ -37,6 +37,27 @@ App-i për screenshot-e u nis nga një **kopje** e projektit në scratchpad, me 
 
 `sessionInfo()` kryesor (ruajtur te `.rds`): R 4.6.1 ucrt, Windows 11 x64 (build 26300), locale `English_United States.utf8`; shiny 1.14.0, forecast 9.0.2, tseries 0.10-63, zoo 1.9-1, dplyr 1.2.1, readr 2.2.0, plotly 4.12.1, ggplot2 4.0.3.
 
+## Faza 1 — rezultati (2026-10-27, Claude Code)
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| D-01 `icons.css` | `tags$link` u hoq; skedari → `_to_delete/www/css/` | `grep` pa referenca. Kodet e 8 ikonave të përdorura janë identike në të dy CSS-të (Remix i vjetër brenda `icons.css`), pra pamja nuk ndryshon. |
+| D-02 fonte | 42 skedarë (10,3 MB) → `_to_delete/www/fonts/`; `www/fonts/` u zbraz | `www/`: 20 MB → 8,8 MB |
+| Remix | `www/vendor/remixicon/` (css + fonte); `url("../fonts/…")` → `url("…")`; `tags$link` i përditësuar | Browser: `remixicon.css` dhe `woff2` ngarkohen nga rruga e re; fonti "loaded"; 8/8 ikonat (settings, 3 sociale, upload, delete, tick, minus) me fontin `remixicon` |
+| D-03 | U hoqën `pick()`, `fmt_pct`, `time_range_txt`, `output$bg_media_selected_txt`, `has_vars`, `has_rugarch`, `tab_wrapup`, dega `fs` te `ajax_modal_open` (asnjë element `.ajax-modal-fs`), `title` te `csv_file_modal` | `grep` para dhe pas; `parse()` OK për 3 skedarët |
+| D-04 / V-10 | Rreshti ARMA/VAR/GARCH u hoq nga Metodologjia; `vars`/`rugarch` u hoqën nga README | `grep` |
+| Q30 | 24/24 brenda tolerancave | `compare_reference.R` |
+| Q01 (V-13) | Pa errore R; vetëm B-11 në R dhe B-12 në browser | log-u i `runApp` (2 nisje), console |
+| Q04 | Aktivizimi i bujqësisë përditëson të gjitha faqet | browser |
+| Q09–Q12 | Tabelat, statistikat, korrelacioni dhe ADF me të dy dataset-et = vlerat e Fazës 0 / referencës; asnjë `shiny-output-error` | browser + `.rds` |
+| Q13 | h = 5: ETS 9 989 319,53…, ARIMA 9 967 249,65… = referenca | browser + `.rds` |
+| Q14 | Holt h = 5 = referenca; SES saktësia = referenca; ARIMA me 27 pika → mesazhi i R15 | browser + `.rds` |
+| Q20 | Ngjyrë `#3b82f6` → Save → rinisje e app-it → ruhet | browser, 2 nisje (te kopja) |
+| Q24 | Hamburger hap; Escape mbyll; 390 px pa tejkalim horizontal | browser |
+| R03 | Asnjë kërkesë jashtë `127.0.0.1`, asnjë 404 | Playwright network |
+
+Provat u bënë mbi një kopje të projektit (T-04); `data/` e repo-s mbeti e paprekur. **Pa commit.** `_to_delete/` (43 skedarë, 11 MB) u fshi nga Claude me lejen e përdoruesit ("Po, fshije folderin _to_delete/"), pasi u verifikua që çdo skedar ekziston në git (`517a1ae`). Rreshti `_to_delete/` mbetet te `.gitignore` për fazat e ardhshme.
+
 ## Kufizime dhe shënime
 
 - Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime.
@@ -46,7 +67,9 @@ App-i për screenshot-e u nis nga një **kopje** e projektit në scratchpad, me 
 
 ## Pika e vazhdimit
 
-**Faza 0 është e përfunduar** (2026-10-27): çdo kriter ka provë, Q01 sipas V-13. Commit-i i fazës: `531bc0c`. Dokumentet e mbylljes (V-13) presin një commit të vogël nga përdoruesi. Hapi i radhës: "vazhdo" për [Fazën 1](steps/01-pastrimi.md).
+**Faza 0** e përfunduar (`531bc0c`, `517a1ae`). **Faza 1** e përfunduar më 2026-10-27, pa commit. Hapat e radhës:
+1. Përdoruesi bën commit-in e Fazës 1 (`chore(faza-1): heq asetet dhe kodin e papërdorur`). `_to_delete/` është fshirë.
+2. "vazhdo" për [Fazën 2](steps/02-logjika-ne-R.md).
 
 ## Regjistri i dorëzesave
 
@@ -56,6 +79,7 @@ App-i për screenshot-e u nis nga një **kopje** e projektit në scratchpad, me 
 | 2026-10-27 | Udhëzimet e projektit | CLAUDE.md, SKILL.md, docs/ai | Shih "Evidenca e kontrollit të dokumentacionit" | Pasqyruar te ditari |
 | 2026-10-27 | Mbyllja e vendimeve V-08 – V-12, R26 (dygjuhësia) | DECISIONS, SPEC, TASKS, steps, QUALITY, ARCHITECTURE, ISSUES, HANDOFF | Lidhjet u rikontrolluan | Pasqyruar te ditari dhe `05 - Vendimet` |
 | 2026-10-27 | Faza 0 — Përgatitja (Claude Code) | `.gitattributes`, `.gitignore`, `install_packages.R`, renv, `tests/reference/` (3 skripte + 2 `.rds`), 15 screenshot-e | Shih "Faza 0 — rezultati"; Q01 sipas V-13 | Pasqyruar (ditari, plani, problemet, faqja kryesore, screenshots/para) |
+| 2026-10-27 | Faza 1 — Pastrimi (Claude Code) | `app.R`, `helpers.R`, `server_plots.R`, README, `.gitignore`, `www/vendor/remixicon/`, `_to_delete/` | Shih "Faza 1 — rezultati" | Pasqyruar (ditari, plani, problemet, faqja kryesore) |
 
 ## Formati për vazhdimet
 

@@ -17,8 +17,7 @@ ui <- fluidPage(
     tags$script(src="js/bg.js"),
     tags$script(src="js/sidebar.js"),
     tags$script(src="js/plotly-animate.js"),
-    tags$link(rel = "stylesheet", href = "css/remixicon.css"),
-    tags$link(rel="stylesheet", href="css/icons.css"),
+    tags$link(rel = "stylesheet", href = "vendor/remixicon/remixicon.css"),
     tags$script(src="js/custom.js")
   ),
 
@@ -298,8 +297,7 @@ ui <- fluidPage(
                   tags$ul(
                     tags$li("Analizë eksploruese: prirje, variabilitet dhe shpërndarje"),
                     tags$li("Stacionaritet: testi ADF dhe diferencimi kur kërkohet"),
-                    tags$li("Parashikim: SES/Holt dhe ARIMA"),
-                    tags$li("Opsionale: simulime ARMA, VAR/IRF dhe GARCH")
+                    tags$li("Parashikim: SES/Holt dhe ARIMA")
                   )
                 )
               ),
@@ -719,7 +717,6 @@ server <- function(input, output, session) {
     tab_stationary  = "Stacionariteti",
     tab_modeling    = "Modelimi",
     tab_forecast    = "Parashikimi",
-    tab_wrapup      = "Përfundime",
     tab_settings    = "Settings"
   )
 
@@ -1291,12 +1288,6 @@ server <- function(input, output, session) {
       })
       session$sendCustomMessage("toggle_modal", list(id = "main_modal_sm", action = "show"))
     }
-
-    if (modal == "fs") {
-      output$modal_fs_title <- renderUI(tags$h5(class = "modal-title", title))
-      output$modal_fs_body  <- renderUI(div("..."))
-      session$sendCustomMessage("toggle_modal", list(id = "main_modal_fs", action = "show"))
-    }
   })
 
   observeEvent(input$csv_file_modal, {
@@ -1342,8 +1333,6 @@ server <- function(input, output, session) {
       time_default = time_default,
       value_default = value_default
     ))
-
-    title <- tools::file_path_sans_ext(input$csv_file_modal$name)
 
     if (nzchar(input$csv_file_modal$name)) {
       if (is.null(isolate(input$data_source)) || !nzchar(isolate(input$data_source))) {
@@ -2090,10 +2079,6 @@ server <- function(input, output, session) {
   observeEvent(input$bg_media_pick, {
     bg_media_selected(input$bg_media_pick)
   }, ignoreInit = TRUE)
-
-  output$bg_media_selected_txt <- renderText({
-    bg_media_selected() %||% "-"
-  })
 
   pending_delete <- reactiveVal(NULL)
 
