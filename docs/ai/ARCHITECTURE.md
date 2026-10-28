@@ -36,8 +36,9 @@ shinyapp_r/
 │   │
 │   ├── ts_time.R             # frekuenca, hapi, koha e ardhshme, ts_spec
 │   ├── ts_validate.R         # assess_time_regular, validate_ts_ready
-│   ├── ts_models.R           # fit_ets, fit_arima, run_adf, acf_pacf_data, forecast_table
-│   ├── model_store.R         # cache i përbashkët i modeleve
+│   ├── stats_eda.R           # summary_stats, rolling_mean, relation_fit, correlation_matrix (T-18)
+│   ├── ts_models.R           # series_ts, first_difference, acf_pacf_data, run_adf, fit_ets, fit_arima, forecast_method, training_accuracy
+│   ├── model_store.R         # cache i përbashkët i modeleve: has(lloji, y), get(lloji, y) (T-19)
 │   │
 │   ├── state_datasets.R      # datasets_state.json
 │   ├── state_background.R    # background_state.json
@@ -103,6 +104,9 @@ shinyapp_r/
         ├── test-state.R
         ├── test-ts_validate.R
         ├── test-ts_models.R  # Faza 5
+        ├── test-stats_eda.R  # Faza 5
+        ├── test-model_store.R  # Faza 5
+        ├── test-ts_time.R    # Faza 5
         ├── test-utils_format.R
         ├── test-utils_paths.R
         ├── test-i18n.R       # Faza 3

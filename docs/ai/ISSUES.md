@@ -31,8 +31,9 @@
 - [x] **P-06 — Dataset-i aktiv ngarkohet dy herë në startup.** `observe()` (`app.R:1151`) dhe `observeEvent(active_dataset_file())` (`app.R:910`) ngarkojnë të dy.
   - Faza: 4
   - Mbyllur 2026-10-27: një observer i vetëm ngarkimi te `mod_datasets_server()` (T-15). Prova: `test-mod_datasets.R` (nisja me/pa konfigurim).
-- [ ] **P-07 — ARIMA llogaritet dy herë, me dy cache manuale.** Modelimi (`.model_cache_*`) dhe Parashikimi (`.arima_cache_*`) llogaritin të njëjtin `auto.arima`.
+- [x] **P-07 — ARIMA llogaritet dy herë, me dy cache manuale.** Modelimi (`.model_cache_*`) dhe Parashikimi (`.arima_cache_*`) llogaritin të njëjtin `auto.arima`.
   - Zgjidhja: `model_store` i përbashkët me `bindCache`. · Faza: 5
+  - Mbyllur 2026-10-28 (Faza 5, bazat): `model_store()` me `cachem` (T-19); dy cache-t manuale u hoqën. Prova: `test-model_store.R` (një llogaritje për seri, lloji në çelës, NULL ruhet); Q30 24/24 (modelet dhe parashikimet = referenca) (Claude).
 - [ ] **P-08 — Modalet hapen me tre mënyra.** Mesazhi `toggle_modal`, `shinyjs::runjs` me Bootstrap (`modal_show_bg`) dhe `showModal`.
   - Zgjidhja: një mënyrë e vetme + `glass_modal()` në `ui_components.R`. · Faza: 3–6
   - Faza 4 (2026-10-27, V-15 a): modalet e dataset-eve (Upload, konfigurimi, fshirja) hapen e mbyllen vetëm me `toggle_glass_modal()`; `showModal` dhe `ajax_modal_open` u hoqën për dataset-et. **Mbetet:** background-i (`modal_show_bg`, `showModal` i fshirjes së fotos), Faza 6.
@@ -75,6 +76,7 @@
   - `ggplot2::geom_point(aes(text = hover))` → "Ignoring unknown aesthetics: text" (`server_plots.R:752`, EDA – Marrëdhënie). Zhduket me `plot_ly` (V-08).
   - `tseries::adf.test()` → "p-value smaller than printed p-value" kur p < 0,01 (`server_plots.R:1163–1165`). Është sjellje normale e testit; vlera e shfaqur (0,0100) është ajo e `tseries`. Zgjidhja duhet të mos ndryshojë vlerën (R21), p.sh. kapja e këtij warning-u specifik.
   - Faza: 5
+  - Faza 5, bazat (2026-10-28): warning-u i `adf.test` u hoq te `run_adf()` dhe p-vlera e prerë ruhet si `p_bound` (V-17 c). Prova: `test-ts_models.R` (`expect_no_warning`, vlera = `tseries`); Q30 pa warning; log-u i app-it pa warning ADF. **Mbetet:** `aes(text)` (me `plot_ly`, moduli EDA – Marrëdhënie).
 - [ ] **B-12 — Errore në console të browser-it te Modelimi** (gjetur në Fazën 0, 2026-10-27).
   - "Shiny server has sent a progress message for model_plot, but the output is in an unexpected state" (+ "recalculating"/"recalculated" … "idle"). Vjen nga `shiny::withProgress()` brenda reaktivit `.model_fits()` (`server_plots.R:1316`); i njëjti model te `arima_fit()` (`server_plots.R:1572`). Grafiku dhe tabela shfaqen saktë.
   - Zgjidhja: llogaritja e modeleve jashtë render-it (`model_store`, P-07), progres pa `withProgress` brenda `reactive()`. · Faza: 5
@@ -85,6 +87,8 @@
 - [ ] **B-15 — Dialogu i konfirmimit të fshirjes nuk lexohej** (gjetur në Fazën 4, 2026-10-27). `showModal(modalDialog())` delte me sfond të bardhë dhe tekst të bardhë: titulli dhe pyetja nuk shiheshin, vetëm butonat. Screenshot-i "para" në Obsidian `screenshots/faza-4/`.
   - Dataset-et: rregulluar në Fazën 4 (V-15 a): `glass_modal` me pamjen e modalit Upload; teksti lexohet (screenshot "pas"). **Mbetet:** konfirmimi i fshirjes së fotos te Background përdor po `showModal` (e paverifikuar nëse ka të njëjtin problem), Faza 6.
 - [ ] **B-16 — Console e browser-it gjatë Upload-it me FilePond** (gjetur në Fazën 4, 2026-10-27). Pas zgjedhjes së skedarit: `404 /[object Object]` dhe warning-u "Pond -> Shiny updatefiles sync failed: … parameter 1 is not of type 'File'" (`custom.js:193`). Dalin njësoj edhe me kodin e commit-it `5daa8fc` (para Fazës 4), pra nuk janë regresion. Ngarkimi punon: CSV-ja lexohet dhe ruhet md5-identike. Provuar vetëm me file chooser-in e Playwright; mbetet të shihet nëse ndodh edhe me klikim/drag-and-drop real. Përjashtuar përkohësisht nga Q01 me V-16. · Faza: 7 (FilePond bridge)
+
+- [x] **B-17 — ADF jepte error me saktësisht 20 pika** (gjetur në Fazën 5, 2026-10-28). Te `adf_res()`, kur diferenca kishte < 20 pika, në vend të testit vendosej teksti `"try-error"`, pastaj `obj$statistic` jepte "$ operator is invalid for atomic vectors". Prova: rikrijimi i shprehjes në R. `run_adf()` e llogarit nivelin dhe e lë diferencën bosh; testi te `test-ts_models.R`. ✅ Pranuar si rregullim bug-u me V-18 (2026-10-28). · Faza: 5
 
 ## D — Kod dhe asete të vdekura
 

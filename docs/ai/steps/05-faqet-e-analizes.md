@@ -1,6 +1,6 @@
 # Faza 05 — Faqet e analizës si module
 
-Statusi: **i pafilluar**. Kërkesat: R09–R16, R21. Problemet: P-04, P-07, B-02, B-04, B-05, B-06, B-07, B-09. Vendimet: V-08 (`plot_ly` direkt), V-11 (vetëm mesazh), V-09 (tekstet me `tr()`).
+Statusi: **në punë** (bazat të përfunduara 2026-10-28; modulet pa filluar). Vendimet e fazës: V-17, T-18, T-19. Kërkesat: R09–R16, R21. Problemet: P-04, P-07, B-02, B-04, B-05, B-06, B-07, B-09. Vendimet: V-08 (`plot_ly` direkt), V-11 (vetëm mesazh), V-09 (tekstet me `tr()`).
 
 ## Qëllimi
 
@@ -10,7 +10,7 @@ Statusi: **i pafilluar**. Kërkesat: R09–R16, R21. Problemet: P-04, P-07, B-02
 
 1. `R/ts_models.R`: `fit_ets`, `fit_arima`, `run_adf`, `acf_pacf_data`, `forecast_table`, me **të njëjtat thirrje dhe parametra** si sot. Teste kundrejt referencës (`test-ts_models.R`).
 2. `R/model_store.R`: cache i përbashkët me `cachem` (P-07). Ndryshimi i horizontit nuk e rillogarit modelin.
-3. `R/plot_theme.R`: tema e përbashkët (P-04) dhe `plot_ly` direkt (V-08). Pamja (ngjyrat, trashësia e vijave, transparenca, margjinat, grid-i) riprodhon atë aktuale; krahasohet me screenshot-et "para".
+3. `R/plot_theme.R` (shtohet me `mod_eda_ts`, T-18): tema e përbashkët (P-04) dhe `plot_ly` direkt (V-08). Pamja (ngjyrat, trashësia e vijave, transparenca, margjinat, grid-i) riprodhon atë aktuale; krahasohet me screenshot-et "para".
 4. Modulet, **me këtë radhë**. Pas secilit hiqet pjesa përkatëse nga `legacy_server_plots.R` dhe kalon smoke test-i i asaj faqeje.
    1. `mod_overview`
    2. `mod_eda_ts`: kufijtë e slider-it rillogariten për çdo seri (B-02)

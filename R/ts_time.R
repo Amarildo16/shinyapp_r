@@ -258,3 +258,59 @@ expected_time_grid <- function(Time, freq_choice = "auto") {
   NULL
 }
 
+# ---- Kufijtë e slider-ave (R16): hapi i kohës, horizonti, dritarja lëvizëse ----
+
+# "year" | "quarter" | "month" | "week" | "day" | "period"
+time_step <- function(Time) {
+  tt <- Time[!is.na(Time)]
+  if (length(tt) < 2) return("period")
+
+  info <- tryCatch(infer_step_from_time(tt), error = function(e) NULL)
+  if (!is.null(info) && identical(info$type, "date")) {
+    return(info$step)
+  }
+
+  if (is.numeric(tt) && all(tt >= 1500 & tt <= 3000, na.rm = TRUE)) return("year")
+
+  "period"
+}
+
+time_step_unit <- function(Time) {
+  switch(time_step(Time),
+    year    = "vite",
+    quarter = "tremujor",
+    month   = "muaj",
+    week    = "javë",
+    day     = "ditë",
+    "periudha"
+  )
+}
+
+# Horizonti i parashikimit: [min, max] sipas pikave reale dhe hapit (H_CAP).
+h_bounds <- function(n_real, Time) {
+  n_real <- as.integer(n_real)
+  if (is.na(n_real) || n_real < 2L) return(list(min = 1L, max = 1L, step = "period"))
+
+  step <- time_step(Time)
+  cap  <- if (step %in% names(H_CAP)) H_CAP[[step]] else H_CAP_DEFAULT
+
+  hmax <- min(as.integer(n_real - 1L), cap)
+  hmax <- max(1L, hmax)
+
+  hmin <- if (hmax <= 8L) 2L else 1L
+  hmin <- min(hmin, hmax)
+
+  list(min = hmin, max = hmax, step = step)
+}
+
+# Dritarja lëvizëse: [3, max] sipas pikave reale dhe hapit (ROLL_CAP).
+roll_bounds <- function(n_non_na, Time) {
+  k_min <- 3L
+  step  <- time_step(Time)
+  capk  <- if (step %in% names(ROLL_CAP)) ROLL_CAP[[step]] else ROLL_CAP_DEFAULT
+
+  k_max_raw <- if (is.finite(n_non_na) && n_non_na >= 2L) as.integer(n_non_na - 1L) else k_min
+  k_max <- min(k_max_raw, capk, max(k_min, as.integer(floor(n_non_na / 2))))
+  list(min = k_min, max = max(k_min, k_max))
+}
+

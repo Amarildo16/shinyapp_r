@@ -4,9 +4,10 @@
 # shiny::loadSupport(), njësoj si app-i (server_plots() jeton te R/legacy_server_plots.R).
 #   - Pjesët reaktive (df_dyn, ADF, modelet, parashikimet, kufijtë e slider-ave)
 #     merren nga vetë server_plots() me shiny::testServer.
-#   - Llogaritjet që jetojnë brenda render*-ave (mesatarja lëvizëse, regresioni,
-#     korrelacioni, diferenca, ACF/PACF, parashikimet e Modelimit) riprodhohen
-#     me të njëjtat thirrje, të kopjuara nga server_plots.R (commit 976dce0).
+#   - Llogaritjet që jetonin brenda render*-ave (mesatarja lëvizëse, regresioni,
+#     korrelacioni, diferenca, ACF/PACF, ADF) merren që nga Faza 5 nga funksionet e
+#     pastra të app-it (R/stats_eda.R, R/ts_models.R, R/ts_time.R); këtu vetëm
+#     sillen në formën e referencës.
 #
 # Kur logjika kalon te R/ (Fazat 2–5), përditësohet VETËM ky skedar që të thërrasë
 # funksionet e reja. Referenca te tests/reference/*.rds nuk rigjenerohet.
@@ -64,164 +65,74 @@ legacy_plots_module <- function(app_code) {
   server_plots_env <- app_code$server_plots
   body(server_plots_env) <- call("{", body(server_plots_env), quote(environment()))
 
-  function(id, series, active) {
+  function(id, series, active, fits) {
     shiny::moduleServer(id, function(input, output, session) {
-      sp <- server_plots_env(input, output, session, series, active)
+      sp <- server_plots_env(input, output, session, series, active, fits)
     })
   }
 }
 
-# --- Llogaritjet e kopjuara nga render*-at e server_plots.R -----------------
-
-# output$summary_tbl (vlerat numerike, para formatimit)
-summary_stats <- function(d, vc) {
-  X <- setNames(lapply(vc, function(v) d[[v]]), vc)
-
-  safe_stat <- function(x, fun) {
-    x <- x[!is.na(x)]
-    if (length(x) == 0) return(NA_real_)
-    fun(x)
-  }
-
-  safe_sd <- function(x) {
-    x <- x[!is.na(x)]
-    if (length(x) < 2) return(NA_real_)
-    stats::sd(x)
-  }
-
-  data.frame(
-    variable    = vc,
-    mean        = vapply(vc, function(v) safe_stat(X[[v]], base::mean), numeric(1)),
-    sd          = vapply(vc, function(v) safe_sd(X[[v]]), numeric(1)),
-    min         = vapply(vc, function(v) safe_stat(X[[v]], base::min), numeric(1)),
-    max         = vapply(vc, function(v) safe_stat(X[[v]], base::max), numeric(1)),
-    n           = vapply(vc, function(v) sum(!is.na(X[[v]])), integer(1)),
-    missing_pct = vapply(vc, function(v) round(100 * mean(is.na(X[[v]])), 2), numeric(1)),
-    row.names   = NULL,
-    stringsAsFactors = FALSE
-  )
-}
+# --- Funksionet e app-it, në formën e referencës --------------------------------
 
 # output$eda_ts_roll
-rolling_mean <- function(d0, series, k) {
-  y <- d0[[series]]
-  n_non_na <- sum(!is.na(y))
-
-  k <- as.integer(k)
-  k <- max(2L, k)
-  if (n_non_na < 3) return(list(ok = FALSE))
-
-  k_max <- max(2L, n_non_na - 1L)
-  if (k > k_max) k <- k_max
-
-  d <- dplyr::arrange(d0, Time)
-  d <- dplyr::mutate(d, roll_mean = zoo::rollapply(
-    .data[[series]],
-    width = k,
-    FUN = function(z) {
-      if (all(is.na(z))) NA_real_
-      else mean(z, na.rm = TRUE)
-    },
-    fill = NA,
-    align = "right",
-    partial = FALSE
-  ))
-
-  list(ok = TRUE, k = k, time = d$Time, roll_mean = d$roll_mean)
+rolling_mean_ref <- function(app_code, d0, series, k) {
+  r <- app_code$rolling_mean(d0, series, k)
+  if (!isTRUE(r$ok)) return(list(ok = FALSE))
+  list(ok = TRUE, k = r$k, time = r$data$Time, roll_mean = r$data$roll_mean)
 }
 
 # output$eda_rel_scatter
-relation_fit <- function(d0, x, y) {
-  d <- dplyr::mutate(d0, xval = .data[[x]], yval = .data[[y]])
-  d <- dplyr::filter(d, is.finite(xval), is.finite(yval))
-
-  if (nrow(d) <= 1 || length(unique(d$xval)) <= 1) return(list(ok = FALSE, n = nrow(d)))
-
-  fit <- tryCatch(stats::lm(yval ~ xval, data = d), error = function(e) NULL)
-  if (is.null(fit) || !all(is.finite(stats::coef(fit)))) return(list(ok = FALSE, n = nrow(d)))
-
-  xs <- seq(min(d$xval), max(d$xval), length.out = 100)
-  line_df <- data.frame(xval = xs)
-  line_df$yhat <- as.numeric(stats::predict(fit, newdata = line_df))
-
-  list(ok = TRUE, n = nrow(d), coef = stats::coef(fit), line_x = xs, line_y = line_df$yhat)
+relation_fit_ref <- function(app_code, d0, x, y) {
+  r <- app_code$relation_fit(d0, x, y)
+  if (!isTRUE(r$ok) || is.null(r$line)) return(list(ok = FALSE, n = r$n))
+  list(ok = TRUE, n = r$n, coef = r$coef, line_x = r$line$xval, line_y = r$line$yhat)
 }
 
 # output$eda_rel_corr
-correlation_matrix <- function(d0) {
-  num_df <- dplyr::select(d0, dplyr::where(is.numeric))
-  num_df <- dplyr::select(num_df, -dplyr::any_of("Time"))
-
-  if (ncol(num_df) < 2) return(list(ok = FALSE))
-  if (ncol(num_df) > 20) num_df <- num_df[, 1:20, drop = FALSE]
-
-  num_df <- dplyr::select(num_df, dplyr::where(~ {
-    s <- stats::sd(.x, na.rm = TRUE)
-    is.finite(s) && s > 0
-  }))
-
-  if (ncol(num_df) < 2) return(list(ok = FALSE))
-
-  list(ok = TRUE, corr = stats::cor(num_df, use = "pairwise.complete.obs"))
+correlation_matrix_ref <- function(app_code, d0) {
+  r <- app_code$correlation_matrix(d0)
+  if (!isTRUE(r$ok)) return(list(ok = FALSE))
+  list(ok = TRUE, corr = r$corr)
 }
 
 # output$stat_diff_plot
-first_difference <- function(app_code, d0, series) {
+first_difference_ref <- function(app_code, d0, series) {
   ts_ok <- app_code$validate_ts_ready(d0, series, "auto", min_n = 3L)
-  if (!isTRUE(ts_ok$ok) || nrow(ts_ok$data) < 3) return(list(ok = FALSE))
-
-  dd <- ts_ok$data
-  list(ok = TRUE, time = dd$Time[-1], diff = as.numeric(diff(dd$y)))
+  if (!isTRUE(ts_ok$ok)) return(list(ok = FALSE))
+  fd <- app_code$first_difference(ts_ok$data)
+  if (is.null(fd)) return(list(ok = FALSE))
+  list(ok = TRUE, time = fd$Time, diff = fd$diff)
 }
 
 # output$stat_acf_pacf
-acf_pacf <- function(app_code, d0, series) {
+acf_pacf_ref <- function(app_code, d0, series) {
   ts_ok <- app_code$validate_ts_ready(d0, series, "auto", min_n = 6L)
-  if (!isTRUE(ts_ok$ok) || nrow(ts_ok$data) < 6) return(list(ok = FALSE))
-
-  dd <- ts_ok$data
-  spec <- app_code$ts_spec_from_time(dd$Time, "auto")
-  y_ts <- stats::ts(as.numeric(dd$y), frequency = spec$freq, start = spec$start)
-  dy   <- diff(y_ts)
-  n    <- length(dy)
-  if (n < 5) return(list(ok = FALSE))
-
-  acf_obj  <- stats::acf(dy, plot = FALSE)
-  pacf_obj <- stats::pacf(dy, plot = FALSE)
-
-  freq0 <- stats::frequency(y_ts)
-  if (is.null(freq0) || is.na(freq0) || freq0 < 1) freq0 <- 1
-
+  if (!isTRUE(ts_ok$ok)) return(list(ok = FALSE))
+  ap <- app_code$acf_pacf_data(ts_ok$data)
+  if (is.null(ap)) return(list(ok = FALSE))
   list(
-    ok        = TRUE,
-    acf_lag   = as.integer(round(as.numeric(acf_obj$lag[-1]) * freq0)),
-    acf       = as.numeric(acf_obj$acf[-1]),
-    pacf_lag  = as.integer(round(as.numeric(pacf_obj$lag) * freq0)),
-    pacf      = as.numeric(pacf_obj$acf),
-    conf      = 1.96 / sqrt(n)
+    ok       = TRUE,
+    acf_lag  = ap$acf$lag,
+    acf      = ap$acf$value,
+    pacf_lag = ap$pacf$lag,
+    pacf     = ap$pacf$value,
+    conf     = ap$conf
   )
 }
 
 # adf_res() rrumbullakos statistikën; këtu ruhen edhe vlerat e plota.
-adf_raw <- function(app_code, d0, series) {
+adf_raw_ref <- function(app_code, d0, series) {
   ts_ok <- app_code$validate_ts_ready(d0, series, "auto", min_n = 20L)
   if (!isTRUE(ts_ok$ok)) return(list(ok = FALSE))
 
-  y <- suppressWarnings(as.numeric(ts_ok$data$y))
-  if (length(y) < 20) return(list(ok = FALSE))
+  r <- app_code$run_adf(ts_ok$data$y)
+  if (!isTRUE(r$ok)) return(list(ok = FALSE))
 
-  one <- function(obj) {
-    if (inherits(obj, "try-error")) return(NULL)
-    list(statistic = as.numeric(obj$statistic), p_value = as.numeric(obj$p.value),
-         lag_order = as.numeric(obj$parameter))
+  one <- function(o) {
+    if (is.null(o)) return(NULL)
+    list(statistic = o$statistic, p_value = o$p_value, lag_order = o$lag_order)
   }
-
-  dy <- diff(y)
-  list(
-    ok    = TRUE,
-    level = one(try(tseries::adf.test(y), silent = TRUE)),
-    diff  = if (length(dy) >= 20) one(try(tseries::adf.test(dy), silent = TRUE)) else NULL
-  )
+  list(ok = TRUE, level = one(r$level), diff = one(r$diff))
 }
 
 forecast_values <- function(fc) {
@@ -258,7 +169,8 @@ compute_results <- function(root, ds) {
   active <- list(file = ds$file, data = raw, time_col = ds$time_col, value_cols = vc)
   module_args <- list(
     series = shiny::reactive(app_code$prepare_series(active)),
-    active = shiny::reactive(active)
+    active = shiny::reactive(active),
+    fits   = app_code$model_store()
   )
 
   shiny::testServer(legacy_plots_module(app_code), args = module_args, {
@@ -269,20 +181,19 @@ compute_results <- function(root, ds) {
     det <- list(
       value_cols = sp$value_cols(),
       df_dyn     = d0,
-      summary    = summary_stats(d0, vc),
-      corr       = correlation_matrix(d0)
+      summary    = app_code$summary_stats(d0, vc),
+      corr       = correlation_matrix_ref(app_code, d0)
     )
     forms  <- list()
     values <- list()
 
     # Kufijtë e slider-ave (R16), sipas observer-ave të server_plots.R
-    step <- sp$.h_step(d0$Time)
-    det$time_step <- step
-    det$time_unit <- sp$.h_unit(d0$Time)
+    det$time_step <- app_code$time_step(d0$Time)
+    det$time_unit <- app_code$time_step_unit(d0$Time)
 
     pairs <- utils::combn(vc, 2, simplify = FALSE)
     det$relation <- setNames(
-      lapply(pairs, function(p) relation_fit(d0, p[1], p[2])),
+      lapply(pairs, function(p) relation_fit_ref(app_code, d0, p[1], p[2])),
       vapply(pairs, paste, character(1), collapse = "~")
     )
 
@@ -290,25 +201,22 @@ compute_results <- function(root, ds) {
       y <- d0[[s]]
       n_non_na <- sum(!is.na(y))
 
-      k_min <- 3L
-      k_max_raw <- if (is.finite(n_non_na) && n_non_na >= 2L) as.integer(n_non_na - 1L) else k_min
-      k_max <- min(k_max_raw, sp$.roll_cap_by_step(step), max(k_min, as.integer(floor(n_non_na / 2))))
-      k_max <- max(k_min, k_max)
-      hb <- sp$.h_bounds(n_non_na, d0$Time)
+      rb <- app_code$roll_bounds(n_non_na, d0$Time)
+      hb <- app_code$h_bounds(n_non_na, d0$Time)
 
       session$setInputs(stat_series = s)
       adf_app <- sp$adf_res()
 
       det$series[[s]] <- list(
-        roll_bounds = list(min = k_min, max = k_max),
+        roll_bounds = rb,
         h_bounds    = hb,
-        roll        = setNames(lapply(ROLL_K, function(k) rolling_mean(d0, s, k)), paste0("k", ROLL_K)),
+        roll        = setNames(lapply(ROLL_K, function(k) rolling_mean_ref(app_code, d0, s, k)), paste0("k", ROLL_K)),
         ts_ready    = lapply(c(diff = 3L, acf = 6L, adf = 20L, model = 20L, forecast = 2L), function(mn) {
           r <- app_code$validate_ts_ready(d0, s, "auto", min_n = mn)
           list(ok = isTRUE(r$ok), n = r$n)
         }),
-        diff        = first_difference(app_code, d0, s),
-        acf_pacf    = acf_pacf(app_code, d0, s),
+        diff        = first_difference_ref(app_code, d0, s),
+        acf_pacf    = acf_pacf_ref(app_code, d0, s),
         adf         = list(
           ok     = adf_app$ok,
           reason = adf_app$reason,
@@ -318,7 +226,7 @@ compute_results <- function(root, ds) {
           p_diff = adf_app$p_diff,
           reject_lvl_5pct  = !is.na(adf_app$p_lvl)  && adf_app$p_lvl  < 0.05,
           reject_diff_5pct = !is.na(adf_app$p_diff) && adf_app$p_diff < 0.05,
-          raw    = adf_raw(app_code, d0, s)
+          raw    = adf_raw_ref(app_code, d0, s)
         )
       )
 

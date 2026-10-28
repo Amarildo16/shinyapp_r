@@ -7,6 +7,8 @@
 > - ID-të e modulit kanë prefiksin `datasets-` (edhe në CSS/JS). Q04 matet me numërimin e `shiny:value` në browser (V-15 d).
 > - Zgjedhësit e serive të faqeve (`eda_series`…) janë ende globalë te `app.R`. Me aktivizim kur faqja e analizës është e dukshme, ata japin një render të dytë (mbyllet në Fazën 5).
 > - Mësim praktik: në Bash, heredoc-u ha backslash-et edhe në Python inline. Për skripte me `\` përdor Write ose Edit.
+> - Faza 4 u bë commit nga përdoruesi (`6dacb23`, `bbe7a69`). **Faza 5 është në punë** (V-17): ndalesë pas çdo pjese, me raport dhe commit të përdoruesit. **Bazat** janë gati, pa commit: `stats_eda.R`, `ts_models.R`, `model_store.R` dhe kufijtë te `ts_time.R` (T-18, T-19). Q30 24/24, tani pa warning. B-17 (ADF me 20 pika) u pranua si rregullim bug-u (V-18). Radha e pjesëve: `mod_overview` → `mod_eda_ts` (+ `plot_theme.R`) → `mod_eda_rel` → `mod_stationarity` → `mod_modeling` → `mod_forecast`.
+> - Brenda `server_plots()` emri `series_ts` ishte reaktiv lokal dhe fshihte funksionin `series_ts()`; u riemërtua `fc_ts`. Kujdes me emrat kur funksionet e pastra marrin emra që përdoreshin lokalisht.
 
 > [!important] Përditësim nga sesioni 2 (Claude Code, Windows)
 > - **Faza 0 është e përfunduar** (STATUS.md "Faza 0 — rezultati"). Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13, vendim i përdoruesit). Commit-et: `531bc0c`, `517a1ae`.

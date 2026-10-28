@@ -1,6 +1,7 @@
 # I përkohshëm (zhduket në Fazën 5). Merr series() dhe active() nga app.R (V-04):
 # koha, seritë dhe dublikatat/frekuenca vijnë të gatshme nga prepare_series().
-server_plots <- function(input, output, session, series, active) {
+# Llogaritjet jetojnë te stats_eda.R / ts_models.R; modelet vijnë nga `fits` (model_store).
+server_plots <- function(input, output, session, series, active, fits) {
   need     <- shiny::need
   validate <- shiny::validate
 
@@ -24,56 +25,6 @@ server_plots <- function(input, output, session, series, active) {
   # =========================================================
 
 
-  .h_step <- function(Time) {
-    tt <- Time[!is.na(Time)]
-    if (length(tt) < 2) return("period")
-
-    info <- tryCatch(infer_step_from_time(tt), error = function(e) NULL)
-    if (!is.null(info) && identical(info$type, "date")) {
-      return(info$step)
-    }
-
-    if (is.numeric(tt) && all(tt >= 1500 & tt <= 3000, na.rm = TRUE)) return("year")
-
-    "period"
-  }
-
-  .h_unit <- function(Time) {
-    step <- .h_step(Time)
-    switch(step,
-      year    = "vite",
-      quarter = "tremujor",
-      month   = "muaj",
-      week    = "javë",
-      day     = "ditë",
-      "periudha"
-    )
-  }
-
-  .h_cap_by_step <- function(step) {
-    if (step %in% names(H_CAP)) H_CAP[[step]] else H_CAP_DEFAULT
-  }
-
-  .h_bounds <- function(n_real, Time) {
-    n_real <- as.integer(n_real)
-    if (is.na(n_real) || n_real < 2L) return(list(min = 1L, max = 1L, step = "period"))
-
-    step <- .h_step(Time)
-    cap  <- .h_cap_by_step(step)
-
-    hmax <- min(as.integer(n_real - 1L), cap)
-    hmax <- max(1L, hmax)
-
-    hmin <- if (hmax <= 8L) 2L else 1L
-    hmin <- min(hmin, hmax)
-
-    list(min = hmin, max = hmax, step = step)
-  }
-
-  .roll_cap_by_step <- function(step) {
-    if (step %in% names(ROLL_CAP)) ROLL_CAP[[step]] else ROLL_CAP_DEFAULT
-  }
-
   .slider_once <- reactiveValues(roll_k = FALSE, model_h = FALSE, h = FALSE)
 
   # priority = 1: rivendoset para observer-ave të slider-ave, si me df() e vjetër.
@@ -93,16 +44,11 @@ server_plots <- function(input, output, session, series, active) {
     y <- d0[[input$eda_series]]
     n_non_na <- sum(!is.na(y))
 
-    step <- .h_step(d0$Time)
-    unit <- .h_unit(d0$Time)
+    unit <- time_step_unit(d0$Time)
 
-    k_min <- 3L
-
-    capk <- .roll_cap_by_step(step)
-    k_max_raw <- if (is.finite(n_non_na) && n_non_na >= 2L) as.integer(n_non_na - 1L) else k_min
-
-    k_max <- min(k_max_raw, capk, max(k_min, as.integer(floor(n_non_na / 2))))
-    k_max <- max(k_min, k_max)
+    rb    <- roll_bounds(n_non_na, d0$Time)
+    k_min <- rb$min
+    k_max <- rb$max
 
     cur <- isolate(input$roll_k)
     if (is.null(cur) || is.na(cur)) cur <- min(5L, k_max)
@@ -136,8 +82,8 @@ server_plots <- function(input, output, session, series, active) {
     y <- d0[[ser]]
     n_real <- sum(!is.na(y))
 
-    b <- .h_bounds(n_real, d0$Time)
-    unit <- .h_unit(d0$Time)
+    b <- h_bounds(n_real, d0$Time)
+    unit <- time_step_unit(d0$Time)
 
     cur <- isolate(input$model_h)
     if (is.null(cur) || is.na(cur)) cur <- min(5L, b$max)
@@ -169,8 +115,8 @@ server_plots <- function(input, output, session, series, active) {
     y <- d0[[ser]]
     n_real <- sum(!is.na(y))
 
-    b <- .h_bounds(n_real, d0$Time)
-    unit <- .h_unit(d0$Time)
+    b <- h_bounds(n_real, d0$Time)
+    unit <- time_step_unit(d0$Time)
 
     cur <- isolate(input$h)
     if (is.null(cur) || is.na(cur)) cur <- min(5L, b$max)
@@ -261,28 +207,16 @@ server_plots <- function(input, output, session, series, active) {
       return(data.frame(Mesazh = "Zgjidh të paktën 1 seri numerike.", check.names = FALSE))
     }
 
-    X <- setNames(lapply(vc, function(v) d[[v]]), vc)
-
-    safe_stat <- function(x, fun) {
-      x <- x[!is.na(x)]
-      if (length(x) == 0) return(NA_real_)
-      fun(x)
-    }
-
-    safe_sd <- function(x) {
-      x <- x[!is.na(x)]
-      if (length(x) < 2) return(NA_real_)
-      stats::sd(x)
-    }
+    st <- summary_stats(d, vc)
 
     out <- data.frame(
       Variabla = vc,
-      Mesatarja = vapply(vc, function(v) safe_stat(X[[v]], base::mean), numeric(1)),
-      `Devijimi standard` = vapply(vc, function(v) safe_sd(X[[v]]), numeric(1)),
-      Minimumi = vapply(vc, function(v) safe_stat(X[[v]], base::min), numeric(1)),
-      Maksimumi = vapply(vc, function(v) safe_stat(X[[v]], base::max), numeric(1)),
-      `N (jo-NA)` = vapply(vc, function(v) sum(!is.na(X[[v]])), integer(1)),
-      `Missing %` = vapply(vc, function(v) round(100 * mean(is.na(X[[v]])), 2), numeric(1)),
+      Mesatarja = st$mean,
+      `Devijimi standard` = st$sd,
+      Minimumi = st$min,
+      Maksimumi = st$max,
+      `N (jo-NA)` = st$n,
+      `Missing %` = st$missing_pct,
       check.names = FALSE
     )
 
@@ -436,50 +370,23 @@ server_plots <- function(input, output, session, series, active) {
     d0 <- df_dyn()
     xlab <- time_axis_label(d0$Time)
 
-    # -------------------------
-    # roll_k
-    # -------------------------
-    y <- d0[[input$eda_series]]
-    n_non_na <- sum(!is.na(y))
+    rm <- rolling_mean(d0, input$eda_series, input$roll_k)
 
-    k <- input$roll_k
-    if (is.null(k) || is.na(k)) k <- 5
-    k <- as.integer(k)
-    k <- max(2L, k)
-
-    if (n_non_na < 3) {
+    if (!isTRUE(rm$ok)) {
       showNotification("Seria ka shumë pak vlera reale (jo-NA) për rolling mean.", type = "warning")
       return(NULL)
     }
 
-    k_max <- max(2L, n_non_na - 1L)
-    if (k > k_max) {
-      k <- k_max
+    k <- rm$k
+    if (rm$k_adjusted) {
       showNotification(
         paste0("roll_k u përshtat automatikisht në k=", k,
-              " (seri ka ", n_non_na, " vlera jo-NA)."),
+              " (seri ka ", rm$n_non_na, " vlera jo-NA)."),
         type = "message"
       )
     }
 
-    # -------------------------
-    # Rolling mean
-    # -------------------------
-    d <- d0 %>%
-      dplyr::arrange(Time) %>%
-      dplyr::mutate(
-        roll_mean = zoo::rollapply(
-          .data[[input$eda_series]],
-          width = k,
-          FUN = function(z) {
-            if (all(is.na(z))) NA_real_
-            else mean(z, na.rm = TRUE)
-          },
-          fill = NA,
-          align = "right",
-          partial = FALSE
-        )
-      ) %>%
+    d <- rm$data %>%
       dplyr::mutate(
         hover_raw = paste0(
           xlab, ": ", fmt_time(Time),
@@ -650,20 +557,14 @@ server_plots <- function(input, output, session, series, active) {
             "<br>", my$label, ": ", fmt_unit(yval, input$rel_y, meta())
           )
         }
-      ) %>%
-      dplyr::filter(is.finite(xval), is.finite(yval))
+      )
 
-    shiny::validate(shiny::need(nrow(d) > 1, "S’ka mjaft pika (pas heqjes së NA)."))
-    shiny::validate(shiny::need(length(unique(d$xval)) > 1, "Variabla X s’ka mjaft variacion për regresion."))
+    rel <- relation_fit(d, input$rel_x, input$rel_y)
+    shiny::validate(shiny::need(rel$reason != "few_points", "S’ka mjaft pika (pas heqjes së NA)."))
+    shiny::validate(shiny::need(rel$reason != "no_x_variation", "Variabla X s’ka mjaft variacion për regresion."))
 
-    fit <- tryCatch(stats::lm(yval ~ xval, data = d), error = function(e) NULL)
-
-    line_df <- NULL
-    if (!is.null(fit) && all(is.finite(stats::coef(fit)))) {
-      xs <- seq(min(d$xval), max(d$xval), length.out = 100)
-      line_df <- data.frame(xval = xs)
-      line_df$yhat <- as.numeric(stats::predict(fit, newdata = line_df))
-    }
+    d       <- rel$data
+    line_df <- rel$line
 
     p <- ggplot2::ggplot(d, ggplot2::aes(x = xval, y = yval)) +
       ggplot2::geom_point(
@@ -747,37 +648,28 @@ server_plots <- function(input, output, session, series, active) {
 
     d0 <- df_dyn()
 
-    num_df <- d0 %>%
-      dplyr::select(where(is.numeric)) %>%
-      dplyr::select(-dplyr::any_of("Time"))
+    cm <- correlation_matrix(d0)
 
-    if (ncol(num_df) < 2) {
+    if (identical(cm$reason, "few_cols")) {
       shiny::showNotification("Duhet të paktën 2 kolona numerike për korrelacion.", type = "warning")
       return(NULL)
     }
 
-    if (ncol(num_df) > 20) {
-      num_df <- num_df[, 1:20, drop = FALSE]
+    if (isTRUE(cm$truncated)) {
       shiny::showNotification("U përdorën vetëm 20 kolonat e para numerike për heatmap.", type = "message")
     }
 
-    num_df <- num_df %>%
-      dplyr::select(where(~ {
-        s <- stats::sd(.x, na.rm = TRUE)
-        is.finite(s) && s > 0
-      }))
-
-    if (ncol(num_df) < 2) {
+    if (identical(cm$reason, "few_cols_after_sd")) {
       shiny::showNotification("Pas filtrit (sd>0) s’mbetën të paktën 2 kolona numerike.", type = "warning")
       return(NULL)
     }
 
-    corr_mat <- stats::cor(num_df, use = "pairwise.complete.obs")
+    corr_mat <- cm$corr
 
     corr_df <- as.data.frame(as.table(corr_mat), stringsAsFactors = FALSE)
     colnames(corr_df) <- c("Var1", "Var2", "Korrelacioni")
 
-    vars <- colnames(num_df)
+    vars <- colnames(corr_mat)
     corr_df$Var1 <- factor(corr_df$Var1, levels = vars)
     corr_df$Var2 <- factor(corr_df$Var2, levels = vars)
 
@@ -862,21 +754,14 @@ server_plots <- function(input, output, session, series, active) {
     ts_ok <- validate_ts_ready(d0, input$stat_series, FREQ_POLICY, min_n = 3L)
     validate(need(isTRUE(ts_ok$ok), ts_ok$message))
 
-    dd <- ts_ok$data
+    fd <- first_difference(ts_ok$data)
 
-    if (nrow(dd) < 3) {
+    if (is.null(fd)) {
       showNotification("Seria ka shumë pak vlera reale (jo-NA) për diferencë të parë.", type = "warning")
       return(NULL)
     }
 
-    dy <- diff(dd$y)
-    tt <- dd$Time[-1]
-
-    d <- data.frame(
-      Time = tt,
-      Diferenca = as.numeric(dy),
-      stringsAsFactors = FALSE
-    ) %>%
+    d <- data.frame(Time = fd$Time, Diferenca = fd$diff, stringsAsFactors = FALSE) %>%
       dplyr::mutate(
         hover = paste0(
           xlab, ": ", fmt_time(Time),
@@ -948,39 +833,19 @@ server_plots <- function(input, output, session, series, active) {
       return(NULL)
     }
 
-    spec <- ts_spec_from_time(dd$Time, FREQ_POLICY)
-    y_ts <- stats::ts(as.numeric(dd$y), frequency = spec$freq, start = spec$start)
-    dy   <- diff(y_ts)
-    n    <- length(dy)
+    ap <- acf_pacf_data(dd)
 
-    if (n < 5) {
+    if (is.null(ap)) {
       showNotification("Seria e diferencuar ka shumë pak pika për ACF/PACF.", type="warning")
       return(NULL)
     }
 
-    acf_obj  <- stats::acf(dy, plot = FALSE)
-    pacf_obj <- stats::pacf(dy, plot = FALSE)
-
-    freq0 <- stats::frequency(y_ts)
-    if (is.null(freq0) || is.na(freq0) || freq0 < 1) freq0 <- 1
-
-    acf_df <- data.frame(
-      Vonesa = as.integer(round(as.numeric(acf_obj$lag[-1]) * freq0)),
-      Vlera  = as.numeric(acf_obj$acf[-1]),
-      Tipi   = "ACF",
-      stringsAsFactors = FALSE
+    df_plot <- rbind(
+      data.frame(Vonesa = ap$acf$lag,  Vlera = ap$acf$value,  Tipi = "ACF",  stringsAsFactors = FALSE),
+      data.frame(Vonesa = ap$pacf$lag, Vlera = ap$pacf$value, Tipi = "PACF", stringsAsFactors = FALSE)
     )
 
-    pacf_df <- data.frame(
-      Vonesa = as.integer(round(as.numeric(pacf_obj$lag) * freq0)),
-      Vlera  = as.numeric(pacf_obj$acf),
-      Tipi   = "PACF",
-      stringsAsFactors = FALSE
-    )
-
-    df_plot <- rbind(acf_df, pacf_df)
-
-    conf <- 1.96 / sqrt(n)
+    conf <- ap$conf
 
     p <- ggplot(df_plot, aes(x = Vonesa, y = Vlera)) +
       geom_col(fill = scales::alpha("#0a84ff", 0.75), width = 0.7) +
@@ -1077,14 +942,12 @@ server_plots <- function(input, output, session, series, active) {
       ))
     }
 
-    adf_lvl <- try(tseries::adf.test(y), silent = TRUE)
-    dy      <- diff(y)
-    adf_diff <- if (length(dy) >= 20) try(tseries::adf.test(dy), silent = TRUE) else "try-error"
+    adf <- run_adf(y)
 
     fill_row <- function(tbl, row_idx, obj) {
-      if (!inherits(obj, "try-error")) {
-        tbl$Statistic[row_idx] <- as.numeric(obj$statistic)
-        tbl$`p-value`[row_idx] <- as.numeric(obj$p.value)
+      if (!is.null(obj)) {
+        tbl$Statistic[row_idx] <- obj$statistic
+        tbl$`p-value`[row_idx] <- obj$p_value
         tbl$Method[row_idx]    <- obj$method
       } else {
         tbl$Method[row_idx]    <- "ADF (tseries::adf.test)"
@@ -1093,14 +956,14 @@ server_plots <- function(input, output, session, series, active) {
     }
 
     out_tbl <- base_tbl
-    out_tbl <- fill_row(out_tbl, 1, adf_lvl)
-    out_tbl <- fill_row(out_tbl, 2, adf_diff)
+    out_tbl <- fill_row(out_tbl, 1, adf$level)
+    out_tbl <- fill_row(out_tbl, 2, adf$diff)
 
     out_tbl$Statistic <- round(out_tbl$Statistic, 4)
     out_tbl$`p-value` <- formatC(out_tbl$`p-value`, format = "f", digits = 4)
 
-    p_lvl  <- if (!inherits(adf_lvl,  "try-error")) as.numeric(adf_lvl$p.value)  else NA_real_
-    p_diff <- if (!inherits(adf_diff, "try-error")) as.numeric(adf_diff$p.value) else NA_real_
+    p_lvl  <- adf$level$p_value %||% NA_real_
+    p_diff <- adf$diff$p_value  %||% NA_real_
 
     list(
       ok = TRUE, reason = "ok",
@@ -1193,9 +1056,6 @@ server_plots <- function(input, output, session, series, active) {
 
   model_h_db <- shiny::debounce(reactive({input$model_h}), millis = 350)
 
-  .model_cache_key <- reactiveVal(NULL)
-  .model_cache_val <- reactiveVal(NULL)
-
   .model_fits <- reactive({
     req(df_dyn(), input$model_series)
 
@@ -1214,64 +1074,37 @@ server_plots <- function(input, output, session, series, active) {
     }
 
     y_raw <- as.numeric(dd$y)
+    y_mod <- series_ts(dd)
 
-    spec <- ts_spec_from_time(dd$Time, FREQ_POLICY)
-    y_ts <- stats::ts(y_raw, frequency = spec$freq, start = spec$start)
-    y_mod <- y_ts
-
-    key <- paste0(
-      input$model_series, "|", FREQ_POLICY, "|",
-      n, "|", fmt_time(tail(dd$Time, 1)), "|",
-      sprintf("%.6f", sum(y_raw, na.rm = TRUE)), "|",
-      sprintf("%.6f", stats::sd(y_raw, na.rm = TRUE))
-    )
-
-    if (identical(.model_cache_key(), key)) {
-      return(.model_cache_val())
+    # Progresi shfaqet vetëm kur modelet nuk janë ende në cache (si më parë).
+    fit_both <- function(step = function(v) NULL) {
+      step(0.2)
+      e <- fits$get("ets", y_mod)
+      step(0.55)
+      a <- fits$get("arima", y_mod)
+      step(0.95)
+      list(ets = e, arima = a)
+    }
+    ff <- if (fits$has("ets", y_mod) && fits$has("arima", y_mod)) {
+      fit_both()
+    } else {
+      shiny::withProgress(message = "Duke ndërtu ETS & ARIMA...", value = 0,
+                          fit_both(shiny::incProgress))
     }
 
-    out <- shiny::withProgress(message = "Duke ndërtu ETS & ARIMA...", value = 0, {
-      shiny::incProgress(0.2)
+    if (is.null(ff$ets) || is.null(ff$arima)) {
+      return(list(ok = FALSE, msg = "Modelimi dështoi për ETS ose ARIMA (kontrollo NA / seri konstante / freq)."))
+    }
 
-      fit_ets <- try(forecast::ets(y_mod), silent = TRUE)
-      shiny::incProgress(0.55)
-
-      fq <- stats::frequency(y_mod)
-
-      seasonal_flag <- fq %in% c(4, 12, 52)
-
-      fastish <- length(y_mod) > 800 || fq > 12
-
-      fit_arima <- try(
-        forecast::auto.arima(
-          y_mod,
-          seasonal = seasonal_flag,
-          stepwise = TRUE,
-          approximation = if (fastish) TRUE else FALSE
-        ),
-        silent = TRUE
-      )
-
-      shiny::incProgress(0.95)
-
-      if (inherits(fit_ets, "try-error") || inherits(fit_arima, "try-error")) {
-        return(list(ok = FALSE, msg = "Modelimi dështoi për ETS ose ARIMA (kontrollo NA / seri konstante / freq)."))
-      }
-
-      list(
-        ok = TRUE,
-        dd = dd,
-        y_raw = y_raw,
-        fit_ets = fit_ets,
-        fit_arima = fit_arima,
-        xlab = time_axis_label(d0$Time),
-        m = var_meta(input$model_series, meta())
-      )
-    })
-
-    .model_cache_key(key)
-    .model_cache_val(out)
-    out
+    list(
+      ok = TRUE,
+      dd = dd,
+      y_raw = y_raw,
+      fit_ets = ff$ets,
+      fit_arima = ff$arima,
+      xlab = time_axis_label(d0$Time),
+      m = var_meta(input$model_series, meta())
+    )
   })
 
   output$model_plot <- renderPlotly({
@@ -1390,13 +1223,10 @@ server_plots <- function(input, output, session, series, active) {
 
     m <- x$m
 
-    acc_ets   <- forecast::accuracy(x$fit_ets)
-    acc_arima <- forecast::accuracy(x$fit_arima)
+    acc_ets   <- training_accuracy(forecast::accuracy(x$fit_ets))
+    acc_arima <- training_accuracy(forecast::accuracy(x$fit_arima))
 
-    get_metric <- function(acc, metric) {
-      val <- if ("Training set" %in% rownames(acc)) acc["Training set", metric] else acc[1, metric]
-      as.numeric(val)
-    }
+    get_metric <- function(acc, metric) as.numeric(acc[[metric]])
 
     add_unit <- function(txt) {
       u <- m$unit %||% ""
@@ -1443,27 +1273,19 @@ server_plots <- function(input, output, session, series, active) {
     dd
   })
 
-  series_ts <- reactive({
+  fc_ts <- reactive({
     req(series_dat())
-    dd <- series_dat()
-
-    spec <- ts_spec_from_time(dd$Time, FREQ_POLICY)
-    yts  <- stats::ts(as.numeric(dd$y), frequency = spec$freq, start = spec$start)
-
-    yts
+    series_ts(series_dat())
   })
 
   h_db <- shiny::debounce(reactive({input$h}), millis = 350)
 
-  .arima_cache_key <- reactiveVal(NULL)
-  .arima_cache_val <- reactiveVal(NULL)
-
   arima_fit <- reactive({
-    req(series_ts(), series_dat())
+    req(fc_ts(), series_dat())
 
     if ((input$method %||% "") != "arima") return(NULL)
 
-    y  <- series_ts()
+    y  <- fc_ts()
     dd <- series_dat()
 
     n_real <- sum(!is.na(dd$y))
@@ -1471,56 +1293,29 @@ server_plots <- function(input, output, session, series, active) {
       return(list(ok = FALSE, msg = "Për ARIMA rekomandohen ≥ 30 pika reale. Zgjidh SES/Holt ose shto të dhëna."))
     }
 
-    fq <- stats::frequency(y)
-
-    key <- paste0(
-      "n=", length(y),
-      "|fq=", fq,
-      "|last=", fmt_time(tail(dd$Time, 1)),
-      "|sum=", sprintf("%.6f", sum(as.numeric(dd$y), na.rm = TRUE)),
-      "|sd=",  sprintf("%.6f", stats::sd(as.numeric(dd$y), na.rm = TRUE)),
-      "|freqopt=", FREQ_POLICY
-    )
-
-    if (identical(.arima_cache_key(), key)) {
-      return(.arima_cache_val())
+    # I njëjti model si te Modelimi kur seria është e njëjta (P-07).
+    fit <- if (fits$has("arima", y)) {
+      fits$get("arima", y)
+    } else {
+      shiny::withProgress(message = "Duke ndërtu ARIMA...", value = 0, {
+        shiny::incProgress(0.2)
+        f <- fits$get("arima", y)
+        shiny::incProgress(0.95)
+        f
+      })
     }
 
-    out <- shiny::withProgress(message = "Duke ndërtu ARIMA...", value = 0, {
-      shiny::incProgress(0.2)
+    if (is.null(fit)) {
+      return(list(ok = FALSE, msg = "ARIMA dështoi (kontrollo të dhënat / missing / seri konstante / freq)."))
+    }
 
-      seasonal_flag <- fq %in% c(4, 12, 52)
-
-      fastish <- length(y) > 800 || fq > 12
-
-      fit <- try(
-        forecast::auto.arima(
-          y,
-          seasonal = seasonal_flag,
-          stepwise = TRUE,
-          approximation = if (fastish) TRUE else FALSE
-        ),
-        silent = TRUE
-      )
-
-      shiny::incProgress(0.95)
-
-      if (inherits(fit, "try-error")) {
-        return(list(ok = FALSE, msg = "ARIMA dështoi (kontrollo të dhënat / missing / seri konstante / freq)."))
-      }
-
-      list(ok = TRUE, fit = fit)
-    })
-
-    .arima_cache_key(key)
-    .arima_cache_val(out)
-    out
+    list(ok = TRUE, fit = fit)
   })
 
   forecast_obj <- reactive({
-    req(series_ts(), series_dat(), input$method)
+    req(fc_ts(), series_dat(), input$method)
 
-    y  <- series_ts()
+    y  <- fc_ts()
     dd <- series_dat()
 
     h0 <- h_db()
@@ -1538,8 +1333,7 @@ server_plots <- function(input, output, session, series, active) {
       return(NULL)
     }
 
-    if (input$method == "ses")  return(forecast::ses(y,  h = h))
-    if (input$method == "holt") return(forecast::holt(y, h = h))
+    if (input$method != "arima") return(forecast_method(y, input$method, h))
 
     af <- arima_fit()
     if (is.null(af) || !isTRUE(af$ok)) {
@@ -1548,7 +1342,7 @@ server_plots <- function(input, output, session, series, active) {
       return(NULL)
     }
 
-    forecast::forecast(af$fit, h = h)
+    forecast_method(y, "arima", h, af$fit)
   })
 
   # =========================================================

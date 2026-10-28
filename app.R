@@ -508,6 +508,7 @@ server <- function(input, output, session) {
   # =========================================================
   active <- mod_datasets_server("datasets")
   series <- reactive(prepare_series(active()))
+  fits   <- model_store()   # ETS/ARIMA të përbashkët për Modelimin dhe Parashikimin (P-07)
 
   pick_choice <- function(cur, choices, fallback) {
     if (!is.null(cur) && length(cur) == 1 && nzchar(cur) && cur %in% choices) cur else fallback
@@ -1237,7 +1238,7 @@ server <- function(input, output, session) {
     session$sendCustomMessage("dt_adjust", "ts_selected_tbl")
   }, once = TRUE)
 
-  server_plots(input, output, session, series, active)
+  server_plots(input, output, session, series, active, fits)
 }
 
 shinyApp(ui, server)

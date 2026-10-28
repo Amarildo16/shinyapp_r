@@ -1,13 +1,13 @@
 # Gjendja aktuale
 
-Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-27 (Faza 4 e përfunduar, pa commit; B-16 → V-16).
+Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-28 (Faza 5 në punë: bazat të përfunduara, pa commit).
 
 ## E verifikuar
 
 - Analiza e plotë e kodit në commit-in `976dce0` (branch-i `main`): `app.R`, `helpers.R`, `server_plots.R`, `www/js/*`, `www/css/*`, `data/*`, historia e git-it. Rezultati te Obsidian `01 - Analiza e gjendjes aktuale.md` dhe te [ISSUES.md](ISSUES.md).
 - Branch-i `ultimate_version` = `976dce0` + `79a36f7` (dokumentacioni, commit i përdoruesit). `git diff 976dce0 -- app.R helpers.R server_plots.R` është bosh: **kodi i app-it nuk është prekur.**
 - Faza 0 u zbatua nga Claude Code në Windows-in e përdoruesit (shih "Faza 0" më poshtë).
-- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1: `069c8fc`. Faza 2: `7ef2eed`, `c1c7048`. Faza 3: `5daa8fc`. Faza 4 (2026-10-27): pa commit.
+- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1: `069c8fc`. Faza 2: `7ef2eed`, `c1c7048`. Faza 3: `5daa8fc`. Faza 4: `6dacb23`, `bbe7a69`. Faza 5: në punë, pa commit.
 
 ## Mjedisi (verifikuar 2026-10-27 nga Claude Code)
 
@@ -147,6 +147,26 @@ Vendimet: V-15 (përdoruesi: "Vazhdo me rekomandimet"), T-14 – T-17. Burimi i 
 
 `data/` dhe `storage/` e repo-s nuk u prekën; provat u bënë mbi kopje në scratchpad (T-04) dhe mbi sandbox-e të përkohshme (testet). Artefaktet e Playwright u zhvendosën jashtë repo-s.
 
+## Faza 5 — në punë (2026-10-28, Claude Code)
+
+Vendimi V-17 (përdoruesi: "Vazhdo me rekomandimet"). Puna ndalet pas çdo pjese, me raport dhe commit të përdoruesit.
+
+**Blloku 1 — bazat** (T-18, T-19): llogaritjet e pastra dalin nga render-at e `legacy_server_plots.R`; `model_store` zëvendëson dy cache-t manuale.
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| `stats_eda.R` | `summary_stats`, `rolling_mean`, `relation_fit`, `correlation_matrix` | `test-stats_eda.R`; Q30 (`summary`, `roll`, `relation`, `corr`) |
+| `ts_models.R` | `series_ts`, `first_difference`, `acf_pacf_data`, `run_adf`, `fit_ets`, `fit_arima`, `forecast_method`, `training_accuracy`; parametrat e njëjtë | `test-ts_models.R` (edhe `auto.arima` me opsionet e app-it = thirrja direkte); Q30 (`diff`, `acf_pacf`, `adf`, `modeling`, `forecast`) |
+| ADF (V-17 c, B-11) | Warning-u "p-value smaller/greater…" hiqet; `p_bound` ruhet për modulin | `expect_no_warning`; Q30 pa warning (më parë 14) |
+| B-17 (i ri) | ADF me saktësisht 20 pika nuk jep më error | rikrijimi i shprehjes së vjetër; test; pranuar me V-18 |
+| `ts_time.R` | `time_step`, `time_step_unit`, `h_bounds`, `roll_bounds` (nga `.h_*` të legacy) | `test-ts_time.R`; Q30 (`time_step`, `time_unit`, kufijtë) |
+| `model_store.R` (P-07) | Një model për seri, i përbashkët për Modelimin dhe Parashikimin | `test-model_store.R`; Q30 `values$modeling`/`values$forecast` |
+| `compute_results.R` | Thërret funksionet e app-it; kopjet e llogaritjeve u hoqën | Q30 24/24 |
+| Q29 | 19 skedarë, 601 pritje: **0 dështime** | `testthat::test_dir()` |
+| Smoke test | 16 fusha × 2 dataset-e identike me Fazën 4; 0 `shiny-output-error`; console 0 mesazhe; R: vetëm `aes(text)` | browser mbi kopje (T-04) |
+
+Pamja e app-it nuk ndryshoi në këtë bllok. `plot_theme.R` vjen me `mod_eda_ts` (T-18).
+
 ## Kufizime dhe shënime
 
 - Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime, përveç B-16 deri në Fazën 7 (V-16).
@@ -156,7 +176,7 @@ Vendimet: V-15 (përdoruesi: "Vazhdo me rekomandimet"), T-14 – T-17. Burimi i 
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (2026-10-27), pa commit. B-16 u përjashtua përkohësisht nga Q01 deri në Fazën 7 (V-16). Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për [Fazën 5](steps/05-faqet-e-analizes.md) (ose Fazën 6, që varet vetëm nga 3).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është në punë:** bazat janë gati (pa commit); B-17 u pranua me V-18. Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për `mod_overview` (hapi 4.1 i [Fazës 5](steps/05-faqet-e-analizes.md)).
 
 ## Regjistri i dorëzesave
 
