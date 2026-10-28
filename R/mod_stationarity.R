@@ -280,6 +280,8 @@ mod_stationarity_server <- function(id, series) {
       shiny::validate(shiny::need(nrow(dd) >= 6, tr("stat.need_acf_points")))
       ap <- acf_pacf_data(dd)
       shiny::validate(shiny::need(!is.null(ap), tr("stat.need_acf_diff")))
+      # V-20: diferenca konstante -> ACF e papërcaktuar (NaN); mesazh në vend të grafikut bosh.
+      shiny::validate(shiny::need(any(is.finite(c(ap$acf$value, ap$pacf$value))), tr("stat.acf_constant_diff")))
       stat_acf_plot(ap, sel(), series()$meta)
     })
 

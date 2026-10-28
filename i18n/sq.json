@@ -156,6 +156,7 @@
   "stat.need_diff_points": "Seria ka shumë pak vlera reale (jo-NA) për diferencë të parë.",
   "stat.need_acf_points": "Duhet të paktën ~6 vlera reale për ACF/PACF (pas diferencës humbet 1).",
   "stat.need_acf_diff": "Seria e diferencuar ka shumë pak pika për ACF/PACF.",
+  "stat.acf_constant_diff": "ACF/PACF nuk mund të llogaritet: diferenca e serisë është konstante.",
   "stat.cap_diff": "Diferenca e parë (Δyₜ = yₜ − yₜ₋₁) për {label}.",
   "stat.cap_acf": "ACF/PACF mbi diferencën e parë të {label}.",
   "stat.adf_col_series": "Serie",

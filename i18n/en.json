@@ -156,6 +156,7 @@
   "stat.need_diff_points": "The series has too few real (non-NA) values for a first difference.",
   "stat.need_acf_points": "At least ~6 real values are needed for ACF/PACF (differencing loses 1).",
   "stat.need_acf_diff": "The differenced series has too few points for ACF/PACF.",
+  "stat.acf_constant_diff": "ACF/PACF cannot be computed: the differenced series is constant.",
   "stat.cap_diff": "First difference (Δyₜ = yₜ − yₜ₋₁) for {label}.",
   "stat.cap_acf": "ACF/PACF of the first difference of {label}.",
   "stat.adf_col_series": "Series",

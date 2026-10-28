@@ -106,6 +106,14 @@ test_that("B-06 / B-09: mesazhet e serive të pavlefshme dalin me validate()", {
     expect_error(output$acf, "Seria ka shumë pak vëzhgime të vlefshme për këtë analizë.")
   })
 
+  # V-20: seri lineare -> diferenca konstante, ACF e papërcaktuar -> mesazh.
+  lin <- list(data = data.frame(Time = 2001:2015, v = 100 + 2 * (1:15)), value_cols = "v", meta = build_meta("v"))  # < 20: pa ADF (B-18)
+  testServer(mod_stationarity_server, args = list(series = reactive(lin)), {
+    session$setInputs(series = "v")
+    expect_error(output$acf, "ACF/PACF nuk mund të llogaritet: diferenca e serisë është konstante.", fixed = TRUE)
+    expect_match(output$diff, "Diferenca e parë – v")
+  })
+
   idx <- list(data = data.frame(Time = 1:30, v = cumsum(1:30 %% 4)), value_cols = "v", meta = build_meta("v"))
   testServer(mod_stationarity_server, args = list(series = reactive(idx)), {
     session$setInputs(series = "v")
