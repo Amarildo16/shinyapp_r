@@ -120,5 +120,22 @@
   "eda_ts.roll_adjusted": "roll_k u përshtat automatikisht në k={k} (seri ka {n} vlera jo-NA).",
   "eda_ts.cap_raw": "Seria origjinale për {label}.",
   "eda_ts.cap_roll": "Mesatare lëvizëse (k = {k}) për {label}.",
-  "eda_ts.cap_dist": "Shpërndarja e vlerave për {label}."
+  "eda_ts.cap_dist": "Shpërndarja e vlerave për {label}.",
+
+  "eda_rel.title": "Analiza eksploruese e të dhënave – Marrëdhënie",
+  "eda_rel.intro": "Në këtë seksion analizohen marrëdhëniet ndërmjet variablave kryesore, përmes grafikëve dhe matricës së korrelacionit.",
+  "eda_rel.x": "Përzgjidhni variablën X",
+  "eda_rel.y": "Përzgjidhni variablën Y",
+  "eda_rel.scatter_box": "Grafiku i shpërndarjes (Scatter plot)",
+  "eda_rel.corr_box": "Matrica e korrelacionit",
+  "eda_rel.scatter_title": "Marrëdhënia ndërmjet variablave",
+  "eda_rel.corr_title": "Matrica e korrelacionit",
+  "eda_rel.corr_label": "Korrelacioni",
+  "eda_rel.need_points": "S’ka mjaft pika (pas heqjes së NA).",
+  "eda_rel.need_x_variation": "Variabla X s’ka mjaft variacion për regresion.",
+  "eda_rel.need_cols": "Duhet të paktën 2 kolona numerike për korrelacion.",
+  "eda_rel.need_cols_sd": "Pas filtrit (sd>0) s’mbetën të paktën 2 kolona numerike.",
+  "eda_rel.corr_truncated": "U përdorën vetëm 20 kolonat e para numerike për heatmap.",
+  "eda_rel.cap_scatter": "Grafik shpërndarjeje: {x} kundrejt {y}.",
+  "eda_rel.cap_corr": "Matrica e korrelacionit (Pearson) për variablat numerike."
 }

@@ -23,7 +23,7 @@
   - Faza 2 (2026-10-27): `resolve_dataset_defaults(d, cfg, current_time, current_values)` + `pick_value_cols()` te `R/data_prepare.R` zëvendësojnë 5 kopjet e `app.R`, si edhe pjesën e serive te observer-at `modal_time_col` dhe `data_time_col`. Prova: `test-data_prepare.R`; 10 010 kombinime (kopja 1 dhe 3) identike me kodin e vjetër.
   - **Mbetet:** `time_col()` te `R/legacy_server_plots.R` ka rregulla të tjera (inputi → "Year" → kandidati i parë). Zëvendësimi do ndryshonte default-et; propozohet ta mbyllë Faza 4 (P-05). Shtyrë te Faza 4 me V-14.
   - Mbyllur 2026-10-27 (Faza 4): `time_col()` u hoq nga `legacy_server_plots.R`; koha dhe seritë vijnë nga `active()` / `prepare_series()`. Prova: `grep` pa `time_col <-`; vlerat e të 6 faqeve identike para/pas në browser (16 fusha × 2 dataset-e); Q30 24/24 (Claude).
-- [ ] **P-04 — Tema e grafikëve është kopjuar 9 herë.** Sfondi transparent, teksti i bardhë dhe `layout()` i njëjtë përsëriten në çdo grafik. Faza 5: tema e përbashkët te `plot_theme.R` (T-21), e përdorur nga 3 grafikët e EDA – Seri kohore; mbeten 6 grafikët e modulave të tjera.
+- [ ] **P-04 — Tema e grafikëve është kopjuar 9 herë.** Sfondi transparent, teksti i bardhë dhe `layout()` i njëjtë përsëriten në çdo grafik. Faza 5: tema e përbashkët te `plot_theme.R` (T-21), e përdorur nga 3 grafikët e EDA – Seri kohore dhe 2 të EDA – Marrëdhënie; mbeten 4 grafikët e modulave të tjera.
   - Zgjidhja: `plot_theme.R` me `glass_layout()`. · Faza: 5
 - [x] **P-05 — Dy burime të së vërtetës për konfigurimin.** JSON-i (`active_cfg()`) dhe inputet e fshehura (`data_time_col`, `data_value_cols`). Përmbledhja preferon JSON-in, grafikët preferojnë inputet. Kjo shkakton render të dyfishtë kur ndryshon dataset-i.
   - Zgjidhja: `mod_datasets` kthen një `active()` të vetëm. · Faza: 4
@@ -62,21 +62,22 @@
 - [ ] **B-04 — Te Parashikimi, vija e vëzhguar dhe parashikimi janë të dyja të bardha.** Nuk dallohen. · Faza: 5
 - [ ] **B-05 — Hover-i i Parashikimit lidhet me vijat sipas gjatësisë.** `nx == nrow(...)` (`server_plots.R:1760`) prishet kur h = n.
   - Zgjidhja: `plot_ly` direkt me `text` për çdo trace. · Faza: 5
-- [ ] **B-06 — `showNotification` brenda render-ave.** Njoftimet përsëriten në çdo rifreskim. Faza 5: ✅ EDA – Seri kohore (dy mesazhe → `validate()`, përshtatja e k-së → shënim nën grafik, V-17 d).
+- [ ] **B-06 — `showNotification` brenda render-ave.** Njoftimet përsëriten në çdo rifreskim. Faza 5: ✅ EDA – Seri kohore (dy mesazhe → `validate()`, përshtatja e k-së → shënim nën grafik, V-17 d). ✅ EDA – Marrëdhënie ("Duhet të paktën 2 kolona…" dhe "Pas filtrit (sd>0)…" → `validate()`; "vetëm 20 kolonat e para…" → shënim nën matricë).
   - Vendet: `server_plots.R` 514, 534, 541, 838, 844, 854, 951, 1030, 1040, 1373, 1512, 1522, 1616, 1620, 1630
   - Zgjidhja: `validate(need(...))` ose mesazh në kartë. · Faza: 5
-- [ ] **B-07 — Teksti i vjetër "variablave kryesore bujqësore"** te EDA – Marrëdhënie (`app.R:397`). · Faza: 5
+- [x] **B-07 — Teksti i vjetër "variablave kryesore bujqësore"** te EDA – Marrëdhënie (`app.R:397`). · Faza: 5
+  - Mbyllur 2026-10-28 (`mod_eda_rel`, T-22): "…marrëdhëniet ndërmjet variablave kryesore, përmes grafikëve…" (`eda_rel.intro`; anglisht: "…between the main variables…"). Prova: `test-mod_eda_rel.R`; screenshot para/pas i tekstit hyrës.
 - [ ] **B-08 — Emri i fotos futet në JS pa escape.** `sprintf("...'%s'...")` (`app.R:2053`). Një emër me `'` e prish klikimin.
   - Zgjidhja: `jsonlite::toJSON()` si te dataset-et. · Faza: 6
 - [ ] **B-09 — Kolona e kohës numerike që nuk është vit refuzohet.** Vendimi: vetëm mesazh më i qartë (V-11). Klasifikohet si `index`, kështu që Stacionariteti, Modelimi dhe Parashikimi nuk punojnë.
   - Vendim: ose mbështetje me frekuencë 1, ose mesazh më i qartë. · Faza: 5
 - [ ] **B-10 — Preloader-i errëson gjithë ekranin në çdo `shiny:busy`** (`custom.js:14`), edhe për një lëvizje slider-i.
   - Zgjidhja: shfaqet vetëm pas ~400 ms, ose vetëm për llogaritje të gjata. · Faza: 7
-- [ ] **B-11 — Warning-e në console të R-së gjatë përdorimit** (gjetur në Fazën 0, 2026-10-27, Q01).
+- [x] **B-11 — Warning-e në console të R-së gjatë përdorimit** (gjetur në Fazën 0, 2026-10-27, Q01). Mbyllur 2026-10-28: të dy warning-et janë zhdukur.
   - `ggplot2::geom_point(aes(text = hover))` → "Ignoring unknown aesthetics: text" (`server_plots.R:752`, EDA – Marrëdhënie). Zhduket me `plot_ly` (V-08).
   - `tseries::adf.test()` → "p-value smaller than printed p-value" kur p < 0,01 (`server_plots.R:1163–1165`). Është sjellje normale e testit; vlera e shfaqur (0,0100) është ajo e `tseries`. Zgjidhja duhet të mos ndryshojë vlerën (R21), p.sh. kapja e këtij warning-u specifik.
   - Faza: 5
-  - Faza 5, bazat (2026-10-28): warning-u i `adf.test` u hoq te `run_adf()` dhe p-vlera e prerë ruhet si `p_bound` (V-17 c). Prova: `test-ts_models.R` (`expect_no_warning`, vlera = `tseries`); Q30 pa warning; log-u i app-it pa warning ADF. **Mbetet:** `aes(text)` (me `plot_ly`, moduli EDA – Marrëdhënie).
+  - Faza 5, bazat (2026-10-28): warning-u i `adf.test` u hoq te `run_adf()` dhe p-vlera e prerë ruhet si `p_bound` (V-17 c). Prova: `test-ts_models.R` (`expect_no_warning`, vlera = `tseries`); Q30 pa warning; log-u i app-it pa warning ADF. `mod_eda_rel` (2026-10-28): grafiku i shpërndarjes është `plot_ly`, pa ggplot, ndaj "Ignoring unknown aesthetics: text" nuk del më. Prova: log-u i R-së i kopjes "pas" bosh pas 5 dataset-eve × deri në 6 çifte ("para": 72 warning-e); `dump_eda_rel.R` pa asnjë warning ("para": 35).
 - [ ] **B-12 — Errore në console të browser-it te Modelimi** (gjetur në Fazën 0, 2026-10-27).
   - "Shiny server has sent a progress message for model_plot, but the output is in an unexpected state" (+ "recalculating"/"recalculated" … "idle"). Vjen nga `shiny::withProgress()` brenda reaktivit `.model_fits()` (`server_plots.R:1316`); i njëjti model te `arima_fit()` (`server_plots.R:1572`). Grafiku dhe tabela shfaqen saktë.
   - Zgjidhja: llogaritja e modeleve jashtë render-it (`model_store`, P-07), progres pa `withProgress` brenda `reactive()`. · Faza: 5

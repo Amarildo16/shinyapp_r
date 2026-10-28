@@ -8,8 +8,6 @@
     const TAB_ID = "main_tabs";
 
     const WATCH = new Set([
-        "rel_x",
-        "rel_y",
         "stat_series",
         "model_series",
         "model_h",
@@ -23,8 +21,6 @@
     const ANIM_CLASS = "anim-plot";
 
     const AFFECTS = {
-        rel_x: ["eda_rel_scatter"],
-        rel_y: ["eda_rel_scatter"],
         stat_series: ["stat_diff_plot", "stat_acf_pacf"],
         model_series: ["model_plot"],
         model_h: ["model_plot"],

@@ -170,47 +170,7 @@ ui <- function(req) {
         title = tr("page.eda_rel.menu"),
         value = page_tab("eda_rel"),
 
-        div(class = "glass-divider"),
-
-        div(
-          class = "section-box",
-          h3("Analiza eksploruese e të dhënave – Marrëdhënie"),
-          p("Në këtë seksion analizohen marrëdhëniet ndërmjet variablave kryesore bujqësore, përmes grafikëve dhe matricës së korrelacionit.")
-        ),
-
-        sidebarLayout(
-          position = "left",
-
-          sidebarPanel(
-            selectInput("rel_x", "Përzgjidhni variablën X", choices = character(0)),
-
-            selectInput("rel_y", "Përzgjidhni variablën Y", choices = character(0))
-          ),
-
-          mainPanel(
-            div(
-              class = "section-box",
-              h4("Grafiku i shpërndarjes (Scatter plot)"),
-              div(
-                class = "plot-wrap",
-                plotlyOutput("eda_rel_scatter", height = "420px")
-              ),
-              tags$small(textOutput("cap_eda_rel_scatter"))
-            ),
-
-            div(class = "glass-divider"),
-
-            div(
-              class = "section-box",
-              h4("Matrica e korrelacionit"),
-              div(
-                class = "plot-wrap",
-                plotlyOutput("eda_rel_corr", height = "420px")
-              ),
-              tags$small(textOutput("cap_eda_rel_corr"))
-            )
-          )
-        )
+        mod_eda_rel_ui("eda_rel")
       ),
 
       tabPanel(
@@ -418,15 +378,10 @@ server <- function(input, output, session) {
     choices <- active()$value_cols
     if (length(choices) == 0) return()
 
-    s1 <- choices[1]
-    s2 <- if (length(choices) >= 2) choices[2] else choices[1]
-
-    for (id in c("stat_series", "model_series", "forecast_series", "rel_x")) {
+    for (id in c("stat_series", "model_series", "forecast_series")) {
       updateSelectInput(session, id, choices = choices,
-                        selected = pick_choice(isolate(input[[id]]), choices, s1))
+                        selected = pick_choice(isolate(input[[id]]), choices, choices[1]))
     }
-    updateSelectInput(session, "rel_y", choices = choices,
-                      selected = pick_choice(isolate(input$rel_y), choices, s2))
   })
 
 
@@ -1092,6 +1047,7 @@ server <- function(input, output, session) {
 
   mod_overview_server("overview", active, series, reactive(input$main_tabs))
   mod_eda_ts_server("eda_ts", series)
+  mod_eda_rel_server("eda_rel", series)
 
   server_plots(input, output, session, series, active, fits)
 }

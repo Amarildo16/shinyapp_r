@@ -120,5 +120,22 @@
   "eda_ts.roll_adjusted": "The window was adjusted automatically to k={k} (the series has {n} non-NA values).",
   "eda_ts.cap_raw": "Original series for {label}.",
   "eda_ts.cap_roll": "Moving average (k = {k}) for {label}.",
-  "eda_ts.cap_dist": "Distribution of the values for {label}."
+  "eda_ts.cap_dist": "Distribution of the values for {label}.",
+
+  "eda_rel.title": "Exploratory data analysis – Relationships",
+  "eda_rel.intro": "This section analyses the relationships between the main variables, using charts and the correlation matrix.",
+  "eda_rel.x": "Select the X variable",
+  "eda_rel.y": "Select the Y variable",
+  "eda_rel.scatter_box": "Scatter plot",
+  "eda_rel.corr_box": "Correlation matrix",
+  "eda_rel.scatter_title": "Relationship between the variables",
+  "eda_rel.corr_title": "Correlation matrix",
+  "eda_rel.corr_label": "Correlation",
+  "eda_rel.need_points": "Not enough points (after removing NA).",
+  "eda_rel.need_x_variation": "Variable X does not vary enough for a regression.",
+  "eda_rel.need_cols": "At least 2 numeric columns are needed for the correlation.",
+  "eda_rel.need_cols_sd": "After the filter (sd > 0) fewer than 2 numeric columns remain.",
+  "eda_rel.corr_truncated": "Only the first 20 numeric columns were used for the heatmap.",
+  "eda_rel.cap_scatter": "Scatter plot: {x} versus {y}.",
+  "eda_rel.cap_corr": "Pearson correlation matrix of the numeric variables."
 }
