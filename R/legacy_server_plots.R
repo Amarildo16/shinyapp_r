@@ -21,50 +21,16 @@ server_plots <- function(input, output, session, series, active, fits) {
   })
 
   # =========================================================
-  # Slider DINAMIK: model_h (Modelimi) + h (Parashikimi)
+  # Slider DINAMIK: h (Parashikimi)
   # =========================================================
 
 
-  .slider_once <- reactiveValues(model_h = FALSE, h = FALSE)
+  .slider_once <- reactiveValues(h = FALSE)
 
   # priority = 1: rivendoset para observer-ave të slider-ave, si me df() e vjetër.
   observeEvent(active(), {
-    .slider_once$model_h <- FALSE
     .slider_once$h       <- FALSE
   }, ignoreInit = TRUE, priority = 1)
-
-  # -------- model_h dinamik (Modelimi) --------
-  observeEvent(list(df_dyn(), input$model_series), {
-    d0 <- df_dyn()
-    if (is.null(d0) || nrow(d0) == 0) return()
-
-    ser <- input$model_series %||% NULL
-    if (is.null(ser) || !nzchar(ser) || !(ser %in% names(d0))) return()
-
-    y <- d0[[ser]]
-    n_real <- sum(!is.na(y))
-
-    b <- h_bounds(n_real, d0$Time)
-    unit <- time_step_unit(d0$Time)
-
-    cur <- isolate(input$model_h)
-    if (is.null(cur) || is.na(cur)) cur <- min(5L, b$max)
-    val <- max(b$min, min(as.integer(cur), b$max))
-
-    if (isTRUE(.slider_once$model_h)) return()
-      updateSliderInput(
-        session, "model_h",
-        label = paste0("Horizonti i parashikimit (", unit, ")"),
-        min = b$min,
-        max = b$max,
-        value = val,
-        step = 1
-      )
-    .slider_once$model_h <- TRUE
-
-    if (n_real < 2L) shinyjs::disable("model_h") else shinyjs::enable("model_h")
-  }, ignoreInit = FALSE)
-
 
   # -------- h dinamik (Parashikimi) --------
   observeEvent(list(df_dyn(), input$forecast_series), {
@@ -103,12 +69,6 @@ server_plots <- function(input, output, session, series, active, fits) {
   # Captions
   # =========================
 
-  output$cap_model_plot <- renderText({
-    req(input$model_series, input$model_h)
-    m <- var_meta(input$model_series, meta())
-    paste0("Krahasim ETS vs ARIMA për ", m$label, " (h = ", input$model_h, ").")
-  })
-
   output$cap_forecast_plot <- renderText({
     req(input$forecast_series, input$method, input$h)
     m <- var_meta(input$forecast_series, meta())
@@ -116,202 +76,6 @@ server_plots <- function(input, output, session, series, active, fits) {
   })
 
   
-  # =========================
-  # Modelimi – ETS & ARIMA
-  # =========================
-
-  model_h_db <- shiny::debounce(reactive({input$model_h}), millis = 350)
-
-  .model_fits <- reactive({
-    req(df_dyn(), input$model_series)
-
-    d0 <- df_dyn()
-
-    ts_ok <- validate_ts_ready(d0, input$model_series, FREQ_POLICY, min_n = 20L)
-    if (!isTRUE(ts_ok$ok)) {
-      return(list(ok = FALSE, msg = ts_ok$message %||% ts_msg("incomplete")))
-    }
-
-    dd <- ts_ok$data
-
-    n <- nrow(dd)
-    if (n < 20) {
-      return(list(ok = FALSE, msg = "Për ETS/ARIMA rekomandohen ≥ 20 pika reale (jo-NA)."))
-    }
-
-    y_raw <- as.numeric(dd$y)
-    y_mod <- series_ts(dd)
-
-    # Progresi shfaqet vetëm kur modelet nuk janë ende në cache (si më parë).
-    fit_both <- function(step = function(v) NULL) {
-      step(0.2)
-      e <- fits$get("ets", y_mod)
-      step(0.55)
-      a <- fits$get("arima", y_mod)
-      step(0.95)
-      list(ets = e, arima = a)
-    }
-    ff <- if (fits$has("ets", y_mod) && fits$has("arima", y_mod)) {
-      fit_both()
-    } else {
-      shiny::withProgress(message = "Duke ndërtu ETS & ARIMA...", value = 0,
-                          fit_both(shiny::incProgress))
-    }
-
-    if (is.null(ff$ets) || is.null(ff$arima)) {
-      return(list(ok = FALSE, msg = "Modelimi dështoi për ETS ose ARIMA (kontrollo NA / seri konstante / freq)."))
-    }
-
-    list(
-      ok = TRUE,
-      dd = dd,
-      y_raw = y_raw,
-      fit_ets = ff$ets,
-      fit_arima = ff$arima,
-      xlab = time_axis_label(d0$Time),
-      m = var_meta(input$model_series, meta())
-    )
-  })
-
-  output$model_plot <- renderPlotly({
-    req(df_dyn(), input$model_series)
-
-    x <- .model_fits()
-    validate(need(!is.null(x) && isTRUE(x$ok), x$msg %||% "Modelimi s’u krijua."))
-
-    h0 <- model_h_db()
-    if (is.null(h0)) h0 <- input$model_h
-    h <- as.integer(h0)
-    if (is.na(h) || h < 1) h <- 1
-
-    n <- nrow(x$dd)
-    if (h > floor(n/2)) {
-      showNotification("Kujdes: h është i madh krahasuar me të dhënat (h > n/2).", type = "message")
-    }
-
-    fc_ets   <- forecast::forecast(x$fit_ets,   h = h)
-    fc_arima <- forecast::forecast(x$fit_arima, h = h)
-
-    future_time <- make_future_time(x$dd$Time, h)
-
-    obs_df <- data.frame(
-      Time  = x$dd$Time,
-      Vlera = x$y_raw,
-      Tipi  = "Vëzhguar",
-      stringsAsFactors = FALSE
-    )
-
-    ets_df <- data.frame(
-      Time  = future_time,
-      Vlera = as.numeric(fc_ets$mean),
-      Tipi  = "ETS",
-      stringsAsFactors = FALSE
-    )
-
-    arima_df <- data.frame(
-      Time  = future_time,
-      Vlera = as.numeric(fc_arima$mean),
-      Tipi  = "ARIMA",
-      stringsAsFactors = FALSE
-    )
-
-    plot_df <- rbind(obs_df, ets_df, arima_df) %>%
-      dplyr::mutate(
-        hover = paste0(
-          x$xlab, ": ", fmt_time(Time),
-          "<br>", Tipi, ": ", fmt_unit(Vlera, input$model_series, meta())
-        )
-      )
-
-    p <- ggplot(plot_df, aes(x = Time, y = Vlera, color = Tipi, group = Tipi)) +
-      geom_line(linewidth = 1.1) +
-      scale_color_manual(values = c(
-        "Vëzhguar" = "white",
-        "ETS"      = "#0a84ff",
-        "ARIMA"    = "#ff3b30"
-      )) +
-      labs(
-        title = paste0("Krahasimi i parashikimeve – ", x$m$label),
-        x = x$xlab,
-        y = if (nzchar(x$m$unit)) paste0(x$m$label, " (", x$m$unit, ")") else x$m$label
-      ) +
-      scale_y_continuous(labels = function(z) fmt_by_series(z, for_axis = TRUE)) +
-      theme_minimal(base_size = 13) +
-      theme(
-        plot.background   = element_rect(fill = "transparent", color = NA),
-        panel.background  = element_rect(fill = "transparent", color = NA),
-        panel.grid.major  = element_line(color = scales::alpha("white", 0.18)),
-        panel.grid.minor  = element_blank(),
-        text              = element_text(color = "white"),
-        plot.title        = element_text(color = "white", face = "bold"),
-        axis.title        = element_text(color = "white"),
-        axis.text         = element_text(color = "white"),
-        legend.title      = element_blank(),
-        legend.text       = element_text(color = "white"),
-        legend.background = element_rect(fill = "transparent", color = NA),
-        legend.key        = element_rect(fill = "transparent", color = NA)
-      )
-
-    pl <- ggplotly(p, tooltip = NULL) %>%
-      layout(
-        paper_bgcolor = "rgba(0,0,0,0)",
-        plot_bgcolor  = "rgba(0,0,0,0)",
-        font  = list(color = "white"),
-        xaxis = list(gridcolor = "rgba(255,255,255,0.15)"),
-        yaxis = list(gridcolor = "rgba(255,255,255,0.15)")
-      )
-
-    by_type <- split(plot_df$hover, plot_df$Tipi)
-    for (i in seq_along(pl$x$data)) {
-      nm <- pl$x$data[[i]]$name %||% ""
-      if (nm %in% names(by_type)) {
-        pl$x$data[[i]]$text <- by_type[[nm]]
-        pl$x$data[[i]]$hoverinfo <- "text"
-      }
-    }
-
-    plotly_cfg(pl)
-  })
-
-  output$model_acc_tbl <- renderTable({
-    req(df_dyn(), input$model_series)
-
-    x <- .model_fits()
-    if (is.null(x) || !isTRUE(x$ok)) {
-      return(data.frame(
-        Modeli = c("ETS", "ARIMA"),
-        RMSE = NA_character_,
-        MAE  = NA_character_,
-        MAPE = NA_character_,
-        check.names = FALSE
-      ))
-    }
-
-    m <- x$m
-
-    acc_ets   <- training_accuracy(forecast::accuracy(x$fit_ets))
-    acc_arima <- training_accuracy(forecast::accuracy(x$fit_arima))
-
-    get_metric <- function(acc, metric) as.numeric(acc[[metric]])
-
-    add_unit <- function(txt) {
-      u <- m$unit %||% ""
-      if (nzchar(u)) paste0(txt, " ", u) else txt
-    }
-
-    rmse_vals <- c(get_metric(acc_ets, "RMSE"), get_metric(acc_arima, "RMSE"))
-    mae_vals  <- c(get_metric(acc_ets, "MAE"),  get_metric(acc_arima, "MAE"))
-    mape_vals <- c(get_metric(acc_ets, "MAPE"), get_metric(acc_arima, "MAPE"))
-
-    data.frame(
-      Modeli = c("ETS", "ARIMA"),
-      RMSE   = vapply(rmse_vals, function(v) add_unit(fmt_table_value(v)), character(1)),
-      MAE    = vapply(mae_vals,  function(v) add_unit(fmt_table_value(v)), character(1)),
-      MAPE   = fmt_fixed(mape_vals, digits = 2),
-      check.names = FALSE
-    )
-  })
-
   # =========================================================
   # Parashikimi
   # =========================================================

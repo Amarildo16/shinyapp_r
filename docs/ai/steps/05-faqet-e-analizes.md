@@ -1,6 +1,6 @@
 # Faza 05 — Faqet e analizës si module
 
-Statusi: **në punë** (bazat `7ba9afb`, `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`; V-20 pa commit). Vendimet e fazës: V-17 – V-20, T-18 – T-23. Kërkesat: R09–R16, R21. Problemet: P-04, P-07, B-02, B-04, B-05, B-06, B-07, B-09. Vendimet: V-08 (`plot_ly` direkt), V-11 (vetëm mesazh), V-09 (tekstet me `tr()`).
+Statusi: **në punë** (bazat `7ba9afb`, `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`; `mod_modeling` pa commit). Vendimet e fazës: V-17 – V-20, T-18 – T-24. Kërkesat: R09–R16, R21. Problemet: P-04, P-07, B-02, B-04, B-05, B-06, B-07, B-09. Vendimet: V-08 (`plot_ly` direkt), V-11 (vetëm mesazh), V-09 (tekstet me `tr()`).
 
 ## Qëllimi
 
@@ -16,7 +16,7 @@ Statusi: **në punë** (bazat `7ba9afb`, `mod_overview` `0724fcb`, `mod_eda_ts` 
    2. `mod_eda_ts`: kufijtë e slider-it rillogariten për çdo seri (B-02) ✅ (2026-10-28, T-21; bashkë me `plot_theme.R`)
    3. `mod_eda_rel`: rregullo tekstin "bujqësore" (B-07) ✅ (2026-10-28, T-22; edhe B-11 `aes(text)`)
    4. `mod_stationarity` ✅ (2026-10-28, V-19, T-23; B-09 pjesërisht, shih B-19; V-20)
-   5. `mod_modeling`: slider-i i horizontit (B-02)
+   5. `mod_modeling`: slider-i i horizontit (B-02) ✅ (2026-10-29, T-24; B-12 i mbyllur, shënimi për h të madh sipas V-17 d)
    6. `mod_forecast`: ngjyra të dallueshme (B-04), hover për çdo trace (B-05), slider-i (B-02)
 5. Në të gjitha modulet: asnjë `showNotification` në render/reactive (B-06). Gjendjet e pavlefshme shfaqen me `validate(need(...))` dhe me të njëjtat mesazhe si sot.
 6. V-11 (B-09): kolona e kohës numerike jo-vit mbetet e refuzuar nga analizat statistike, por mesazhi shpjegon pse dhe sugjeron formatet e pranuara (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`, `YYYYQ#`).

@@ -184,53 +184,7 @@ ui <- function(req) {
         title = tr("page.modeling.menu"),
         value = page_tab("modeling"),
 
-        div(class = "glass-divider"),
-
-        div(
-          class = "section-box",
-          h3("Modelimi i serive kohore"),
-          p("Në këtë seksion krahasohen modelet ETS dhe ARIMA për parashikim, si dhe vlerësohet saktësia e tyre në setin e trajnimit.")
-        ),
-
-        sidebarLayout(
-          position = "left",
-
-          sidebarPanel(
-            selectInput("model_series", "Përzgjidhni serinë", choices = character(0)),
-
-            sliderInput(
-              "model_h",
-              "Horizonti i parashikimit",
-              min = 1,
-              max = 1,
-              value = 1,
-              step = 1
-            )
-          ),
-
-          mainPanel(
-            div(
-              class = "section-box",
-              h4("Krahasimi i parashikimeve"),
-              div(
-                class = "plot-wrap",
-                plotlyOutput("model_plot", height = "480px")
-              ),
-              tags$small(textOutput("cap_model_plot"))
-            ),
-
-            div(class = "glass-divider"),
-
-            div(
-              class = "section-box",
-              h4("Saktësia e modelit (seti i trajnimit)"),
-              div(
-                class = "table-wrap",
-                tableOutput("model_acc_tbl")
-              )
-            )
-          )
-        )
+        mod_modeling_ui("modeling")
       ),
 
       tabPanel(
@@ -328,7 +282,7 @@ server <- function(input, output, session) {
     choices <- active()$value_cols
     if (length(choices) == 0) return()
 
-    for (id in c("model_series", "forecast_series")) {
+    for (id in "forecast_series") {
       updateSelectInput(session, id, choices = choices,
                         selected = pick_choice(isolate(input[[id]]), choices, choices[1]))
     }
@@ -999,6 +953,7 @@ server <- function(input, output, session) {
   mod_eda_ts_server("eda_ts", series)
   mod_eda_rel_server("eda_rel", series)
   mod_stationarity_server("stationary", series)
+  mod_modeling_server("modeling", series, fits)
 
   server_plots(input, output, session, series, active, fits)
 }

@@ -241,7 +241,24 @@ Të ruajtura si në origjinal: etiketat e boshtit Y të ACF/PACF me pikë ("0.4"
 
 Commit: `33d175a` (përdoruesi, para V-20).
 
-**V-20 (PH-1, 2026-10-28, pa commit):** kur diferenca e serisë është konstante, ACF/PACF jep mesazhin "ACF/PACF nuk mund të llogaritet: diferenca e serisë është konstante." në vend të paneleve bosh. Prova: `test-mod_stationarity.R`; `cmp_stat.R` (vetëm 4 seritë lineare/konstante ndryshojnë, të gjitha të tjerat si më parë); browser: mesazhi shfaqet, console 0, log-u vetëm B-18. Q29 19 skedarë, 804 pritje, 0 dështime, 0 warning; Q30 24/24.
+**V-20 (PH-1, 2026-10-28):** kur diferenca e serisë është konstante, ACF/PACF jep mesazhin "ACF/PACF nuk mund të llogaritet: diferenca e serisë është konstante." në vend të paneleve bosh. Prova: `test-mod_stationarity.R`; `cmp_stat.R` (vetëm 4 seritë lineare/konstante ndryshojnë, të gjitha të tjerat si më parë); browser: mesazhi shfaqet, console 0, log-u vetëm B-18. Q29 19 skedarë, 804 pritje, 0 dështime, 0 warning; Q30 24/24. Commit: `3dded11` (përdoruesi).
+
+**Pjesa 6 — `mod_modeling`** (T-24): Modelimi është modul me grafik plot_ly (V-08); pjesa e tij u hoq nga `app.R`, `legacy_server_plots.R` (408 rreshta) dhe `plotly-animate.js` (`model_series`, `model_h`). Q30 i merr modelet nga `model_fits()`.
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| Q27 (JSON) | 69 kombinime seri × h në 15 dataset-e (2 shembujt, fixtures, seri me 3/20/21/30 pika, negative, kohë numerike): grafiku, tabela dhe titulli identikë me kodin e vjetër, 207/207 (tolerancë 1e-6) | `dump_model.R` + `cmp_stat.R` mbi `testServer` para (`3dded11`) / pas |
+| Q27 (pamja) | Screenshot-et e Modelimit (bujqësia h = 1; Rainfall mm h = 8): identike bajt për bajt; `gd.data`/`gd.layout` me të njëjtën përmbajtje | browser mbi kopje (T-04), `cmp` |
+| B-02 | `b02_demo`: Plote (10 vlera) max 9, Shkurter (8 vlera) max 7 dhe vlera 9 → 7; kodi i vjetër mbetej me max 9 | `test-mod_modeling.R`, browser para/pas |
+| V-17 d | "Kujdes: h është i madh krahasuar me të dhënat (h > n/2)." nën grafik: 36 muaj, h = 19 po, h = 18 jo; asnjë njoftim | dump, browser (`monthly_full.csv` në kopje) |
+| B-12 | Riprodhuar te kopja e `531bc0c` (6 errore, gjendja "running"); 0 te `3dded11` dhe me `mod_modeling` | browser, console |
+| Q01 | Console 0 mesazhe; log-u i R-së bosh në të dy kopjet | log-u i `runApp`, console |
+| i18n | +14 çelësa (`model.*`, `time.h_label`), 187 gjithsej; tekstet shqip si më parë; anglisht "Forecast comparison", "Observed", numrat me pikë | `test-i18n.R`, kontroll në anglisht |
+| Q29 / Q30 | 20 skedarë testesh, 854 pritje, 0 dështime, 0 warning; Q30 24/24 pa warning | `testthat::test_dir()`, `compare_reference.R` |
+
+Të ruajtura si në origjinal: titulli "Tipi" i legjendës (B-20, gjetje e re); teksti i progresit "Duke ndërtu ETS & ARIMA...". Progresi shfaqet vetëm kur modelet s'janë në cache (testuar me `test-mod_modeling.R`, jo me sy në browser).
+
+Commit: pa commit.
 
 ## Kufizime dhe shënime
 
@@ -252,7 +269,7 @@ Commit: `33d175a` (përdoruesi, para V-20).
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është në punë:** bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`; `mod_stationarity` `33d175a`; V-20 gati, pa commit. Hapi i radhës: commit i V-20 nga përdoruesi, pastaj "vazhdo" për `mod_modeling` (hapi 4.5 i [Fazës 5](steps/05-faqet-e-analizes.md)).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është në punë:** bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`; `mod_stationarity` `33d175a`, V-20 `3dded11`; `mod_modeling` gati, pa commit (T-24, B-02, B-12). Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për `mod_forecast` (hapi 4.6 i [Fazës 5](steps/05-faqet-e-analizes.md)); B-18, B-19, B-20 presin vendim.
 
 ## Regjistri i dorëzesave
 

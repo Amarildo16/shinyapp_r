@@ -8,8 +8,6 @@
     const TAB_ID = "main_tabs";
 
     const WATCH = new Set([
-        "model_series",
-        "model_h",
         "forecast_series",
         "method",
         "h"
@@ -20,8 +18,6 @@
     const ANIM_CLASS = "anim-plot";
 
     const AFFECTS = {
-        model_series: ["model_plot"],
-        model_h: ["model_plot"],
         forecast_series: ["forecast_plot"],
         method: ["forecast_plot"],
         h: ["forecast_plot"]

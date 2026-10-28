@@ -233,9 +233,11 @@ compute_results <- function(root, ds) {
 
       hs <- unique(pmin(c(1L, 5L, hb$max), hb$max))
 
-      # Modelimi: .model_fits() + output$model_plot / output$model_acc_tbl
-      session$setInputs(model_series = s)
-      x <- sp$.model_fits()
+      # Modelimi: model_fits() te mod_modeling (Faza 5); kodi i vjetër: .model_fits().
+      x <- if (is.function(app_code$model_fits)) app_code$model_fits(d0, s, module_args$fits) else {
+        session$setInputs(model_series = s)
+        sp$.model_fits()
+      }
       if (isTRUE(x$ok)) {
         forms$modeling[[s]] <- list(
           ok         = TRUE,

@@ -297,6 +297,20 @@ h_bounds <- function(n_real, Time) {
   list(min = hmin, max = hmax, step = step)
 }
 
+# Slider-i i horizontit për serinë (Modelimi, Parashikimi): kufijtë e h_bounds(), vlera
+# aktuale brenda tyre (5 kur s'ka ende vlerë), etiketa me njësinë e hapit.
+h_slider_state <- function(d, series, cur) {
+  n_real <- sum(!is.na(d[[series]]))
+  b <- h_bounds(n_real, d$Time)
+  if (is.null(cur) || is.na(cur)) cur <- min(5L, b$max)
+  list(
+    min = b$min, max = b$max,
+    value = max(b$min, min(as.integer(cur), b$max)),
+    label = tr("time.h_label", unit = time_step_unit(d$Time)),
+    enabled = n_real >= 2L
+  )
+}
+
 # Dritarja lëvizëse: [3, max] sipas pikave reale dhe hapit (ROLL_CAP).
 roll_bounds <- function(n_non_na, Time) {
   k_min <- 3L
