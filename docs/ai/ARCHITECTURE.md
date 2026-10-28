@@ -125,7 +125,7 @@ shinyapp_r/
 | `validate_bg_upload_file` | `upload_validate.R` |
 | `detect_csv_delim`, `read_data_safe` | `data_read.R` |
 | `parse_time_safe`, `to_numeric_safe`, `detect_time_candidates` | `data_parse.R` |
-| `make_label`, `build_meta`, `var_meta`, `fmt_*`, `time_axis_label`, `fmt_time` | `utils_format.R` |
+| `make_label`, `build_meta`, `var_meta`, `var_display_label`, `fmt_*`, `time_axis_label`, `fmt_time` | `utils_format.R` |
 | `plotly_cfg`, `find_traces`, `set_trace_text`, `skip_trace_hover` | `plot_theme.R` (të fundit zhduken me `plot_ly`) |
 | `make_df_dyn`, `apply_dup_policy`, `apply_freq_policy` | `data_prepare.R` |
 | `infer_step_from_time`, `make_future_time`, `ts_spec_from_time`, `detect_freq_from_time`, `canonical_freq_key`, `date_period_*`, `expected_time_grid` | `ts_time.R` |
@@ -219,7 +219,7 @@ server <- function(input, output, session) {
   series <- reactive(prepare_series(active()))
   fits   <- model_store()
 
-  mod_overview_server("overview", active, series)
+  mod_overview_server("overview", active, series, reactive(input$main_tabs))  # T-20
   mod_eda_ts_server("eda_ts", series)
   mod_eda_rel_server("eda_rel", series)
   mod_stationarity_server("stationarity", series)

@@ -17,6 +17,12 @@ var_meta <- function(var, meta = NULL) {
   list(label = make_label(var), unit = "")
 }
 
+# "Etiketa (njësia)", ose vetëm etiketa kur s'ka njësi.
+var_display_label <- function(var, meta = NULL) {
+  m <- var_meta(var, meta)
+  if (!is.null(m$unit) && nzchar(m$unit)) paste0(m$label, " (", m$unit, ")") else m$label
+}
+
 # Shenjat e numrave sipas gjuhës (V-09): shqip 1 234,56 + mijë/mln/mld, anglisht 1,234.56 + K/M/B.
 number_style <- function(lang = current_lang()) {
   if (identical(lang, "en")) {
@@ -97,9 +103,9 @@ fmt_unit <- function(x, var, meta = NULL) {
 }
 
 time_axis_label <- function(Time) {
-  if (inherits(Time, "Date")) return("Data")
-  if (is.numeric(Time) && all(Time >= 1500 & Time <= 3000, na.rm = TRUE)) return("Viti")
-  "Koha"
+  if (inherits(Time, "Date")) return(tr("time.axis.date"))
+  if (is.numeric(Time) && all(Time >= 1500 & Time <= 3000, na.rm = TRUE)) return(tr("time.axis.year"))
+  tr("time.axis.other")
 }
 
 fmt_time <- function(x) {

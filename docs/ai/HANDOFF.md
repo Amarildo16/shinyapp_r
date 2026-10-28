@@ -8,6 +8,7 @@
 > - Zgjedhësit e serive të faqeve (`eda_series`…) janë ende globalë te `app.R`. Me aktivizim kur faqja e analizës është e dukshme, ata japin një render të dytë (mbyllet në Fazën 5).
 > - Mësim praktik: në Bash, heredoc-u ha backslash-et edhe në Python inline. Për skripte me `\` përdor Write ose Edit.
 > - Faza 4 u bë commit nga përdoruesi (`6dacb23`, `bbe7a69`). **Faza 5 është në punë** (V-17): ndalesë pas çdo pjese, me raport dhe commit të përdoruesit. **Bazat** janë gati, pa commit: `stats_eda.R`, `ts_models.R`, `model_store.R` dhe kufijtë te `ts_time.R` (T-18, T-19). Q30 24/24, tani pa warning. B-17 (ADF me 20 pika) u pranua si rregullim bug-u (V-18). Radha e pjesëve: `mod_overview` → `mod_eda_ts` (+ `plot_theme.R`) → `mod_eda_rel` → `mod_stationarity` → `mod_modeling` → `mod_forecast`.
+> - Bazat u bënë commit (`7ba9afb`). **`mod_overview` është gati**, pa commit (T-20): modulet që duan tab-in aktiv marrin `reactive(input$main_tabs)` si argument. Krahasimi para/pas: HTML-ja e faqes (`html_diff.py`), HTML-ja e tabelave në browser për 2 dataset-e dhe `cmp` i screenshot-eve. Radha: `mod_eda_ts` (+ `plot_theme.R`).
 > - Brenda `server_plots()` emri `series_ts` ishte reaktiv lokal dhe fshihte funksionin `series_ts()`; u riemërtua `fc_ts`. Kujdes me emrat kur funksionet e pastra marrin emra që përdoreshin lokalisht.
 
 > [!important] Përditësim nga sesioni 2 (Claude Code, Windows)

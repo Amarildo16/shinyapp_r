@@ -1,6 +1,6 @@
 # Faza 05 — Faqet e analizës si module
 
-Statusi: **në punë** (bazat të përfunduara 2026-10-28; modulet pa filluar). Vendimet e fazës: V-17, T-18, T-19. Kërkesat: R09–R16, R21. Problemet: P-04, P-07, B-02, B-04, B-05, B-06, B-07, B-09. Vendimet: V-08 (`plot_ly` direkt), V-11 (vetëm mesazh), V-09 (tekstet me `tr()`).
+Statusi: **në punë** (bazat `7ba9afb`; `mod_overview` i përfunduar 2026-10-28, pa commit). Vendimet e fazës: V-17, V-18, T-18, T-19, T-20. Kërkesat: R09–R16, R21. Problemet: P-04, P-07, B-02, B-04, B-05, B-06, B-07, B-09. Vendimet: V-08 (`plot_ly` direkt), V-11 (vetëm mesazh), V-09 (tekstet me `tr()`).
 
 ## Qëllimi
 
@@ -12,7 +12,7 @@ Statusi: **në punë** (bazat të përfunduara 2026-10-28; modulet pa filluar). 
 2. `R/model_store.R`: cache i përbashkët me `cachem` (P-07). Ndryshimi i horizontit nuk e rillogarit modelin.
 3. `R/plot_theme.R` (shtohet me `mod_eda_ts`, T-18): tema e përbashkët (P-04) dhe `plot_ly` direkt (V-08). Pamja (ngjyrat, trashësia e vijave, transparenca, margjinat, grid-i) riprodhon atë aktuale; krahasohet me screenshot-et "para".
 4. Modulet, **me këtë radhë**. Pas secilit hiqet pjesa përkatëse nga `legacy_server_plots.R` dhe kalon smoke test-i i asaj faqeje.
-   1. `mod_overview`
+   1. `mod_overview` ✅ (2026-10-28, T-20)
    2. `mod_eda_ts`: kufijtë e slider-it rillogariten për çdo seri (B-02)
    3. `mod_eda_rel`: rregullo tekstin "bujqësore" (B-07)
    4. `mod_stationarity`

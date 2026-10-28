@@ -156,52 +156,7 @@ ui <- function(req) {
         title = tr("page.overview.menu"),
         value = page_tab("overview"),
 
-        div(
-          class = "section-box",
-          h4("Të dhënat e serive të zgjedhura"),
-          div(class = "table-wrap", DT::DTOutput("ts_selected_tbl"))
-        ),
-
-        div(class = "glass-divider"),
-
-        fluidRow(
-          column(
-            6,
-
-            div(
-              class = "section-box",
-              h4("Përshkrimi i variablave"),
-              tableOutput("variables_tbl")
-            ),
-
-            tags$details(
-              class = "section-box",
-              open = FALSE,
-              tags$summary(tags$strong("Metodologjia")),
-              tags$ul(
-                tags$li("Analizë eksploruese: prirje, variabilitet dhe shpërndarje"),
-                tags$li("Stacionaritet: testi ADF dhe diferencimi kur kërkohet"),
-                tags$li("Parashikim: SES/Holt dhe ARIMA")
-              )
-            )
-          ),
-
-          column(
-            6,
-
-            div(
-              class = "section-box",
-              h4("Informacion mbi të dhënat"),
-              tableOutput("data_info_tbl")
-            ),
-
-            div(
-              class = "section-box",
-              h4("Statistika përmbledhëse"),
-              tableOutput("summary_tbl")
-            )
-          )
-        )
+        mod_overview_ui("overview")
       ),
 
       tabPanel(
@@ -1191,52 +1146,7 @@ server <- function(input, output, session) {
     bg_fs_ctx(NULL)
   }, ignoreInit = TRUE)
 
-  output$ts_selected_tbl <- DT::renderDT({
-    a <- active()
-    req(a)
-    d0 <- a$data
-
-    tc <- a$time_col
-    shiny::validate(shiny::need(!is.null(tc) && tc %in% names(d0),
-                              "Zgjidh kolonën e kohës te Settings."))
-
-    sel <- a$value_cols[a$value_cols %in% names(d0)]
-    shiny::validate(shiny::need(length(sel) > 0,
-                              "S’ke zgjedh asnjë seri numerike te Settings."))
-
-    d <- make_df_dyn(d0, tc)
-
-    if (!is.null(tc) && tc != "Time" && "Time" %in% names(d)) {
-      names(d)[names(d) == "Time"] <- tc
-    }
-
-    keep <- intersect(c(tc, sel), names(d))
-    out  <- dplyr::select(d, dplyr::all_of(keep))
-
-    DT::datatable(
-      out,
-      rownames = FALSE,
-      class = "display nowrap cell-border compact",
-      options = list(
-        dom = "lfrtip",
-        pageLength = 10,
-        lengthMenu = c(5, 10, 20, 50),
-        scrollX = TRUE,
-        autoWidth = TRUE,
-        deferRender = TRUE
-      )
-    )
-  }, server = TRUE)
-
-  observeEvent(input$main_tabs, {
-    if (identical(input$main_tabs, page_tab("overview"))) {
-      session$sendCustomMessage("dt_adjust", "ts_selected_tbl")
-    }
-  }, ignoreInit = TRUE)
-
-  session$onFlushed(function() {
-    session$sendCustomMessage("dt_adjust", "ts_selected_tbl")
-  }, once = TRUE)
+  mod_overview_server("overview", active, series, reactive(input$main_tabs))
 
   server_plots(input, output, session, series, active, fits)
 }

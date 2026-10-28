@@ -1,13 +1,13 @@
 # Gjendja aktuale
 
-Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-28 (Faza 5 në punë: bazat të përfunduara, pa commit).
+Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-28 (Faza 5 në punë: bazat `7ba9afb`; `mod_overview` gati, pa commit).
 
 ## E verifikuar
 
 - Analiza e plotë e kodit në commit-in `976dce0` (branch-i `main`): `app.R`, `helpers.R`, `server_plots.R`, `www/js/*`, `www/css/*`, `data/*`, historia e git-it. Rezultati te Obsidian `01 - Analiza e gjendjes aktuale.md` dhe te [ISSUES.md](ISSUES.md).
 - Branch-i `ultimate_version` = `976dce0` + `79a36f7` (dokumentacioni, commit i përdoruesit). `git diff 976dce0 -- app.R helpers.R server_plots.R` është bosh: **kodi i app-it nuk është prekur.**
 - Faza 0 u zbatua nga Claude Code në Windows-in e përdoruesit (shih "Faza 0" më poshtë).
-- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1: `069c8fc`. Faza 2: `7ef2eed`, `c1c7048`. Faza 3: `5daa8fc`. Faza 4: `6dacb23`, `bbe7a69`. Faza 5: në punë, pa commit.
+- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1: `069c8fc`. Faza 2: `7ef2eed`, `c1c7048`. Faza 3: `5daa8fc`. Faza 4: `6dacb23`, `bbe7a69`. Faza 5: bazat `7ba9afb`; `mod_overview` pa commit.
 
 ## Mjedisi (verifikuar 2026-10-27 nga Claude Code)
 
@@ -162,10 +162,23 @@ Vendimi V-17 (përdoruesi: "Vazhdo me rekomandimet"). Puna ndalet pas çdo pjese
 | `ts_time.R` | `time_step`, `time_step_unit`, `h_bounds`, `roll_bounds` (nga `.h_*` të legacy) | `test-ts_time.R`; Q30 (`time_step`, `time_unit`, kufijtë) |
 | `model_store.R` (P-07) | Një model për seri, i përbashkët për Modelimin dhe Parashikimin | `test-model_store.R`; Q30 `values$modeling`/`values$forecast` |
 | `compute_results.R` | Thërret funksionet e app-it; kopjet e llogaritjeve u hoqën | Q30 24/24 |
-| Q29 | 19 skedarë, 601 pritje: **0 dështime** | `testthat::test_dir()` |
+| Q29 | 15 skedarë testesh, 601 pritje: **0 dështime** (në raportin e parë u shkrua gabim "19 skedarë") | `testthat::test_dir()` |
 | Smoke test | 16 fusha × 2 dataset-e identike me Fazën 4; 0 `shiny-output-error`; console 0 mesazhe; R: vetëm `aes(text)` | browser mbi kopje (T-04) |
 
-Pamja e app-it nuk ndryshoi në këtë bllok. `plot_theme.R` vjen me `mod_eda_ts` (T-18).
+Pamja e app-it nuk ndryshoi në këtë bllok. `plot_theme.R` vjen me `mod_eda_ts` (T-18). Commit: `7ba9afb` (përdoruesi), bashkë me B-17 (V-18).
+
+**Pjesa 2 — `mod_overview`** (T-20): Përmbledhja është modul; pjesa e saj u hoq nga `app.R` dhe `legacy_server_plots.R` (1 471 rreshta).
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| `R/mod_overview.R` | UI + server; 4 tabelat nga funksione të pastra; `dt_adjust` me ID-në e modulit | `test-mod_overview.R` (23 pritje, edhe `testServer`); në browser `dt_adjust` thirret për `overview-ts_selected_tbl` kur rihapet faqja |
+| `tr()` (V-09, 6a) | 31 çelësa të rinj (`ov.*`, `time.axis.*`); shqip = tekstet e sotme | `test-i18n.R`; testi anglisht te `test-mod_overview.R` |
+| B-06 | Përmbledhja nuk kishte `showNotification`; mesazhet mbeten `validate()` me të njëjtin tekst | `testServer` (mesazhi "S’ke zgjedh…") |
+| HTML e faqes | identike, përveç 4 ID-ve me prefiksin `overview-` | `html_diff.py` mbi kopjet para/pas |
+| Q09 (vlerat) | 4 tabelat × 2 dataset-e: HTML i vizatuar identik me `7ba9afb` (8/8 fusha) | browser mbi kopje (T-04) |
+| Q27 | Screenshot-i i plotë i Përmbledhjes identik bajt për bajt me `7ba9afb` | `cmp` i PNG-ve |
+| Q01 | Console 0 mesazhe; 0 `shiny:error`; log-u i R-së pa mesazhe | browser mbi kopje |
+| Q29 / Q30 | 16 skedarë testesh, 624 pritje, 0 dështime; Q30 24/24 pa warning | `testthat::test_dir()`, `compare_reference.R` |
 
 ## Kufizime dhe shënime
 
@@ -176,7 +189,7 @@ Pamja e app-it nuk ndryshoi në këtë bllok. `plot_theme.R` vjen me `mod_eda_ts
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është në punë:** bazat janë gati (pa commit); B-17 u pranua me V-18. Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për `mod_overview` (hapi 4.1 i [Fazës 5](steps/05-faqet-e-analizes.md)).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është në punë:** bazat `7ba9afb` (B-17 me V-18); `mod_overview` gati, pa commit. Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për `mod_eda_ts` + `plot_theme.R` (hapi 4.2 i [Fazës 5](steps/05-faqet-e-analizes.md)).
 
 ## Regjistri i dorëzesave
 
