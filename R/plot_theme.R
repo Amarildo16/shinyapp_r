@@ -91,6 +91,17 @@ glass_layout <- function(title, sz, xaxis, yaxis, margin, hovermode = "closest",
   )
 }
 
+# Ngjyra si i kthente ggplotly ngjyrat me alpha të ggplot2 (p.sh. 0.95 -> 0.949).
+gg_color <- function(color, alpha = NA) plotly::toRGB(scales::alpha(color, alpha))
+
+# Legjenda e fshehur që ggplotly shtonte në layout (showlegend = FALSE). NA = null në JSON.
+gg_legend <- function(color, sz, title = NULL) {
+  out <- list(bgcolor = NA, bordercolor = NA, borderwidth = 0,
+              font = list(color = color, family = "", size = sz$tick))
+  if (!is.null(title)) out$title <- list(text = title, font = list(color = color, family = "", size = sz$text))
+  out
+}
+
 # Konfigurimi që kishin grafikët e ggplotly + plotly_cfg().
 GLASS_CONFIG <- list(
   doubleClick = "reset", modeBarButtonsToAdd = c("hoverclosest", "hovercompare"),

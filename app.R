@@ -177,57 +177,7 @@ ui <- function(req) {
         title = tr("page.stationary.menu"),
         value = page_tab("stationary"),
 
-        div(class = "glass-divider"),
-
-        div(
-          class = "section-box",
-          h3("Stacionariteti dhe transformimet"),
-          p("Në këtë seksion vlerësohet stacionariteti i serive kohore dhe paraqiten transformimet e nevojshme për modelim (p.sh. diferencimi).")
-        ),
-
-        sidebarLayout(
-          position = "left",
-
-          sidebarPanel(
-            selectInput("stat_series", "Përzgjidhni serinë", choices = character(0))
-          ),
-
-          mainPanel(
-            div(
-              class = "section-box",
-              h4("Diferenca e parë (First difference)"),
-              div(
-                class = "plot-wrap",
-                plotlyOutput("stat_diff_plot", height = "360px")
-              ),
-              tags$small(textOutput("cap_stat_diff_plot"))
-            ),
-
-            div(class = "glass-divider"),
-
-            div(
-              class = "section-box",
-              h4("ACF dhe PACF"),
-              div(
-                class = "plot-wrap",
-                plotlyOutput("stat_acf_pacf", height = "420px")
-              ),
-              tags$small(textOutput("cap_stat_acf_pacf"))
-            ),
-
-            div(class = "glass-divider"),
-
-            div(
-              class = "section-box",
-              h4("Testi ADF"),
-              div(
-                class = "table-wrap",
-                tableOutput("stat_adf_tbl"),
-                uiOutput("stat_adf_note")
-              )
-            )
-          )
-        )
+        mod_stationarity_ui("stationary")
       ),
 
       tabPanel(
@@ -378,7 +328,7 @@ server <- function(input, output, session) {
     choices <- active()$value_cols
     if (length(choices) == 0) return()
 
-    for (id in c("stat_series", "model_series", "forecast_series")) {
+    for (id in c("model_series", "forecast_series")) {
       updateSelectInput(session, id, choices = choices,
                         selected = pick_choice(isolate(input[[id]]), choices, choices[1]))
     }
@@ -1048,6 +998,7 @@ server <- function(input, output, session) {
   mod_overview_server("overview", active, series, reactive(input$main_tabs))
   mod_eda_ts_server("eda_ts", series)
   mod_eda_rel_server("eda_rel", series)
+  mod_stationarity_server("stationary", series)
 
   server_plots(input, output, session, series, active, fits)
 }

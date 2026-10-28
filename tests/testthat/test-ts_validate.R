@@ -17,11 +17,13 @@ test_that("seri e plotë mujore, tremujore dhe vjetore kalojnë validimin", {
   expect_equal(ry$freq_key, "yearly")
 })
 
-test_that("periudha që mungon jep TS_INCOMPLETE_MSG (R15, Q15)", {
+test_that("periudha që mungon jep mesazhin e serisë jo të plotë (R15, Q15)", {
   g <- prepare_fixture("monthly_gap.csv", "Date", "Value")
   r <- validate_ts_ready(g, "Value")
   expect_false(r$ok)
-  expect_equal(r$message, TS_INCOMPLETE_MSG)
+  expect_equal(r$message, paste("Seria ka periudha që mungojnë, data të parregullta ose vlera bosh.",
+                                "Plotet EDA mund të shfaqen, por analizat statistikore dhe parashikimi kërkojnë seri kohore të rregullt pa boshllëqe."))
+  expect_match(validate_ts_ready(g, "Value")$message, "Plotet EDA")
 
   raw <- read_data_safe(fixture("monthly_gap.csv"), "monthly_gap.csv")
   reg <- assess_time_regular(parse_time_safe(raw$Date))
@@ -41,15 +43,21 @@ test_that("seria e shkurtër respekton kufijtë minimalë (R15)", {
   expect_true(validate_ts_ready(s, "Value", min_n = 6L)$ok)
   r20 <- validate_ts_ready(s, "Value", min_n = 20L)
   expect_false(r20$ok)
-  expect_equal(r20$message, TS_SHORT_MSG)
+  expect_equal(r20$message, "Seria ka shumë pak vëzhgime të vlefshme për këtë analizë.")
   expect_equal(r20$n, 12)
 })
 
-test_that("kolona e kohës index (jo vit) jep TS_FREQ_MSG (B-09)", {
+test_that("kolona e kohës index (jo vit) shpjegon formatet e pranuara (B-09, V-19 c)", {
   d <- data.frame(Time = c(1, 2, 3, 4, 5), y = c(2, 4, 6, 8, 10))
   r <- validate_ts_ready(d, "y")
   expect_false(r$ok)
-  expect_equal(r$message, TS_FREQ_MSG)
+  expect_equal(r$message, paste("Kolona e kohës ka numra që nuk janë vite (p.sh. 1, 2, 3…), ndaj frekuenca e serisë nuk dihet.",
+                                "Analizat statistikore kërkojnë kohë në një nga formatet: YYYY, YYYY-MM, YYYY-MM-DD ose YYYYQ#. EDA punon edhe kështu."))
+  expect_match(validate_ts_ready(d, "y")$message, "YYYYQ#", fixed = TRUE)
+  # Datat me frekuencë të panjohur mbajnë mesazhin e vjetër.
+  expect_equal(ts_freq_msg(as.Date(c("2020-01-01", "2020-01-02"))),
+               "Nuk u identifikua dot frekuenca e serisë kohore. Zgjidhni një kolonë kohe të rregullt ose kontrolloni të dhënat.")
+  expect_match(tr("ts.index", lang = "en"), "not years")
 })
 
 test_that("seria konstante kalon validimin (trajtohet nga faqet)", {

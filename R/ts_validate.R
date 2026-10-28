@@ -1,10 +1,11 @@
 # Validimi i serive kohore për analizat statistikore.
 
-TS_INCOMPLETE_MSG <- "Seria ka periudha që mungojnë, data të parregullta ose vlera bosh. Plotet EDA mund të shfaqen, por analizat statistikore dhe parashikimi kërkojnë seri kohore të rregullt pa boshllëqe."
+# Mesazhet e validimit (R15), në gjuhën aktuale: "incomplete", "short", "freq", "index".
+ts_msg <- function(key) tr(paste0("ts.", key))
 
-TS_SHORT_MSG <- "Seria ka shumë pak vëzhgime të vlefshme për këtë analizë."
-
-TS_FREQ_MSG <- "Nuk u identifikua dot frekuenca e serisë kohore. Zgjidhni një kolonë kohe të rregullt ose kontrolloni të dhënat."
+# Frekuenca e panjohur: kur koha është numër që s'është vit, mesazhi thotë pse dhe çfarë
+# formati të përdoret (B-09, V-11, V-19 c).
+ts_freq_msg <- function(tt) if (is.numeric(tt) && !inherits(tt, "Date")) ts_msg("index") else ts_msg("freq")
 
 assess_time_regular <- function(Time, freq_choice = "auto") {
   empty <- Time[0]
@@ -12,7 +13,7 @@ assess_time_regular <- function(Time, freq_choice = "auto") {
 
   if (length(tt) < 2) {
     return(list(
-      ok = FALSE, freq_key = NULL, message = TS_SHORT_MSG,
+      ok = FALSE, freq_key = NULL, message = ts_msg("short"),
       missing_periods = empty, off_grid_periods = empty,
       expected_n = 0L, observed_n = length(tt)
     ))
@@ -21,7 +22,7 @@ assess_time_regular <- function(Time, freq_choice = "auto") {
   key <- canonical_freq_key(tt, freq_choice)
   if (is.null(key)) {
     return(list(
-      ok = FALSE, freq_key = NULL, message = TS_FREQ_MSG,
+      ok = FALSE, freq_key = NULL, message = ts_freq_msg(tt),
       missing_periods = empty, off_grid_periods = empty,
       expected_n = NA_integer_, observed_n = length(unique(tt))
     ))
@@ -32,7 +33,7 @@ assess_time_regular <- function(Time, freq_choice = "auto") {
     dup_key <- sort(unique(observed_key[duplicated(observed_key)]))
     if (length(dup_key) > 0) {
       return(list(
-        ok = FALSE, freq_key = key, message = TS_INCOMPLETE_MSG,
+        ok = FALSE, freq_key = key, message = ts_msg("incomplete"),
         missing_periods = empty,
         off_grid_periods = sort(unique(tt[observed_key %in% dup_key])),
         expected_n = NA_integer_,
@@ -43,7 +44,7 @@ assess_time_regular <- function(Time, freq_choice = "auto") {
     grid <- expected_time_grid(tt, key)
     if (is.null(grid) || length(grid) < 2) {
       return(list(
-        ok = FALSE, freq_key = key, message = TS_FREQ_MSG,
+        ok = FALSE, freq_key = key, message = ts_msg("freq"),
         missing_periods = empty, off_grid_periods = empty,
         expected_n = length(grid %||% empty), observed_n = length(unique(observed_key))
       ))
@@ -62,7 +63,7 @@ assess_time_regular <- function(Time, freq_choice = "auto") {
     return(list(
       ok = ok,
       freq_key = key,
-      message = if (ok) NULL else TS_INCOMPLETE_MSG,
+      message = if (ok) NULL else ts_msg("incomplete"),
       missing_periods = missing_periods,
       off_grid_periods = off_grid_periods,
       expected_n = length(expected),
@@ -73,7 +74,7 @@ assess_time_regular <- function(Time, freq_choice = "auto") {
   dup <- sort(unique(tt[duplicated(tt)]))
   if (length(dup) > 0) {
     return(list(
-      ok = FALSE, freq_key = key, message = TS_INCOMPLETE_MSG,
+      ok = FALSE, freq_key = key, message = ts_msg("incomplete"),
       missing_periods = empty, off_grid_periods = dup,
       expected_n = NA_integer_, observed_n = length(unique(tt))
     ))
@@ -82,7 +83,7 @@ assess_time_regular <- function(Time, freq_choice = "auto") {
   grid <- expected_time_grid(tt, key)
   if (is.null(grid) || length(grid) < 2) {
     return(list(
-      ok = FALSE, freq_key = key, message = TS_FREQ_MSG,
+      ok = FALSE, freq_key = key, message = ts_msg("freq"),
       missing_periods = empty, off_grid_periods = empty,
       expected_n = length(grid %||% empty), observed_n = length(unique(tt))
     ))
@@ -97,7 +98,7 @@ assess_time_regular <- function(Time, freq_choice = "auto") {
   list(
     ok = ok,
     freq_key = key,
-    message = if (ok) NULL else TS_INCOMPLETE_MSG,
+    message = if (ok) NULL else ts_msg("incomplete"),
     missing_periods = missing_periods,
     off_grid_periods = off_grid_periods,
     expected_n = length(expected),
@@ -120,7 +121,7 @@ assess_complete_series <- function(d, value_col, freq_choice = "auto") {
   names(dd) <- c("Time", "y")
 
   if (any(is.na(dd$Time))) {
-    return(list(ok = FALSE, message = TS_INCOMPLETE_MSG, data = dd,
+    return(list(ok = FALSE, message = ts_msg("incomplete"), data = dd,
                 freq_key = NULL, n = sum(!is.na(dd$y)), missing_periods = NULL, off_grid_periods = NULL))
   }
 
@@ -137,13 +138,13 @@ assess_complete_series <- function(d, value_col, freq_choice = "auto") {
   n_real <- sum(!is.na(dd$y))
 
   if (n_real < 2) {
-    return(list(ok = FALSE, message = TS_SHORT_MSG, data = dd,
+    return(list(ok = FALSE, message = ts_msg("short"), data = dd,
                 freq_key = reg$freq_key, n = n_real,
                 missing_periods = reg$missing_periods, off_grid_periods = reg$off_grid_periods))
   }
 
   if (any(is.na(dd$y))) {
-    return(list(ok = FALSE, message = TS_INCOMPLETE_MSG, data = dd,
+    return(list(ok = FALSE, message = ts_msg("incomplete"), data = dd,
                 freq_key = reg$freq_key, n = n_real,
                 missing_periods = reg$missing_periods, off_grid_periods = reg$off_grid_periods))
   }
@@ -168,7 +169,7 @@ validate_ts_ready <- function(d, value_col, freq_choice = "auto", min_n = 2L) {
 
   if (res$n < min_n) {
     res$ok <- FALSE
-    res$message <- TS_SHORT_MSG
+    res$message <- ts_msg("short")
   }
 
   res

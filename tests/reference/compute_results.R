@@ -205,7 +205,8 @@ compute_results <- function(root, ds) {
       hb <- app_code$h_bounds(n_non_na, d0$Time)
 
       session$setInputs(stat_series = s)
-      adf_app <- sp$adf_res()
+      # Faza 5: ADF jeton te mod_stationarity (adf_summary); kodi i vjetër: adf_res().
+      adf_app <- if (is.function(app_code$adf_summary)) app_code$adf_summary(d0, s) else sp$adf_res()
 
       det$series[[s]] <- list(
         roll_bounds = rb,
@@ -221,7 +222,7 @@ compute_results <- function(root, ds) {
           ok     = adf_app$ok,
           reason = adf_app$reason,
           y_len  = adf_app$y_len,
-          statistic_rounded = adf_app$table$Statistic,
+          statistic_rounded = adf_app$statistic %||% adf_app$table$Statistic,
           p_lvl  = adf_app$p_lvl,
           p_diff = adf_app$p_diff,
           reject_lvl_5pct  = !is.na(adf_app$p_lvl)  && adf_app$p_lvl  < 0.05,

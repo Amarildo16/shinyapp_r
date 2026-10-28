@@ -44,9 +44,6 @@ mod_eda_rel_ui <- function(id) {
 
 # ---- Grafikët (funksione të pastra) ---------------------------------------------
 
-# Ngjyra si i kthente ggplotly ngjyrat me alpha të ggplot2 (p.sh. 0.95 -> 0.949).
-gg_color <- function(color, alpha = NA) plotly::toRGB(scales::alpha(color, alpha))
-
 # Boshtet e grafikut të shpërndarjes: theme_minimal(13) + layout()-i i vjetër mbi të.
 eda_rel_axis <- function(ticks, title, sz, anchor) {
   modifyList(
@@ -57,14 +54,6 @@ eda_rel_axis <- function(ticks, title, sz, anchor) {
          gridcolor = "rgba(255,255,255,0.10)", titlefont = list(color = "rgba(255,255,255,0.90)"),
          linecolor = NA, nticks = NA)
   )
-}
-
-# Legjenda e fshehur që ggplotly shtonte në layout (showlegend = FALSE). NA = null në JSON.
-gg_legend <- function(color, sz, title = NULL) {
-  out <- list(bgcolor = NA, bordercolor = NA, borderwidth = 0,
-              font = list(color = color, family = "", size = sz$tick))
-  if (!is.null(title)) out$title <- list(text = title, font = list(color = color, family = "", size = sz$text))
-  out
 }
 
 # rel: rezultati i relation_fit() (ok = TRUE).

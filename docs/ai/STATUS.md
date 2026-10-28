@@ -1,13 +1,13 @@
 # Gjendja aktuale
 
-Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-28 (Faza 5 në punë: bazat `7ba9afb`, `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`; `mod_eda_rel` gati, pa commit).
+Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-28 (Faza 5 në punë: bazat `7ba9afb`, `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`; `mod_stationarity` gati, pa commit).
 
 ## E verifikuar
 
 - Analiza e plotë e kodit në commit-in `976dce0` (branch-i `main`): `app.R`, `helpers.R`, `server_plots.R`, `www/js/*`, `www/css/*`, `data/*`, historia e git-it. Rezultati te Obsidian `01 - Analiza e gjendjes aktuale.md` dhe te [ISSUES.md](ISSUES.md).
 - Branch-i `ultimate_version` = `976dce0` + `79a36f7` (dokumentacioni, commit i përdoruesit). `git diff 976dce0 -- app.R helpers.R server_plots.R` është bosh: **kodi i app-it nuk është prekur.**
 - Faza 0 u zbatua nga Claude Code në Windows-in e përdoruesit (shih "Faza 0" më poshtë).
-- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1: `069c8fc`. Faza 2: `7ef2eed`, `c1c7048`. Faza 3: `5daa8fc`. Faza 4: `6dacb23`, `bbe7a69`. Faza 5: bazat `7ba9afb`, `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`; `mod_eda_rel` pa commit.
+- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1: `069c8fc`. Faza 2: `7ef2eed`, `c1c7048`. Faza 3: `5daa8fc`. Faza 4: `6dacb23`, `bbe7a69`. Faza 5: bazat `7ba9afb`, `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`; `mod_stationarity` pa commit.
 
 ## Mjedisi (verifikuar 2026-10-27 nga Claude Code)
 
@@ -219,6 +219,26 @@ Commit: `ffd8e99` (përdoruesi).
 
 Të ruajtura si në origjinal (mund të vendosen më vonë): shkalla e ngjyrave të matricës ndjek kufijtë e të dhënave dhe jo [−1, 1] (te digjitalizimi, ku të gjitha korrelacionet janë ≈ 1, gjithë matrica del e kuqe); titulli "Korrelacioni" dhe etiketat e shkallës janë të zeza mbi sfond të errët dhe me pikë dhjetore ("0.9980"); emrat e gjatë të kolonave mbivendosen poshtë matricës; me 20 kolona numrat nuk lexohen; nëntitulli "X kundrejt Y" i ggplot-it nuk shfaqej as më parë.
 
+Commit: `e47e4e2` (përdoruesi).
+
+**Pjesa 5 — `mod_stationarity`** (V-19, T-23): Stacionariteti është modul me grafikë plot_ly (V-08); pjesa e tij u hoq nga `app.R`, `legacy_server_plots.R` (644 rreshta) dhe `plotly-animate.js` (`stat_series`). Q30 lexon ADF-në nga `adf_summary()`.
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| Q27 (JSON) | 22 seri në 16 dataset-e (2 shembujt, fixtures, seri me 3/5/6/20/21 pika, stacionare, me trend, kohë numerike): diferenca dhe ACF/PACF identike me ggplotly (tolerancë 1e-6), përveç 4 serive me diferencë konstante (PH-1); 132 output-e, 95 identikë, 21 identikë pasi presja dhjetore kthehet në pikë | `dump_stat.R` + `cmp_stat.R` mbi `testServer` para (`e47e4e2`) / pas |
+| Q27 (pamja) | Screenshot-et e diferencës dhe të ACF/PACF (bujqësia, digjitalizimi): identike bajt për bajt. Tabela ADF ndryshon vetëm te presja dhjetore dhe "< 0,0100" | browser mbi kopje (T-04), `cmp` |
+| Q27 (browser) | `gd.data`/`gd.layout` (edhe domain-et, shënimet dhe shiritat) identikë për 6 seri; ndryshojnë vetëm tabela/interpretimi (V-19 a, V-17 c) dhe ACF-ja e serisë lineare (PH-1) | `stat_capture` + `cmp_browser_stat.py` |
+| V-17 c | 7 rreshta me p të prerë nga tseries (p.sh. Rainfall mm, Transaksionet Online): tabela "< 0,0100", interpretimi "(p < 0,0100)"; vendimi në α = 0,05 i njëjtë | dump + browser |
+| V-19 a | Shqip: "-2,18", "0,5031", "α = 0,05"; anglisht: "-2.18", "0.5031" | `test-mod_stationarity.R`, testServer në anglisht |
+| B-09 | Koha numerike jo-vit: mesazhi i ri te grafikët dhe te interpretimi i ADF (edhe Modelimi/Parashikimi, nga `validate_ts_ready`) | `test-ts_validate.R`, dump |
+| B-06 | 3 njoftime → `validate()`; asnjë njoftim në browser | testServer, browser |
+| Q04 | Aktivizimi i dataset-it: çdo output 1 render (më parë titujt 2) | numërim `shiny:value` |
+| Q01 | Console 0 mesazhe. Log-u i R-së: vetëm B-18 (seria lineare) dhe B-19 (dataset-i me kohë 1, 2, 3…), të dyja njësoj te "para"; asnjë error/warning i ri. Errori i vjetër "Kolona 'X' nuk ekziston" gjatë ndërrimit të dataset-it nuk del më | log-u i `runApp` të të dy kopjeve, console |
+| i18n | +39 çelësa (`stat.*`, `ts.*`), 172 gjithsej; tekstet shqip si më parë | `test-i18n.R`, `test-ts_validate.R` |
+| Q29 / Q30 | 19 skedarë testesh, 802 pritje, 0 dështime; Q30 24/24 pa warning | `testthat::test_dir()`, `compare_reference.R` |
+
+Të ruajtura si në origjinal: etiketat e boshtit Y të ACF/PACF me pikë ("0.4"); titujt e përzier shqip/anglisht të tabelës (V-19 b). Gjetje të reja, pa ndryshim: B-18, B-19; pyetje e hapur PH-1.
+
 ## Kufizime dhe shënime
 
 - Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime, përveç B-16 deri në Fazën 7 (V-16).
@@ -228,7 +248,7 @@ Të ruajtura si në origjinal (mund të vendosen më vonë): shkalla e ngjyrave 
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është në punë:** bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`; `mod_eda_rel` gati, pa commit. Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për `mod_stationarity` (hapi 4.4 i [Fazës 5](steps/05-faqet-e-analizes.md)).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është në punë:** bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`; `mod_stationarity` gati, pa commit (pyetja PH-1 e hapur). Hapi i radhës: përgjigja për PH-1, commit i përdoruesit, pastaj "vazhdo" për `mod_modeling` (hapi 4.5 i [Fazës 5](steps/05-faqet-e-analizes.md)).
 
 ## Regjistri i dorëzesave
 
