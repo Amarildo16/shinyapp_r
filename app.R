@@ -163,63 +163,7 @@ ui <- function(req) {
         title = tr("page.eda_ts.menu"),
         value = page_tab("eda_ts"),
 
-        div(class = "glass-divider"),
-
-        div(
-          class = "section-box",
-          h3("Analiza eksploruese e të dhënave – Seri kohore"),
-          p("Në këtë seksion shqyrtohen forma e serisë, prirja (trendi), variabiliteti dhe karakteristikat e shpërndarjes.")
-        ),
-
-        sidebarLayout(
-          position = "left",
-
-          sidebarPanel(
-            selectInput("eda_series", "Përzgjidhni serinë", choices = character(0)),
-
-            sliderInput(
-              "roll_k",
-              "Dritarja lëvizëse",
-              min = 3,
-              max = 3,
-              value = 3,
-              step = 1
-            )
-          ),
-
-          mainPanel(
-            div(
-              class = "section-box",
-              div(
-                class = "plot-container",
-                plotlyOutput("eda_ts_raw", height = "360px")
-              ),
-              tags$small(textOutput("cap_eda_ts_raw"))
-            ),
-
-            div(class = "glass-divider"),
-
-            div(
-              class = "section-box",
-              div(
-                class = "plot-container",
-                plotlyOutput("eda_ts_roll", height = "360px")
-              ),
-              tags$small(textOutput("cap_eda_ts_roll"))
-            ),
-
-            div(class = "glass-divider"),
-
-            div(
-              class = "section-box",
-              div(
-                class = "plot-container",
-                plotlyOutput("eda_ts_dist", height = "360px")
-              ),
-              tags$small(textOutput("cap_eda_ts_dist"))
-            )
-          )
-        )
+        mod_eda_ts_ui("eda_ts")
       ),
 
       tabPanel(
@@ -477,7 +421,7 @@ server <- function(input, output, session) {
     s1 <- choices[1]
     s2 <- if (length(choices) >= 2) choices[2] else choices[1]
 
-    for (id in c("eda_series", "stat_series", "model_series", "forecast_series", "rel_x")) {
+    for (id in c("stat_series", "model_series", "forecast_series", "rel_x")) {
       updateSelectInput(session, id, choices = choices,
                         selected = pick_choice(isolate(input[[id]]), choices, s1))
     }
@@ -1147,6 +1091,7 @@ server <- function(input, output, session) {
   }, ignoreInit = TRUE)
 
   mod_overview_server("overview", active, series, reactive(input$main_tabs))
+  mod_eda_ts_server("eda_ts", series)
 
   server_plots(input, output, session, series, active, fits)
 }

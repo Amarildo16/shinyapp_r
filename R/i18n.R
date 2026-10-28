@@ -30,9 +30,10 @@ set_lang <- function(lang) {
 
 # tr("cel.es", n = 3): "{n}" në tekst zëvendësohet me 3. Çelësi që mungon kthehet
 # vetë, që të duket menjëherë (test-i18n.R kontrollon që të mos ndodhë).
-tr <- function(key, ..., lang = current_lang()) {
+# Argumenti quhet .key: me `key`, parametri `k = 3` përputhej pjesërisht me të.
+tr <- function(.key, ..., lang = current_lang()) {
   all <- translations()
-  val <- all[[lang]][[key]] %||% all[[DEFAULT_LANG]][[key]] %||% key
+  val <- all[[lang]][[.key]] %||% all[[DEFAULT_LANG]][[.key]] %||% .key
   args <- list(...)
   for (n in names(args)) {
     val <- gsub(paste0("{", n, "}"), as.character(args[[n]]), val, fixed = TRUE)

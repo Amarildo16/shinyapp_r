@@ -36,7 +36,7 @@ shinyapp_r/
 │   │
 │   ├── ts_time.R             # frekuenca, hapi, koha e ardhshme, ts_spec
 │   ├── ts_validate.R         # assess_time_regular, validate_ts_ready
-│   ├── stats_eda.R           # summary_stats, rolling_mean, relation_fit, correlation_matrix (T-18)
+│   ├── stats_eda.R           # summary_stats, rolling_mean, hist_density, relation_fit, correlation_matrix (T-18, T-21)
 │   ├── ts_models.R           # series_ts, first_difference, acf_pacf_data, run_adf, fit_ets, fit_arima, forecast_method, training_accuracy
 │   ├── model_store.R         # cache i përbashkët i modeleve: has(lloji, y), get(lloji, y) (T-19)
 │   │
@@ -45,7 +45,7 @@ shinyapp_r/
 │   ├── storage.R             # krijimi i storage/, migrimi, kopjimi i shembujve
 │   ├── upload_validate.R     # validimi i fotove dhe CSV-ve
 │   │
-│   ├── plot_theme.R          # glass_layout(), ngjyrat, konfigurimi i Plotly
+│   ├── plot_theme.R          # glass_sizes/gg_ticks/gg_margin/glass_axis/glass_layout/glass_figure (T-21)
 │   ├── ui_components.R       # sidebar, topbar, preloader, glass_modal(), section_box()
 │   │
 │   ├── mod_nav.R             # navigimi mes faqeve + titulli
@@ -265,7 +265,7 @@ Nga kjo listë gjenerohen:
 
 ## Grafikët
 - Bëhen direkt me `plot_ly()` në vend të `ggplot()` + `ggplotly()`. Janë më të shpejtë, hover-i kontrollohet direkt dhe zhduken trukat me `find_traces`.
-- `glass_layout(p, title, x, y)` vendos sfondin transparent, ngjyrat, fontin dhe margjinat në një vend.
+- `glass_layout(title, sz, xaxis, yaxis, margin)` vendos sfondin transparent, ngjyrat, fontin dhe margjinat në një vend; `glass_figure(traces, layout)` ndërton widget-in me `plotly::as_widget()` (T-21). Boshtet (`gg_ticks`) dhe margjinat (`gg_margin`) llogariten si te ggplotly, që pamja të mbetet e njëjtë.
 - Ngjyrat e serive janë në `config.R`:
   - e vëzhguar: e bardhë
   - ETS / mesatare lëvizëse: blu

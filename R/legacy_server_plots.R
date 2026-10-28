@@ -21,55 +21,17 @@ server_plots <- function(input, output, session, series, active, fits) {
   })
 
   # =========================================================
-  # Slider DINAMIK: roll_k (EDA) + model_h + h (Forecast)
+  # Slider DINAMIK: model_h (Modelimi) + h (Parashikimi)
   # =========================================================
 
 
-  .slider_once <- reactiveValues(roll_k = FALSE, model_h = FALSE, h = FALSE)
+  .slider_once <- reactiveValues(model_h = FALSE, h = FALSE)
 
   # priority = 1: rivendoset para observer-ave të slider-ave, si me df() e vjetër.
   observeEvent(active(), {
-    .slider_once$roll_k  <- FALSE
     .slider_once$model_h <- FALSE
     .slider_once$h       <- FALSE
   }, ignoreInit = TRUE, priority = 1)
-
-  observeEvent(list(df_dyn(), input$eda_series), {
-    req(df_dyn(), input$eda_series)
-
-    d0 <- df_dyn()
-    if (is.null(d0) || nrow(d0) == 0) return()
-    if (!(input$eda_series %in% names(d0))) return()
-
-    y <- d0[[input$eda_series]]
-    n_non_na <- sum(!is.na(y))
-
-    unit <- time_step_unit(d0$Time)
-
-    rb    <- roll_bounds(n_non_na, d0$Time)
-    k_min <- rb$min
-    k_max <- rb$max
-
-    cur <- isolate(input$roll_k)
-    if (is.null(cur) || is.na(cur)) cur <- min(5L, k_max)
-    cur <- as.integer(cur)
-    val <- max(k_min, min(cur, k_max))
-
-    if (isTRUE(.slider_once$roll_k)) return()
-      updateSliderInput(
-        session,
-        "roll_k",
-        label = paste0("Dritarja lëvizëse (", unit, ")"),
-        min = k_min,
-        max = k_max,
-        value = val,
-        step = 1
-      )
-    .slider_once$roll_k <- TRUE
-
-    if (n_non_na < 3) shinyjs::disable("roll_k") else shinyjs::enable("roll_k")
-  }, ignoreInit = FALSE)
-
 
   # -------- model_h dinamik (Modelimi) --------
   observeEvent(list(df_dyn(), input$model_series), {
@@ -141,24 +103,6 @@ server_plots <- function(input, output, session, series, active, fits) {
   # Captions
   # =========================
 
-  output$cap_eda_ts_raw <- renderText({
-    req(input$eda_series)
-    m <- var_meta(input$eda_series, meta())
-    paste0("Seria origjinale për ", m$label, ".")
-  })
-
-  output$cap_eda_ts_roll <- renderText({
-    req(input$eda_series, input$roll_k)
-    m <- var_meta(input$eda_series, meta())
-    paste0("Mesatare lëvizëse (k = ", input$roll_k, ") për ", m$label, ".")
-  })
-
-  output$cap_eda_ts_dist <- renderText({
-    req(input$eda_series)
-    m <- var_meta(input$eda_series, meta())
-    paste0("Shpërndarja e vlerave për ", m$label, ".")
-  })
-
   output$cap_eda_rel_scatter <- renderText({
     req(input$rel_x, input$rel_y)
     mx <- var_meta(input$rel_x, meta())
@@ -195,227 +139,6 @@ server_plots <- function(input, output, session, series, active, fits) {
   })
 
   
-  # ========================= 
-  # EDA – Seri kohore 
-  # =========================
-
-  output$eda_ts_raw <- renderPlotly({
-    req(df_dyn(), input$eda_series)
-
-    m <- var_meta(input$eda_series, meta())
-    d0 <- df_dyn()
-
-    xlab <- time_axis_label(d0$Time)
-
-    d <- d0 %>%
-      dplyr::select(Time, value = dplyr::all_of(input$eda_series)) %>%
-      dplyr::mutate(
-        hover = paste0(
-          xlab, ": ", fmt_time(Time),
-          "<br>", m$label, ": ", fmt_unit(value, input$eda_series, meta())
-        )
-      )
-
-    p <- ggplot(d, aes(x = Time, y = value)) +
-      geom_line(linewidth = 1, color = "white") +
-      labs(
-        title = paste0("Seria kohore e vëzhguar – ", m$label),
-        x = xlab,
-        y = if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")") else m$label
-      ) +
-      scale_y_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
-      theme_minimal() +
-      theme(
-        plot.background  = element_blank(),
-        panel.background = element_blank(),
-        text = element_text(color = "white"),
-        axis.text = element_text(color = "white"),
-        axis.title = element_text(color = "white")
-      )
-
-    pl <- ggplotly(p, tooltip = NULL) %>%
-      layout(
-        paper_bgcolor = "rgba(0,0,0,0)",
-        plot_bgcolor  = "rgba(0,0,0,0)",
-        font = list(color = "white"),
-        xaxis = list(gridcolor = "rgba(255,255,255,0.15)"),
-        yaxis = list(gridcolor = "rgba(255,255,255,0.15)")
-      )
-
-    line_idx <- find_traces(pl, function(tr) {
-      (tr$type %||% "") == "scatter" && grepl("lines", tr$mode %||% "")
-    })[1]
-
-    pl <- set_trace_text(pl, line_idx, d$hover)
-
-    plotly_cfg(pl)
-  })
-
-  output$eda_ts_roll <- renderPlotly({
-    req(df_dyn(), input$eda_series, input$roll_k)
-
-    if (!requireNamespace("zoo", quietly = TRUE)) {
-      showNotification("Paketa 'zoo' mungon. Instalo: install.packages('zoo')", type = "error")
-      return(NULL)
-    }
-
-    m <- var_meta(input$eda_series, meta())
-    d0 <- df_dyn()
-    xlab <- time_axis_label(d0$Time)
-
-    rm <- rolling_mean(d0, input$eda_series, input$roll_k)
-
-    if (!isTRUE(rm$ok)) {
-      showNotification("Seria ka shumë pak vlera reale (jo-NA) për rolling mean.", type = "warning")
-      return(NULL)
-    }
-
-    k <- rm$k
-    if (rm$k_adjusted) {
-      showNotification(
-        paste0("roll_k u përshtat automatikisht në k=", k,
-              " (seri ka ", rm$n_non_na, " vlera jo-NA)."),
-        type = "message"
-      )
-    }
-
-    d <- rm$data %>%
-      dplyr::mutate(
-        hover_raw = paste0(
-          xlab, ": ", fmt_time(Time),
-          "<br>", m$label, ": ", fmt_unit(.data[[input$eda_series]], input$eda_series, meta())
-        ),
-        hover_roll = ifelse(
-          is.na(roll_mean),
-          NA_character_,
-          paste0(
-            xlab, ": ", fmt_time(Time),
-            "<br>Mesatare lëvizëse: ", fmt_unit(roll_mean, input$eda_series, meta())
-          )
-        )
-      )
-
-    p <- ggplot(d, aes(x = Time)) +
-      geom_line(
-        aes(y = .data[[input$eda_series]]),
-        color = scales::alpha("white", 0.35),
-        linewidth = 0.9
-      ) +
-      geom_line(
-        aes(y = roll_mean),
-        color = "#ff3b30",
-        linewidth = 1.6
-      ) +
-      labs(
-        title = paste0("Mesatarja lëvizëse (k = ", k, ")"),
-        subtitle = if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")") else m$label,
-        x = NULL,
-        y = NULL
-      ) +
-      scale_y_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
-      theme_minimal(base_size = 13) +
-      theme(
-        panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background  = element_rect(fill = "transparent", color = NA),
-        panel.grid.major = element_line(color = scales::alpha("white", 0.12), linewidth = 0.3),
-        panel.grid.minor = element_blank(),
-        axis.text     = element_text(color = scales::alpha("white", 0.92)),
-        plot.title    = element_text(face = "bold", color = scales::alpha("white", 0.95)),
-        plot.subtitle = element_text(color = scales::alpha("white", 0.75))
-      )
-
-    pl <- ggplotly(p, tooltip = NULL) %>%
-      layout(
-        paper_bgcolor = "rgba(0,0,0,0)",
-        plot_bgcolor  = "rgba(0,0,0,0)",
-        margin = list(t = 60, l = 40, r = 20, b = 40),
-        hovermode = "x unified",
-        font  = list(color = "white"),
-        xaxis = list(
-          gridcolor     = "rgba(255,255,255,0.15)",
-          zerolinecolor = "rgba(255,255,255,0.15)",
-          tickfont      = list(color = "white")
-        ),
-        yaxis = list(
-          gridcolor     = "rgba(255,255,255,0.15)",
-          zerolinecolor = "rgba(255,255,255,0.15)",
-          tickfont      = list(color = "white")
-        )
-      )
-
-    line_idx <- find_traces(pl, function(tr) {
-      (tr$type %||% "") == "scatter" && grepl("lines", tr$mode %||% "")
-    })
-
-    if (length(line_idx) >= 1) pl <- set_trace_text(pl, line_idx[1], d$hover_raw)
-    if (length(line_idx) >= 2) pl <- set_trace_text(pl, line_idx[2], d$hover_roll)
-
-    plotly_cfg(pl)
-  })
-
-  output$eda_ts_dist <- renderPlotly({
-    req(df_dyn(), input$eda_series)
-
-    m <- var_meta(input$eda_series, meta())
-
-    d <- df_dyn() %>%
-      dplyr::mutate(val = .data[[input$eda_series]])
-
-    p <- ggplot(d, aes(x = val)) +
-      geom_histogram(
-        aes(y = after_stat(density)),
-        bins = 18,
-        fill  = scales::alpha("#0a84ff", 0.35),
-        color = scales::alpha("white", 0.18)
-      ) +
-      geom_density(
-        color = "#ff3b30",
-        linewidth = 1.4
-      ) +
-      labs(
-        title = "Shpërndarja",
-        subtitle = if (nzchar(m$unit)) paste0(m$label, " (", m$unit, ")") else m$label,
-        x = NULL,
-        y = NULL
-      ) +
-      scale_x_continuous(labels = function(x) fmt_by_series(x, for_axis = TRUE)) +
-      theme_minimal(base_size = 13) +
-      theme(
-        panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background  = element_rect(fill = "transparent", color = NA),
-
-        panel.grid.major = element_line(color = scales::alpha("white", 0.12), linewidth = 0.3),
-        panel.grid.minor = element_blank(),
-
-        axis.text     = element_text(color = scales::alpha("white", 0.92)),
-        plot.title    = element_text(face = "bold", color = scales::alpha("white", 0.95)),
-        plot.subtitle = element_text(color = scales::alpha("white", 0.75))
-      )
-
-    pl <- ggplotly(p, tooltip = NULL) %>%
-      layout(
-        paper_bgcolor = "rgba(0,0,0,0)",
-        plot_bgcolor  = "rgba(0,0,0,0)",
-        margin = list(t = 60, l = 40, r = 20, b = 40),
-
-        font  = list(color = "white"),
-        xaxis = list(
-          gridcolor     = "rgba(255,255,255,0.15)",
-          zerolinecolor = "rgba(255,255,255,0.15)",
-          tickfont      = list(color = "white")
-        ),
-        yaxis = list(
-          gridcolor     = "rgba(255,255,255,0.15)",
-          zerolinecolor = "rgba(255,255,255,0.15)",
-          tickfont      = list(color = "white")
-        )
-      )
-
-    pl <- skip_trace_hover(pl, seq_along(pl$x$data))
-
-    plotly_cfg(pl)
-  })
-
   # =========================
   # EDA – Marrëdhënie
   # =========================

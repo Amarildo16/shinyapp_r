@@ -275,15 +275,9 @@ time_step <- function(Time) {
   "period"
 }
 
+# Njësia e hapit për etiketat e slider-ave (time.unit.*: shqip "vite", "muaj"...).
 time_step_unit <- function(Time) {
-  switch(time_step(Time),
-    year    = "vite",
-    quarter = "tremujor",
-    month   = "muaj",
-    week    = "javë",
-    day     = "ditë",
-    "periudha"
-  )
+  tr(paste0("time.unit.", time_step(Time)))
 }
 
 # Horizonti i parashikimit: [min, max] sipas pikave reale dhe hapit (H_CAP).

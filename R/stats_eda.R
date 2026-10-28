@@ -56,6 +56,49 @@ rolling_mean <- function(d, series, k) {
   list(ok = TRUE, k = k, k_adjusted = k_adjusted, n_non_na = n_non_na, data = d)
 }
 
+# Histograma (densitet) dhe dendësia kernel e shpërndarjes, si geom_histogram(bins = 18)
+# + geom_density() i ggplot2 4.0: kolonat qendrohen te minimumi e maksimumi, intervalet
+# mbyllen djathtas, dendësia me bw.nrd0 në 512 pika mbi [min, max]. Vlerat NA hiqen.
+hist_density <- function(y, bins = 18L) {
+  x <- y[is.finite(y)]
+  if (length(x) == 0) return(NULL)
+  rng <- range(x)
+
+  if (scales::zero_range(rng)) {
+    width <- 0.1
+    boundary <- width / 2
+  } else {
+    width <- (rng[2] - rng[1]) / (bins - 1)
+    boundary <- rng[1] - width / 2
+    if (any(rng %% width == boundary %% width)) width <- (rng[2] - rng[1]) / bins
+  }
+  origin <- boundary + floor((rng[1] - boundary) / width) * width
+  breaks <- seq(origin, rng[2] + (1 - 1e-08) * width, width)
+  if (length(breaks) == 1) breaks <- c(breaks, breaks + width)
+
+  fuzz <- 1e-08 * stats::median(diff(breaks))
+  if (!is.finite(fuzz)) fuzz <- .Machine$double.eps * 1000
+  fuzzy <- breaks + c(-fuzz, rep.int(fuzz, length(breaks) - 1))
+  idx <- cut(x, fuzzy, right = TRUE, include.lowest = TRUE)
+  count <- as.numeric(tapply(rep(1, length(x)), idx, sum, na.rm = TRUE))
+  count[is.na(count)] <- 0
+  widths <- diff(breaks)
+
+  bars <- data.frame(
+    x       = (breaks[-length(breaks)] + breaks[-1]) / 2,
+    width   = widths,
+    density = count / widths / sum(abs(count))
+  )
+
+  dens <- NULL
+  if (length(x) >= 2) {
+    k <- stats::density(x, weights = rep(1 / length(x), length(x)), bw = stats::bw.nrd0(x),
+                        kernel = "gaussian", n = 512, from = rng[1], to = rng[2])
+    dens <- data.frame(x = k$x, density = k$y)
+  }
+  list(bars = bars, density = dens)
+}
+
 # Regresioni linear y ~ x mbi pikat e fundme. reason: "few_points" | "no_x_variation" | "ok".
 # line = NULL kur modeli nuk ka koeficientë të fundëm (pikat vizatohen pa vijë).
 relation_fit <- function(d, x, y) {

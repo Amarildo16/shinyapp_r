@@ -10,6 +10,11 @@ test_that("time_step dhe time_step_unit sipas frekuencës", {
   expect_equal(time_step_unit(2000:2010), "vite")
   expect_equal(time_step_unit(seq(as.Date("2021-01-01"), by = "month", length.out = 12)), "muaj")
   expect_equal(time_step_unit(1:10), "periudha")
+
+  on.exit(set_lang("sq"), add = TRUE)
+  set_lang("en")
+  expect_equal(time_step_unit(2000:2010), "years")
+  expect_equal(time_axis_label(c(2000, 2001)), "Year")
 })
 
 test_that("h_bounds: n − 1 deri te kufiri H_CAP; min 2 kur max ≤ 8", {

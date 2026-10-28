@@ -1,13 +1,13 @@
 # Gjendja aktuale
 
-Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-28 (Faza 5 në punë: bazat `7ba9afb`; `mod_overview` gati, pa commit).
+Regjistrimi fillestar: 2026-10-27. Përditësuar: 2026-10-28 (Faza 5 në punë: bazat `7ba9afb`, `mod_overview` `0724fcb`; `mod_eda_ts` gati, pa commit).
 
 ## E verifikuar
 
 - Analiza e plotë e kodit në commit-in `976dce0` (branch-i `main`): `app.R`, `helpers.R`, `server_plots.R`, `www/js/*`, `www/css/*`, `data/*`, historia e git-it. Rezultati te Obsidian `01 - Analiza e gjendjes aktuale.md` dhe te [ISSUES.md](ISSUES.md).
 - Branch-i `ultimate_version` = `976dce0` + `79a36f7` (dokumentacioni, commit i përdoruesit). `git diff 976dce0 -- app.R helpers.R server_plots.R` është bosh: **kodi i app-it nuk është prekur.**
 - Faza 0 u zbatua nga Claude Code në Windows-in e përdoruesit (shih "Faza 0" më poshtë).
-- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1: `069c8fc`. Faza 2: `7ef2eed`, `c1c7048`. Faza 3: `5daa8fc`. Faza 4: `6dacb23`, `bbe7a69`. Faza 5: bazat `7ba9afb`; `mod_overview` pa commit.
+- Faza 0 u bë commit nga përdoruesi: `531bc0c` "chore(faza-0): renv, referenca, gitattributes" (2026-10-27 19:01). Mbyllja me V-13: `517a1ae`. Faza 1: `069c8fc`. Faza 2: `7ef2eed`, `c1c7048`. Faza 3: `5daa8fc`. Faza 4: `6dacb23`, `bbe7a69`. Faza 5: bazat `7ba9afb`, `mod_overview` `0724fcb`; `mod_eda_ts` pa commit.
 
 ## Mjedisi (verifikuar 2026-10-27 nga Claude Code)
 
@@ -180,6 +180,26 @@ Pamja e app-it nuk ndryshoi në këtë bllok. `plot_theme.R` vjen me `mod_eda_ts
 | Q01 | Console 0 mesazhe; 0 `shiny:error`; log-u i R-së pa mesazhe | browser mbi kopje |
 | Q29 / Q30 | 16 skedarë testesh, 624 pritje, 0 dështime; Q30 24/24 pa warning | `testthat::test_dir()`, `compare_reference.R` |
 
+Commit: `0724fcb` (përdoruesi).
+
+**Pjesa 3 — `mod_eda_ts` + `plot_theme.R`** (T-21): EDA – Seri kohore është modul me grafikë plot_ly (V-08); pjesa e saj u hoq nga `app.R` dhe `legacy_server_plots.R` (1 194 rreshta).
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| Q27 (JSON) | 36 grafikë (2 dataset-e × 3 seri × k 3/5 × 3 grafikë) dhe 54 të fixtures (konstante, NA, tremujore, k = 12): data, layout dhe config të njëjta me ggplotly (tolerancë 1e-6); ndryshojnë vetëm çelësa bosh/null pa efekt | `cmp_plots.R` mbi daljet e `testServer` para (`0724fcb`) / pas |
+| Q27 (pamja) | Screenshot-et e grafikut të serisë, mesatares lëvizëse dhe shpërndarjes: identike bajt për bajt | browser mbi kopje (T-04), `cmp` |
+| Q27 (browser) | Grafikët e vizatuar: 6 seri × 3 grafikë identikë me tolerancë 1e-6 (ggplotly rrumbullakonte në 4 decimale) | `gd.data`/`gd.layout` |
+| HTML e faqes | Vetëm ID-të me namespace (`eda_ts-*`), klasa `anim-plot` dhe elementi bosh `roll_note` (V-17 d) | `html_diff.py` |
+| B-02 | Seria me 8 vlera: maksimumi 4 (më parë mbetej 5); me k = 5 vlera kufizohet te 4 | `test-mod_eda_ts.R`; browser me një dataset demo në kopje |
+| B-06 | 2 njoftime → `validate()` me të njëjtin tekst; përshtatja e k-së → shënim nën grafik | `testServer` |
+| Q04 | Aktivizimi i dataset-it me faqen të hapur: çdo grafik 1 render (më parë mesatarja lëvizëse 2) | numërim `shiny:value` |
+| Q01 | Console 0 mesazhe; 0 `shiny-output-error`; log-u i R-së bosh (më parë: errore R te `eda_ts_raw`/`eda_ts_dist` gjatë ndërrimit të dataset-it, dhe warning-e "Removed rows" për seritë me NA) | browser + log |
+| Animacioni | Grafikët me ID të reja animohen (`anim-plot`) | `__animatedEpoch` në browser |
+| i18n | +21 çelësa (`eda_ts.*`, `time.unit.*`); `tr()` me `.key` (T-21) | `test-i18n.R`, `test-ts_time.R` |
+| Q29 / Q30 | 17 skedarë testesh, 708 pritje, 0 dështime; Q30 24/24 pa warning | `testthat::test_dir()`, `compare_reference.R` |
+
+Të ruajtura si në origjinal (mund të vendosen më vonë): etiketat e boshtit të dendësisë ("0.0000002"), vija e kuqe e dendësisë edhe përgjatë bazës, dhe koka e hover-it të unifikuar te mesatarja lëvizëse ("2000.00").
+
 ## Kufizime dhe shënime
 
 - Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime, përveç B-16 deri në Fazën 7 (V-16).
@@ -189,7 +209,7 @@ Pamja e app-it nuk ndryshoi në këtë bllok. `plot_theme.R` vjen me `mod_eda_ts
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është në punë:** bazat `7ba9afb` (B-17 me V-18); `mod_overview` gati, pa commit. Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për `mod_eda_ts` + `plot_theme.R` (hapi 4.2 i [Fazës 5](steps/05-faqet-e-analizes.md)).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është në punë:** bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`; `mod_eda_ts` gati, pa commit. Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për `mod_eda_rel` (hapi 4.3 i [Fazës 5](steps/05-faqet-e-analizes.md)).
 
 ## Regjistri i dorëzesave
 

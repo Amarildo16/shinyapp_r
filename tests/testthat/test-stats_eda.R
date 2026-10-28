@@ -60,3 +60,24 @@ test_that("correlation_matrix: pa Time, sd > 0, maksimumi 20 kolona", {
   expect_true(rw$truncated)
   expect_equal(ncol(rw$corr), 20L)
 })
+
+test_that("hist_density = geom_histogram(bins = 18) + geom_density() i ggplot2", {
+  skip_if_not_installed("ggplot2")
+  set.seed(3)
+  cases <- list(rnorm(40, 100, 15), c(5832128, 6298655, NA, 7101699, 9e6, 1.01e7), rep(5, 25), c(1, 2))
+  for (y in cases) {
+    p <- ggplot2::ggplot(data.frame(v = y), ggplot2::aes(v)) +
+      ggplot2::geom_histogram(ggplot2::aes(y = ggplot2::after_stat(density)), bins = 18) +
+      ggplot2::geom_density()
+    l1 <- suppressWarnings(ggplot2::layer_data(p, 1))
+    l2 <- suppressWarnings(ggplot2::layer_data(p, 2))
+    hd <- hist_density(y)
+    expect_equal(hd$bars$x, l1$x)
+    expect_equal(hd$bars$width, l1$xmax - l1$xmin)
+    expect_equal(hd$bars$density, l1$density)
+    expect_equal(hd$density$x, l2$x)
+    expect_equal(hd$density$density, l2$density)
+  }
+  expect_null(hist_density(c(NA_real_, NA_real_)))
+  expect_null(hist_density(7)$density)
+})

@@ -32,6 +32,10 @@ test_that("tr() zëvendëson parametrat dhe kthen çelësin kur mungon", {
   expect_equal(tr("greet", emri = "Ana", n = 3), "Përshëndetje Ana, 3 seri")
   expect_equal(tr("greet", emri = "Ana", lang = "en"), "Hello Ana")
   expect_equal(tr("mungon.krejt"), "mungon.krejt")
+
+  # Parametri `k` nuk përputhet më me emrin e argumentit të çelësit.
+  .i18n$all <- list(sq = list(roll = "k = {k}, n = {n}"), en = list())
+  expect_equal(tr("roll", k = 3, n = 5), "k = 3, n = 5")
 })
 
 test_that("set_lang/current_lang pranojnë vetëm sq dhe en", {

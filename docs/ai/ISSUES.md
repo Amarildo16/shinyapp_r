@@ -23,7 +23,7 @@
   - Faza 2 (2026-10-27): `resolve_dataset_defaults(d, cfg, current_time, current_values)` + `pick_value_cols()` te `R/data_prepare.R` zëvendësojnë 5 kopjet e `app.R`, si edhe pjesën e serive te observer-at `modal_time_col` dhe `data_time_col`. Prova: `test-data_prepare.R`; 10 010 kombinime (kopja 1 dhe 3) identike me kodin e vjetër.
   - **Mbetet:** `time_col()` te `R/legacy_server_plots.R` ka rregulla të tjera (inputi → "Year" → kandidati i parë). Zëvendësimi do ndryshonte default-et; propozohet ta mbyllë Faza 4 (P-05). Shtyrë te Faza 4 me V-14.
   - Mbyllur 2026-10-27 (Faza 4): `time_col()` u hoq nga `legacy_server_plots.R`; koha dhe seritë vijnë nga `active()` / `prepare_series()`. Prova: `grep` pa `time_col <-`; vlerat e të 6 faqeve identike para/pas në browser (16 fusha × 2 dataset-e); Q30 24/24 (Claude).
-- [ ] **P-04 — Tema e grafikëve është kopjuar 9 herë.** Sfondi transparent, teksti i bardhë dhe `layout()` i njëjtë përsëriten në çdo grafik.
+- [ ] **P-04 — Tema e grafikëve është kopjuar 9 herë.** Sfondi transparent, teksti i bardhë dhe `layout()` i njëjtë përsëriten në çdo grafik. Faza 5: tema e përbashkët te `plot_theme.R` (T-21), e përdorur nga 3 grafikët e EDA – Seri kohore; mbeten 6 grafikët e modulave të tjera.
   - Zgjidhja: `plot_theme.R` me `glass_layout()`. · Faza: 5
 - [x] **P-05 — Dy burime të së vërtetës për konfigurimin.** JSON-i (`active_cfg()`) dhe inputet e fshehura (`data_time_col`, `data_value_cols`). Përmbledhja preferon JSON-in, grafikët preferojnë inputet. Kjo shkakton render të dyfishtë kur ndryshon dataset-i.
   - Zgjidhja: `mod_datasets` kthen një `active()` të vetëm. · Faza: 4
@@ -54,7 +54,7 @@
   - Zgjidhja: formatimi i gjithë kolonës njëherësh, ose një funksion i dedikuar për vlera të vetme. · Faza: 2
   - Mbyllur 2026-10-27: `fmt_table_value()` (T-05) në të tre tabelat. Prova: testi B-01 te `test-utils_format.R` kalon mbi kodin e ri dhe dështon mbi formatimin e vjetër; në browser "63,5000" → "63,50" (Claude). Shembujt para/pas te STATUS.md.
   - Shënim: hover-at e Parashikimit thërrasin ende `fmt_unit()` për çdo vlerë veç e veç (4 decimale); rishkruhen në Fazën 5 (B-05, V-08).
-- [ ] **B-02 — Slider-at përditësohen vetëm një herë për dataset.** Për shkak të `.slider_once` (`server_plots.R:141`), kur ndërron serinë, maksimumi mbetet ai i serisë së vjetër.
+- [ ] **B-02 — Slider-at përditësohen vetëm një herë për dataset.** Për shkak të `.slider_once` (`server_plots.R:141`), kur ndërron serinë, maksimumi mbetet ai i serisë së vjetër. Faza 5: ✅ dritarja e EDA – Seri kohore (`roll_slider_state`, test + browser: seria me 8 vlera merr maksimum 4, më parë mbetej 5); mbeten horizontet e Modelimit dhe Parashikimit.
   - Faza: 5
 - [x] **B-03 — Upload dhe Edit ofrojnë seri të ndryshme.** Te upload, "Proceed" ofron çdo kolonë që nuk është koha (`app.R:1381`), ndërsa Edit ofron vetëm kolonat numerike.
   - Faza: 4
@@ -62,7 +62,7 @@
 - [ ] **B-04 — Te Parashikimi, vija e vëzhguar dhe parashikimi janë të dyja të bardha.** Nuk dallohen. · Faza: 5
 - [ ] **B-05 — Hover-i i Parashikimit lidhet me vijat sipas gjatësisë.** `nx == nrow(...)` (`server_plots.R:1760`) prishet kur h = n.
   - Zgjidhja: `plot_ly` direkt me `text` për çdo trace. · Faza: 5
-- [ ] **B-06 — `showNotification` brenda render-ave.** Njoftimet përsëriten në çdo rifreskim.
+- [ ] **B-06 — `showNotification` brenda render-ave.** Njoftimet përsëriten në çdo rifreskim. Faza 5: ✅ EDA – Seri kohore (dy mesazhe → `validate()`, përshtatja e k-së → shënim nën grafik, V-17 d).
   - Vendet: `server_plots.R` 514, 534, 541, 838, 844, 854, 951, 1030, 1040, 1373, 1512, 1522, 1616, 1620, 1630
   - Zgjidhja: `validate(need(...))` ose mesazh në kartë. · Faza: 5
 - [ ] **B-07 — Teksti i vjetër "variablave kryesore bujqësore"** te EDA – Marrëdhënie (`app.R:397`). · Faza: 5

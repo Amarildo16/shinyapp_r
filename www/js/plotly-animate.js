@@ -8,8 +8,6 @@
     const TAB_ID = "main_tabs";
 
     const WATCH = new Set([
-        "eda_series",
-        "roll_k",
         "rel_x",
         "rel_y",
         "stat_series",
@@ -20,9 +18,11 @@
         "h"
     ]);
 
+    // Grafikët e moduleve kanë klasën "anim-plot" (ID me namespace, p.sh. "eda_ts-raw");
+    // këtu mbeten vetëm grafikët e vjetër me ID globale.
+    const ANIM_CLASS = "anim-plot";
+
     const AFFECTS = {
-        eda_series: ["eda_ts_raw", "eda_ts_roll", "eda_ts_dist"],
-        roll_k: ["eda_ts_roll"],
         rel_x: ["eda_rel_scatter"],
         rel_y: ["eda_rel_scatter"],
         stat_series: ["stat_diff_plot", "stat_acf_pacf"],
@@ -226,8 +226,17 @@
         return out;
     }
 
+    function animPlotIds() {
+        return Array.from(document.querySelectorAll("." + ANIM_CLASS))
+            .map((el) => el.id)
+            .filter(Boolean);
+    }
+
     function isKnownTarget(id) {
-        return !!id && ALL_TARGETS.indexOf(id) >= 0;
+        if (!id) return false;
+        if (ALL_TARGETS.indexOf(id) >= 0) return true;
+        const el = document.getElementById(id);
+        return !!(el && el.classList && el.classList.contains(ANIM_CLASS));
     }
 
     function getPlotOutputId(el) {
@@ -325,7 +334,7 @@
 
     function triggerTab(reason) {
         if (debounced(reason)) return;
-        markPending(ALL_TARGETS, reason, [TAB_DELAY_MS, TAB_DELAY_MS + 260]);
+        markPending(ALL_TARGETS.concat(animPlotIds()), reason, [TAB_DELAY_MS, TAB_DELAY_MS + 260]);
     }
 
     function triggerInput(name) {
