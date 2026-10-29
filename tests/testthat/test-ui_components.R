@@ -52,3 +52,40 @@ test_that("CSS-ja e ndarë: kllapat të balancuara dhe asnjë URL e jashtme", {
     expect_false(grepl("\\{,|url\\((['\"])?https?:", s), info = f)
   }
 })
+
+test_that("V-26: glass_modal() merr madhësinë si klasë, header-i titull + X", {
+  for (sz in GLASS_MODAL_SIZES) {
+    h <- as.character(glass_modal("m", "m_title", "m_body", NULL, size = sz))
+    expect_match(h, sprintf('class="modal fade glass-modal glass-modal-%s"', sz), fixed = TRUE, info = sz)
+    expect_match(h, '<div class="modal-dialog">', fixed = TRUE, info = sz)
+  }
+  expect_error(glass_modal("m", "t", "b", NULL, size = "xxl"))
+  h <- as.character(glass_modal("m", "m_title", "m_body", NULL))
+  expect_match(h, "glass-modal-sm", fixed = TRUE)   # e paracaktuara: e para e listës
+  # Titulli para X-it, brenda header-it (U-09).
+  expect_match(h, 'class="modal-header">\\s*<div class="shiny-html-output glass-modal-title" id="m_title"></div>\\s*<button[^>]*class="close"')
+})
+
+test_that("V-26: madhësitë e modaleve të moduleve", {
+  ds <- as.character(mod_datasets_modals_ui("datasets"))
+  bg <- as.character(mod_background_modals_ui("bg"))
+  size_of <- function(h, id) regmatches(h, regexpr(sprintf('glass-modal-[a-z]+(?=" id="%s")', id), h, perl = TRUE))
+  expect_equal(size_of(ds, "datasets-main_modal_sm"), "glass-modal-lg")
+  expect_equal(size_of(ds, "datasets-main_modal_fs"), "glass-modal-fs")
+  expect_equal(size_of(ds, "datasets-delete_modal"), "glass-modal-sm")
+  expect_equal(size_of(bg, "bg-modal_fs"), "glass-modal-fs")
+  expect_equal(size_of(bg, "bg-delete_modal"), "glass-modal-sm")
+  expect_false(grepl("[ \"]modal-lg", paste(ds, bg)))
+})
+
+test_that("V-26: modals.css sipas klasës, pa madhësi sipas ID-së dhe pa vijat e vjetra", {
+  s <- paste(readLines(file.path(APP_ROOT, "www", "css", "modals.css"), warn = FALSE), collapse = "\n")
+  s <- gsub("/\\*.*?\\*/", "", s, perl = TRUE)
+  for (sz in GLASS_MODAL_SIZES) expect_match(s, sprintf(".glass-modal-%s", sz), fixed = TRUE, info = sz)
+  # ID-të e modaleve mbeten vetëm te rregullat e FilePond-it.
+  ids <- regmatches(s, gregexpr("#(datasets|bg)-[a-z_]*modal[a-z_]*[^{]*\\{", s))[[1]]
+  expect_true(all(grepl("pond", ids)))
+  expect_false(grepl("#csv_upload_modal", s, fixed = TRUE))
+  expect_match(s, "\\.glass-modal \\.modal-header \\{[^}]*border-bottom: 0;")
+  expect_match(s, "\\.glass-modal \\.modal-footer \\{[^}]*border-top: 0;")
+})

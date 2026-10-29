@@ -23,7 +23,8 @@ mod_datasets_modals_ui <- function(id) {
       tagList(
         actionButton(ns("btn_cancel_upload"), tr("common.cancel"), class = "btn btn-light"),
         actionButton(ns("btn_proceed_upload"), tr("common.proceed"), class = "btn btn-success")
-      )
+      ),
+      size = "lg"
     ),
     glass_modal(
       ns("main_modal_fs"), ns("modal_fs_title"), ns("modal_fs_body"),
@@ -31,7 +32,7 @@ mod_datasets_modals_ui <- function(id) {
         actionButton(ns("btn_cancel_config"), tr("common.cancel"), class = "btn btn-light"),
         actionButton(ns("btn_save_config"), tr("common.save"), class = "btn btn-success")
       ),
-      dialog_class = "modal-dialog modal-lg"
+      size = "fs"
     ),
     glass_modal(
       ns("delete_modal"), ns("delete_modal_title"), ns("delete_modal_body"),
@@ -39,7 +40,8 @@ mod_datasets_modals_ui <- function(id) {
         tags$button(type = "button", class = "btn btn-default", `data-dismiss` = "modal",
                     tr("ds.delete_cancel")),
         actionButton(ns("confirm_delete_saved"), tr("ds.delete_confirm"), class = "btn-danger")
-      )
+      ),
+      size = "sm"
     )
   )
 }

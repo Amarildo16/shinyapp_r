@@ -17,71 +17,163 @@
 }
 
 /* =========================================================
-   Upload modal (SM) – centered + glass + FilePond styling
+   Modalet glass sipas madhësisë (V-26): glass_modal(size = ...) jep klasën
+   glass-modal-<size>; ID-të përdoren vetëm nga JS-ja dhe serveri.
    ========================================================= */
-#datasets-main_modal_sm.modal,
-#datasets-delete_modal.modal,
-#bg-delete_modal.modal {
-    text-align: center;
-    padding: 0;
+.glass-modal.modal {
+    padding: 0 !important;
 }
 
-#datasets-main_modal_sm.modal:before,
-#datasets-delete_modal.modal:before,
-#bg-delete_modal.modal:before {
+/* sm–xl: në qendër të ekranit (Bootstrap 3 nuk ka modal-dialog-centered). */
+.glass-modal:not(.glass-modal-fs).modal {
+    text-align: center;
+}
+
+.glass-modal:not(.glass-modal-fs).modal:before {
     content: '';
     display: inline-block;
     height: 100%;
     vertical-align: middle;
 }
 
-#datasets-main_modal_sm .modal-dialog,
-#datasets-delete_modal .modal-dialog,
-#bg-delete_modal .modal-dialog {
+.glass-modal:not(.glass-modal-fs) .modal-dialog {
     display: inline-block;
     vertical-align: middle;
     text-align: left;
-    width: min(720px, calc(100% - 24px));
-    margin: 0 auto;
+    margin: 10px auto;
 }
 
-#datasets-main_modal_sm .modal-content,
-#datasets-delete_modal .modal-content,
-#bg-delete_modal .modal-content {
+.glass-modal-sm .modal-dialog { width: min(400px, calc(100% - 24px)); }
+.glass-modal-md .modal-dialog { width: min(560px, calc(100% - 24px)); }
+.glass-modal-lg .modal-dialog { width: min(800px, calc(100% - 24px)); }
+.glass-modal-xl .modal-dialog { width: min(1140px, calc(100% - 24px)); }
+
+/* fs: ekrani i plotë me 10 px anash. */
+.glass-modal-fs .modal-dialog {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: auto;
+    height: auto;
+    margin: 0;
+}
+
+/* Përmbajtja: header-i dhe butonat mbeten të dukshëm, trupi rrëshqet brenda. */
+.glass-modal .modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 20px);
     background: rgba(16, 24, 28, 0.78);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 18px;
     box-shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    overflow: hidden;
 }
 
-#datasets-main_modal_sm .modal-header,
-#datasets-delete_modal .modal-header,
-#bg-delete_modal .modal-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+.glass-modal-fs .modal-content {
+    height: 100%;
 }
 
-#datasets-main_modal_sm .modal-body,
-#datasets-delete_modal .modal-body,
-#bg-delete_modal .modal-body {
-    padding: 22px 22px 26px;
+/* Header-i: titulli dhe X-i në një rresht, pa vijë poshtë (U-09). */
+.glass-modal .modal-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 20px 10px;
+    border-bottom: 0;
 }
 
-#datasets-main_modal_sm .close,
-#datasets-delete_modal .close,
-#bg-delete_modal .close {
+.glass-modal .modal-header:before,
+.glass-modal .modal-header:after,
+.glass-modal .modal-footer:before,
+.glass-modal .modal-footer:after {
+    display: none;
+}
+
+.glass-modal .glass-modal-title {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.glass-modal .glass-modal-title h4,
+.glass-modal .glass-modal-title h5 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.95);
+    overflow-wrap: anywhere;
+}
+
+.glass-modal .modal-header .close {
+    flex: 0 0 auto;
+    float: none;
+    margin: 0;
+    font-size: 24px;
+    line-height: 1;
     color: rgba(255, 255, 255, 0.90);
     opacity: 1;
     text-shadow: none;
 }
 
-#datasets-main_modal_sm .close:hover,
-#datasets-delete_modal .close:hover,
-#bg-delete_modal .close:hover {
+.glass-modal .modal-header .close:hover {
     opacity: 0.85;
 }
 
+.glass-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 10px 20px 16px;
+}
+
+/* Butonat: në fund, djathtas, pa vijë sipër (V-26 b). */
+.glass-modal .modal-footer {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 20px 18px;
+    border-top: 0;
+}
+
+.glass-modal .modal-footer .btn + .btn {
+    margin-left: 0;
+}
+
+/* Telefoni: çdo modal zë gjithë gjerësinë, me 8 px anash. */
+@media (max-width: 575.98px) {
+    .glass-modal:not(.glass-modal-fs) .modal-dialog {
+        width: calc(100% - 16px);
+        margin: 8px auto;
+    }
+
+    .glass-modal .modal-content {
+        max-height: calc(100vh - 16px);
+    }
+
+    .glass-modal .modal-header {
+        padding: 16px 16px 8px;
+    }
+
+    .glass-modal .modal-body {
+        padding: 8px 16px 14px;
+    }
+
+    .glass-modal .modal-footer {
+        padding: 8px 16px 16px;
+    }
+}
+
+/* =========================================================
+   FilePond brenda modaleve
+   ========================================================= */
 .filepond--panel-root {
     background: rgba(255, 255, 255, 0.06) !important;
     border: 1px dashed rgba(255, 255, 255, 0.22) !important;
@@ -111,12 +203,10 @@
     opacity: .9;
 }
 
-#csv_upload_modal .filepond--root,
 #datasets-main_modal_sm .filepond--root {
     min-height: 170px;
 }
 
-#csv_upload_modal .filepond--drop-label,
 #datasets-main_modal_sm .filepond--drop-label {
     min-height: 170px;
     display: flex;
@@ -124,14 +214,12 @@
     justify-content: center;
 }
 
-#csv_upload_modal .filepond--panel-root,
 #datasets-main_modal_sm .filepond--panel-root {
     border: 2px dashed rgba(255, 255, 255, 0.25);
     background: rgba(255, 255, 255, 0.04);
     border-radius: 14px;
 }
 
-#csv_upload_modal .pond-idle,
 #datasets-main_modal_sm .pond-idle {
     display: flex;
     flex-direction: column;
@@ -140,83 +228,13 @@
     text-align: center;
 }
 
-#csv_upload_modal .pond-idle i,
 #datasets-main_modal_sm .pond-idle i {
     font-size: 48px;
     opacity: 0.9;
     line-height: 1;
 }
 
-#csv_upload_modal .pond-text,
 #datasets-main_modal_sm .pond-text {
     font-size: 16px;
     opacity: 0.92;
-}
-
-/* =========================================================
-   Fullscreen modal (FS) – REAL fullscreen (BS3 safe)
-   ========================================================= */
-#datasets-main_modal_fs.modal,
-#bg-modal_fs.modal {
-    padding: 0;
-}
-
-#datasets-main_modal_fs .modal-dialog,
-#bg-modal_fs .modal-dialog {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    width: auto;
-    height: auto;
-    margin: 0;
-}
-
-#datasets-main_modal_fs .modal-content,
-#bg-modal_fs .modal-content {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background: rgba(16, 24, 28, 0.78);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 18px;
-    box-shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    overflow: hidden;
-}
-
-#datasets-main_modal_fs .modal-header,
-#bg-modal_fs .modal-header {
-    flex: 0 0 auto;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-    padding: 14px 18px;
-}
-
-#datasets-main_modal_fs .modal-body,
-#bg-modal_fs .modal-body {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: auto;
-    padding: 16px 18px 18px;
-}
-
-#datasets-main_modal_fs .modal-footer,
-#bg-modal_fs .modal-footer {
-    flex: 0 0 auto;
-    border-top: 1px solid rgba(255, 255, 255, 0.10);
-    padding: 12px 18px;
-}
-
-#datasets-main_modal_fs .close,
-#bg-modal_fs .close {
-    color: rgba(255, 255, 255, 0.90);
-    opacity: 1;
-    text-shadow: none;
-}
-
-#datasets-main_modal_fs .close:hover,
-#bg-modal_fs .close:hover {
-    opacity: 0.85;
 }

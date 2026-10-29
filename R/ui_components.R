@@ -141,19 +141,24 @@ app_topbar <- function() {
 
 section_box <- function(...) div(class = "section-box", ...)
 
-glass_modal <- function(id, title_output, body_output, footer, dialog_class = "modal-dialog") {
+# Madhësitë e modaleve (V-26): sm 400 px, md 560, lg 800, xl 1140, fs ekrani i plotë.
+# Pamja vjen nga klasa glass-modal-<size> te modals.css, jo nga ID-ja.
+GLASS_MODAL_SIZES <- c("sm", "md", "lg", "xl", "fs")
+
+glass_modal <- function(id, title_output, body_output, footer, size = GLASS_MODAL_SIZES) {
+  size <- match.arg(size)
   tags$div(
-    class = "modal fade",
+    class = paste0("modal fade glass-modal glass-modal-", size),
     id = id,
     tabindex = "-1",
     `aria-hidden` = "true",
     tags$div(
-      class = dialog_class,
+      class = "modal-dialog",
       tags$div(
         class = "modal-content",
         tags$div(
           class = "modal-header",
-          uiOutput(title_output),
+          uiOutput(title_output, class = "glass-modal-title"),
           tags$button(
             type = "button",
             class = "close",

@@ -167,7 +167,7 @@ list(
 )
 # ose NULL kur nuk ka dataset
 ```
-Zbatuar në Fazën 4. Kolona e kohës dhe seritë zgjidhen te moduli: konfigurimi i ruajtur → zgjedhja e dataset-it të mëparshëm → default-et (T-15). Modalet e modulit hapen e mbyllen vetëm me `toggle_glass_modal(session, id, "show" | "hide")` (P-08); `mod_datasets_modals_ui()` i vendos në fund të faqes (`app_page(main_tabs, modals)`).
+Zbatuar në Fazën 4. Kolona e kohës dhe seritë zgjidhen te moduli: konfigurimi i ruajtur → zgjedhja e dataset-it të mëparshëm → default-et (T-15). Modalet e modulit hapen e mbyllen vetëm me `toggle_glass_modal(session, id, "show" | "hide")` (P-08); madhësia jepet me `glass_modal(..., size = "sm" | "md" | "lg" | "xl" | "fs")` dhe pamja vjen nga klasa `glass-modal-<size>` te `modals.css`, jo nga ID-ja (V-26); `mod_datasets_modals_ui()` i vendos në fund të faqes (`app_page(main_tabs, modals)`).
 
 ### `series()` — nga `prepare_series(active())`
 ```r

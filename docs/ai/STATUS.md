@@ -374,7 +374,31 @@ U-01 (shqipërimi sipas V-24 a), U-02, U-07, B-19 (dhe me të B-09), D-04 dhe RE
 
 Q29: 139 teste, 1 061 pritje, 0 dështime, 0 warning. Q30: 24/24, 0 warning.
 
-Commit: `c4c8141` (përdoruesi) për Fazën 8; rregullimet e V-25 pa commit.
+Commit: `c4c8141` (përdoruesi) për Fazën 8; V-25 `651e510`, `9064473`.
+
+## Faza 9 — rezultati (2026-10-29, Claude Code)
+
+U-09 (V-26): modalet me madhësi të përbashkëta dhe header-i i rreshtuar. Gjetje e re, pa ndryshim: U-10 (`aria-label` "Close" në shqip).
+
+| Ndryshimi | Skedari |
+|---|---|
+| `glass_modal(id, title_output, body_output, footer, size = c("sm", "md", "lg", "xl", "fs"))`, `GLASS_MODAL_SIZES`; klasa `glass-modal glass-modal-<size>`, titulli me klasën `glass-modal-title`; `dialog_class` u hoq | `R/ui_components.R` |
+| Ngarkimi `lg`, konfigurimi `fs`, fshirja `sm` | `R/mod_datasets.R` |
+| Galeria `fs`, fshirja `sm` | `R/mod_background.R` |
+| CSS sipas klasës: gjerësitë 400/560/800/1140/ekran i plotë, header flex pa vijë, footer pa vijë (butonat djathtas, `gap` 8 px), trupi rrëshqet brenda (`max-height: calc(100vh - 20px)`), < 576 px: gjerësia e plotë me 8 px anash; u hoqën rregullat sipas ID-së dhe `#csv_upload_modal` | `www/css/modals.css` |
+| 3 teste: klasa për çdo madhësi dhe error për madhësi të panjohur, madhësitë e 5 modaleve, CSS pa madhësi sipas ID-së dhe pa vija | `tests/testthat/test-ui_components.R` |
+
+| Kontrolli | Rezultati (ekzekutuar nga Claude, 2026-10-29) |
+|---|---|
+| Q29 | 24 skedarë, 142 teste, 1 089 pritje, 0 dështime, 0 warning |
+| Q30 | 24/24, 0 warning |
+| Matjet në browser (5 modale × 1440/768/375) | Titulli dhe X-i në të njëjtin `y` kudo (para: X-i 18 px më poshtë); vijat e header-it dhe footer-it 0 px (para: 1 px, footer-i `rgb(229,229,229)`); titulli 18 px (para: 14 px te ngarkimi dhe konfigurimi); gjerësia e dokumentit = ekrani |
+| Krahasimi i stileve (`style_tools.js`, 21 gjendje × 3 madhësi) | 0 ndryshime jashtë modaleve; të gjitha ndryshimet brenda 5 modaleve (rrënja e shtegut te ID-të e modaleve ose brenda tyre) |
+| Rrjedhat | Ngarkimi (`quarterly.csv`) → Vazhdo → Ruaj: CSV e ruajtur, konfigurimi i ruajtur; fshirja e saj me konfirmim; Galeria → Ngarko foto → Galeria; asnjë backdrop i mbetur; console 0; log-u i R-së bosh |
+
+Pamja: screenshot-et para/pas te Obsidian (`screenshots/faza-9`).
+
+Commit: pa commit.
 
 ## Kufizime dhe shënime
 
@@ -385,7 +409,7 @@ Commit: `c4c8141` (përdoruesi) për Fazën 8; rregullimet e V-25 pa commit.
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 u bë commit** (`c4c8141`, V-24, T-28); rregullimet e B-23, B-24, U-08 (V-25) janë gati, pa commit. Mbeten: provimi në RStudio dhe Q28 nga përdoruesi; commit-i. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është e përfunduar** (`c4c8141`, V-24, T-28; V-25 `651e510`, `9064473`). **Faza 9 (modalet) është gati, pa commit** (V-26). Radha e mëtejshme e diskutuar: FilePond dhe CSV-të e mëdha, pastaj pamja e shkurtër e CSV-së (secila me vendim më vete). Mbeten: provimi në RStudio dhe Q28 nga përdoruesi; U-10 pret vendim. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
 
 ## Regjistri i dorëzesave
 

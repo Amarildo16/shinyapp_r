@@ -110,7 +110,7 @@ mod_background_modals_ui <- function(id) {
         actionButton(ns("btn_close"), tr("common.close"), class = "btn btn-light"),
         actionButton(ns("btn_use"), tr("bg.use_photo"), class = "btn btn-success")
       ),
-      dialog_class = "modal-dialog modal-lg"
+      size = "fs"
     ),
     # B-15 (V-15 a): konfirmimi i fshirjes me pamjen glass, si te dataset-et.
     glass_modal(
@@ -119,7 +119,8 @@ mod_background_modals_ui <- function(id) {
         tags$button(type = "button", class = "btn btn-default", `data-dismiss` = "modal",
                     tr("bg.delete_cancel")),
         actionButton(ns("delete_confirm"), tr("bg.delete_confirm"), class = "btn btn-danger")
-      )
+      ),
+      size = "sm"
     )
   )
 }
