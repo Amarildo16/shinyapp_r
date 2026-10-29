@@ -275,6 +275,28 @@ Commit: `ac84f0a` (përdoruesi).
 | i18n | +27 çelësa (`fc.*`), 214 gjithsej; tekstet shqip si më parë | `test-i18n.R` |
 | Q29 / Q30 | 21 skedarë testesh, 897 pritje, 0 dështime, 0 warning; Q30 24/24 pa warning | `testthat::test_dir()`, `compare_reference.R` |
 
+Commit: `3bfdedc` (përdoruesi). Faza 5 e mbyllur.
+
+## Faza 6 — rezultati (2026-10-29, Claude Code)
+
+Background-i dhe Media Library janë modul (`mod_background`, V-22, T-26). Fotot e ngarkuara jetojnë te `storage/images/` ("user-images/…"); 12 defaultet mbeten te `www/images/` dhe nuk fshihen. Fotot e vjetra të zyshës te `www/images/` kopjohen në nisje dhe origjinalet mbeten. `app.R` zbret nga 889 në 143 rreshta.
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| Migrimi (R23, V-22 b) | Kopje me 3 foto të zyshës te `www/images/` (njëra me `'` në emër), të përdorura në 2 faqe: nisja e parë i kopjoi te `storage/images/`, state-i doli `user-images/…`, kopja rezervë `backup-images-<data>/`; md5 e 15 skedarëve të `www/images/` e njëjtë para/pas; nisja e dytë nuk kopjoi e nuk rishkroi asgjë | browser + skedarët e kopjes (T-04), `test-media_library.R` |
+| Pamja (Q27) | Përmbledhja (fotoja e zyshës, blur 10) dhe Settings → Background: identike bajt për bajt me `3bfdedc`. Media Library: 15 foto, e njëjta radhë dhe e njëjta foto aktive; ndryshon vetëm butoni i fshirjes që mungon te defaultet (V-22 a), me lartësinë e kartave të ruajtur | screenshot-e para/pas, `cmp` |
+| Q20 | Ngjyrë #ef4444 → Save → rinisje e procesit R → ngjyra ruhet | browser |
+| Q21 | Foto për faqe (`user-images/…`), blur 4 → Save; crossfade 1200 ms kur ndërrohet faqja; gjithçka ruhet pas rinisjes | browser |
+| Q22 | Ngarkim me FilePond: foto e vlefshme ruhet si `nova_foto_e_zyshes.jpg` dhe del te galeria; skedari i rremë refuzohet me "rreme.png: Përmbajtja e file-it nuk duket si foto e vlefshme."; > 5 MB, MIME i gabuar dhe emri me `'` te testet | browser, `test-media_library.R`, `test-mod_background.R` |
+| Q23 | Fotoja në përdorim: "S’e fshin dot: kjo foto është Default/Active ose përdoret diku."; fotoja e lirë fshihet (vetëm kopja te `storage/images/`, origjinali mbetet); defaultet pa buton dhe të refuzuara nga serveri | browser, testet |
+| B-08 | Emri "foto e Ana's.png": para `SyntaxError`, pas zgjidhet | browser |
+| B-15 | Dialogu i fshirjes: para sfond i bardhë + tekst i bardhë, pas glass | browser, screenshot-e |
+| Q01 | Console 0 në 2 sesionet e kontrolluara (pas rinisjes dhe kopja e re); log-u i R-së bosh në 5 nisje | log-u i `runApp`, console |
+| i18n | +32 çelësa (`bg.*`), 246 gjithsej; tekstet shqip si më parë (V-22 c) | `test-i18n.R` |
+| Q29 / Q30 | 23 skedarë testesh, 960 pritje, 0 dështime, 0 warning; Q30 24/24 pa warning | `testthat::test_dir()`, `compare_reference.R` |
+
+Gjatë verifikimit në browser u kap një gabim imi në CSS (një `{` e tepërt pas selektorit të dialogut të fshirjes prishi leximin e pjesës tjetër të skedarit: 89 nga 233 rregulla); u ndreq para screenshot-eve përfundimtare. Gjetje e re, pa ndryshim: B-21 (lista e FilePond nuk pastrohet pas ngarkimit, Faza 7).
+
 Commit: pa commit.
 
 ## Kufizime dhe shënime
@@ -286,7 +308,7 @@ Commit: pa commit.
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar në kod, pa commit-in e fundit:** bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` gati, pa commit (V-21, T-25). Hapi i radhës: commit i përdoruesit. Pastaj, vetëm me autorizim: [Faza 6](steps/06-moduli-background.md). B-18, B-19, B-20 presin vendim.
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është gati, pa commit** (V-22, T-26). Hapi i radhës: commit i përdoruesit; pastaj, vetëm me autorizim: [Faza 7](steps/07-frontend.md). B-18, B-19, B-20, B-21 presin vendim.
 
 ## Regjistri i dorëzesave
 

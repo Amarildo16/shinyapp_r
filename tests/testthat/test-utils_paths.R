@@ -33,16 +33,6 @@ test_that("resolve_saved_dataset_path lejon vetëm dataset-et e ruajtura te DATA
   expect_false(resolve_saved_dataset_path(file.path(DATASETS_DIR, "ok.csv"))$ok)
 })
 
-test_that("resolve_media_image_path lejon vetëm www/images/", {
-  expect_true(resolve_media_image_path("images/x.jpg", TEST_SANDBOX)$ok)
-  expect_false(resolve_media_image_path("../secret.jpg", TEST_SANDBOX)$ok)
-  expect_false(resolve_media_image_path("images/../../x.jpg", TEST_SANDBOX)$ok)
-  expect_false(resolve_media_image_path("C:/Windows/x.jpg", TEST_SANDBOX)$ok)
-  expect_false(resolve_media_image_path("/etc/passwd", TEST_SANDBOX)$ok)
-  expect_false(resolve_media_image_path("css/x.css", TEST_SANDBOX)$ok)
-  expect_false(resolve_media_image_path(NA, TEST_SANDBOX)$ok)
-})
-
 test_that("validate_bg_upload_file kontrollon formatin, MIME, madhësinë dhe magic bytes (R19)", {
   write_raw <- function(bytes, ext) {
     f <- tempfile(fileext = paste0(".", ext))

@@ -32,9 +32,6 @@
         if (inputId === "datasets-csv_file_modal") {
             return document.getElementById("datasets-csv_file_modal_pond_host");
         }
-        if (inputId === "bg_media_upload") {
-            return document.getElementById("bg_media_upload_pond_host");
-        }
         return document.getElementById(inputId + "_pond_host");
     }
 
@@ -57,7 +54,7 @@
         }
 
         if (
-            inputId === "bg_media_upload" ||
+            inputId === "bg-media_upload" ||
             accept.includes("image") ||
             accept.includes("png") ||
             accept.includes("jpeg") ||
@@ -218,8 +215,8 @@
         initWithRetry("datasets-csv_file_modal", 25);
     });
 
-    $(document).on("shown.bs.modal", "#datasets-main_modal_fs, #bg_modal_fs", function () {
-        initWithRetry("bg_media_upload", 25);
+    $(document).on("shown.bs.modal", "#datasets-main_modal_fs, #bg-modal_fs", function () {
+        initWithRetry("bg-media_upload", 25);
         setTimeout(function () {
             if ($.fn.dataTable) {
                 $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
@@ -280,7 +277,7 @@ $(document).on("hidden.bs.modal", "#datasets-main_modal_sm", function () {
 (function () {
 
     function highlightSwatch(hex) {
-        const grid = document.getElementById("bg_color_grid");
+        const grid = document.getElementById("bg-color_grid");
         if (!grid) return;
 
         grid.querySelectorAll(".bg-color-swatch").forEach((b) => {
@@ -290,18 +287,18 @@ $(document).on("hidden.bs.modal", "#datasets-main_modal_sm", function () {
     }
 
     function updateHexText(hex) {
-        const txt = document.getElementById("bg_color_hex_txt");
+        const txt = document.getElementById("bg-color_hex_txt");
         if (txt) txt.textContent = (hex || "").toUpperCase();
     }
 
     function pushToShiny(hex) {
         if (window.Shiny && typeof Shiny.setInputValue === "function") {
-            Shiny.setInputValue("bg_color", hex, { priority: "event" });
+            Shiny.setInputValue("bg-color", hex, { priority: "event" });
         }
     }
 
     function applyFromSwatch(hex) {
-        const input = document.getElementById("bg_color");
+        const input = document.getElementById("bg-color");
         if (input) input.value = hex;
         highlightSwatch(hex);
         updateHexText(hex);
@@ -322,13 +319,13 @@ $(document).on("hidden.bs.modal", "#datasets-main_modal_sm", function () {
     });
 
     document.addEventListener("input", function (e) {
-        if (e.target && e.target.id === "bg_color") {
+        if (e.target && e.target.id === "bg-color") {
             applyFromPicker(e.target.value);
         }
     }, true);
 
     function syncOnce() {
-        const input = document.getElementById("bg_color");
+        const input = document.getElementById("bg-color");
         if (!input) return;
         applyFromPicker(input.value || "#0b1c24");
     }

@@ -46,34 +46,6 @@ resolve_saved_dataset_path <- function(file, data_dir = DATASETS_DIR) {
   list(ok = TRUE, file = file, path = path, msg = NULL)
 }
 
-resolve_media_image_path <- function(src, app_dir = APP_DIR) {
-  bad <- function(msg = "Shtegu i fotos nuk lejohet.") {
-    list(ok = FALSE, src = NULL, path = NULL, msg = msg)
-  }
-
-  if (is.null(src) || length(src) != 1 || is.na(src) || !nzchar(as.character(src))) {
-    return(bad())
-  }
-
-  src <- gsub("\\\\", "/", as.character(src))
-  if (grepl("^([A-Za-z]:|/|//)", src)) {
-    return(bad())
-  }
-
-  if (!startsWith(src, "images/")) {
-    return(bad("S’lejohet fshirja jashtë images/."))
-  }
-
-  base_dir <- normalize_app_path(file.path(app_dir, "www", "images"))
-  path <- normalize_app_path(file.path(app_dir, "www", src))
-
-  if (!is_path_inside_dir(path, base_dir)) {
-    return(bad("S’lejohet fshirja jashtë images/."))
-  }
-
-  list(ok = TRUE, src = src, path = path, msg = NULL)
-}
-
 sanitize_filename <- function(x, default_ext = "csv") {
   x <- basename(as.character(x %||% ""))
   x <- trimws(x)

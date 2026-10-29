@@ -1,6 +1,6 @@
 # Faza 05 — Faqet e analizës si module
 
-Statusi: **e përfunduar në kod**, pret commit-in e fundit (bazat `7ba9afb`, `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` pa commit). Vendimet e fazës: V-17 – V-21, T-18 – T-25. Kërkesat: R09–R16, R21. Problemet: P-04, P-07, B-02, B-04, B-05, B-06, B-07, B-09. Vendimet: V-08 (`plot_ly` direkt), V-11 (vetëm mesazh), V-09 (tekstet me `tr()`).
+Statusi: **e përfunduar** (2026-10-29; bazat `7ba9afb`, `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`, `mod_forecast` `3bfdedc`). Vendimet e fazës: V-17 – V-21, T-18 – T-25. Kërkesat: R09–R16, R21. Problemet: P-04, P-07, B-02, B-04, B-05, B-06, B-07, B-09. Vendimet: V-08 (`plot_ly` direkt), V-11 (vetëm mesazh), V-09 (tekstet me `tr()`).
 
 ## Qëllimi
 

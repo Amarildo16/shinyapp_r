@@ -150,19 +150,25 @@ toggle_glass_modal <- function(session, id, action = c("show", "hide")) {
   session$sendCustomMessage("toggle_modal", list(id = session$ns(id), action = match.arg(action)))
 }
 
-# Modali i background-it (Faza 6 e kalon te mod_background).
-app_modals <- function() {
-  tagList(
-    glass_modal(
-      "bg_modal_fs", "bg_modal_fs_title", "bg_modal_fs_body",
-      tagList(
-        actionButton("bg_btn_close", tr("common.close"), class = "btn btn-light"),
-        actionButton("bg_btn_use", tr("bg.use_photo"), class = "btn btn-success")
-      ),
-      dialog_class = "modal-dialog modal-lg"
-    )
-  )
-}
+# Placeholder-i i kartave të background-it pa foto (P-10: definohet para se të përdoret).
+BG_PLACEHOLDER_SVG <- '
+    <svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gallery placeholder">
+      <defs>
+        <filter id="wobble">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="2" result="noise"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+      </defs>
+
+      <g filter="url(#wobble)" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="3"
+        stroke-linecap="round" stroke-linejoin="round">
+        <rect x="10" y="10" width="100" height="70" rx="10"/>
+        <circle cx="38" cy="30" r="6"/>
+        <path d="M22 66 L44 44 L58 58 L80 36 L98 54"/>
+        <path d="M22 66 H98"/>
+      </g>
+    </svg>
+    '
 
 # Faqja e plotë: renditja e elementeve është ajo e app.R të vjetër.
 app_page <- function(main_tabs, modals) {

@@ -37,6 +37,14 @@ DATASETS_DIR <- file.path(STORAGE_DIR, "datasets")
 IMAGES_DIR   <- file.path(STORAGE_DIR, "images")
 STATE_DIR    <- file.path(STORAGE_DIR, "state")
 
+#  Fotot e background-it (Faza 6): 12 fotot default vijnë me kodin te www/images/
+#  ("images/..."); fotot e ngarkuara jetojnë te storage/images/ ("user-images/...").
+#  Dosja e vjetër www/images/ e APP_DIR mund të ketë fotot e ngarkuara para Fazës 6.
+DEFAULT_BG_IMAGES  <- sprintf("image%d.jpeg", 0:11)
+BG_DEFAULT_DIR     <- file.path(CODE_DIR, "www", "images")
+LEGACY_IMAGES_DIR  <- file.path(APP_DIR, "www", "images")
+USER_IMAGES_PREFIX <- "user-images"
+
 STATE_FILE    <- file.path(STATE_DIR, "datasets_state.json")
 BG_STATE_FILE <- file.path(STATE_DIR, "background_state.json")
 SETTINGS_FILE <- file.path(STATE_DIR, "settings.json")

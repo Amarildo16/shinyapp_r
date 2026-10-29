@@ -1,16 +1,16 @@
-# Validimi i ngarkimeve (fotot e background-it).
+# Validimi i ngarkimeve (fotot e background-it). Mesazhet me tr() (bg.err_*).
 
 validate_bg_upload_file <- function(path, filename, mime = NULL, size = NULL, max_bytes = 5 * 1024^2) {
   bad <- function(msg) list(ok = FALSE, ext = NULL, msg = msg)
 
   if (is.null(path) || length(path) != 1 || is.na(path) || !nzchar(as.character(path)) || !file.exists(path)) {
-    return(bad("File-i i ngarkuar s’u gjet."))
+    return(bad(tr("bg.err_missing")))
   }
 
   ext <- tolower(tools::file_ext(filename %||% ""))
   allowed_ext <- c("jpg", "jpeg", "png", "webp")
   if (!ext %in% allowed_ext) {
-    return(bad("Lejohen vetëm foto JPG, PNG ose WEBP."))
+    return(bad(tr("bg.err_format")))
   }
 
   fsz <- suppressWarnings(as.numeric(size %||% NA_real_))
@@ -18,10 +18,10 @@ validate_bg_upload_file <- function(path, filename, mime = NULL, size = NULL, ma
     fsz <- suppressWarnings(as.numeric(file.info(path)$size))
   }
   if (length(fsz) != 1 || is.na(fsz) || fsz <= 0) {
-    return(bad("Madhësia e file-it nuk u verifikua."))
+    return(bad(tr("bg.err_size_unknown")))
   }
   if (fsz > max_bytes) {
-    return(bad("Foto është shumë e madhe. Limiti është 5 MB."))
+    return(bad(tr("bg.err_too_big")))
   }
 
   mime <- tolower(trimws(as.character(mime %||% "")))
@@ -35,7 +35,7 @@ validate_bg_upload_file <- function(path, filename, mime = NULL, size = NULL, ma
     character(0)
   )
   if (!mime %in% generic_mime && !mime %in% allowed_mime) {
-    return(bad("Tipi MIME i fotos nuk përputhet me formatin e lejuar."))
+    return(bad(tr("bg.err_mime")))
   }
 
   hdr <- tryCatch(readBin(path, "raw", n = 12), error = function(e) raw())
@@ -51,7 +51,7 @@ validate_bg_upload_file <- function(path, filename, mime = NULL, size = NULL, ma
   }
 
   if (!isTRUE(magic_ok)) {
-    return(bad("Përmbajtja e file-it nuk duket si foto e vlefshme."))
+    return(bad(tr("bg.err_content")))
   }
 
   list(ok = TRUE, ext = ext, msg = NULL)

@@ -744,13 +744,15 @@ select,
    ========================================================= */
 
 #datasets-main_modal_sm.modal,
-#datasets-delete_modal.modal {
+#datasets-delete_modal.modal,
+#bg-delete_modal.modal {
     text-align: center;
     padding: 0 !important;
 }
 
 #datasets-main_modal_sm.modal:before,
-#datasets-delete_modal.modal:before {
+#datasets-delete_modal.modal:before,
+#bg-delete_modal.modal:before {
     content: '';
     display: inline-block;
     height: 100%;
@@ -758,7 +760,8 @@ select,
 }
 
 #datasets-main_modal_sm .modal-dialog,
-#datasets-delete_modal .modal-dialog {
+#datasets-delete_modal .modal-dialog,
+#bg-delete_modal .modal-dialog {
     display: inline-block;
     vertical-align: middle;
     text-align: left;
@@ -767,7 +770,8 @@ select,
 }
 
 #datasets-main_modal_sm .modal-content,
-#datasets-delete_modal .modal-content {
+#datasets-delete_modal .modal-content,
+#bg-delete_modal .modal-content {
     background: rgba(16, 24, 28, 0.78);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 18px;
@@ -777,24 +781,28 @@ select,
 }
 
 #datasets-main_modal_sm .modal-header,
-#datasets-delete_modal .modal-header {
+#datasets-delete_modal .modal-header,
+#bg-delete_modal .modal-header {
     border-bottom: 1px solid rgba(255, 255, 255, 0.10);
 }
 
 #datasets-main_modal_sm .modal-body,
-#datasets-delete_modal .modal-body {
+#datasets-delete_modal .modal-body,
+#bg-delete_modal .modal-body {
     padding: 22px 22px 26px;
 }
 
 #datasets-main_modal_sm .close,
-#datasets-delete_modal .close {
+#datasets-delete_modal .close,
+#bg-delete_modal .close {
     color: rgba(255, 255, 255, 0.90);
     opacity: 1;
     text-shadow: none;
 }
 
 #datasets-main_modal_sm .close:hover,
-#datasets-delete_modal .close:hover {
+#datasets-delete_modal .close:hover,
+#bg-delete_modal .close:hover {
     opacity: 0.85;
 }
 
@@ -874,12 +882,12 @@ select,
    ========================================================= */
 
 #datasets-main_modal_fs.modal,
-#bg_modal_fs.modal {
+#bg-modal_fs.modal {
     padding: 0 !important;
 }
 
 #datasets-main_modal_fs .modal-dialog,
-#bg_modal_fs .modal-dialog {
+#bg-modal_fs .modal-dialog {
     position: fixed;
     top: 10px;
     left: 10px;
@@ -891,7 +899,7 @@ select,
 }
 
 #datasets-main_modal_fs .modal-content,
-#bg_modal_fs .modal-content {
+#bg-modal_fs .modal-content {
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -905,14 +913,14 @@ select,
 }
 
 #datasets-main_modal_fs .modal-header,
-#bg_modal_fs .modal-header {
+#bg-modal_fs .modal-header {
     flex: 0 0 auto;
     border-bottom: 1px solid rgba(255, 255, 255, 0.10);
     padding: 14px 18px;
 }
 
 #datasets-main_modal_fs .modal-body,
-#bg_modal_fs .modal-body {
+#bg-modal_fs .modal-body {
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
@@ -920,21 +928,21 @@ select,
 }
 
 #datasets-main_modal_fs .modal-footer,
-#bg_modal_fs .modal-footer {
+#bg-modal_fs .modal-footer {
     flex: 0 0 auto;
     border-top: 1px solid rgba(255, 255, 255, 0.10);
     padding: 12px 18px;
 }
 
 #datasets-main_modal_fs .close,
-#bg_modal_fs .close {
+#bg-modal_fs .close {
     color: rgba(255, 255, 255, 0.90);
     opacity: 1;
     text-shadow: none;
 }
 
 #datasets-main_modal_fs .close:hover,
-#bg_modal_fs .close:hover {
+#bg-modal_fs .close:hover {
     opacity: 0.85;
 }
 
@@ -1375,6 +1383,11 @@ html.bg-none #bg-overlay {
     display: flex;
     justify-content: space-between;
     gap: 8px;
+}
+
+/* Fotot default nuk kanë butonin e fshirjes (V-22 a): karta ruan lartësinë e butonit (34px + padding). */
+.media-meta {
+    min-height: 54px;
 }
 
 .media-meta .name {

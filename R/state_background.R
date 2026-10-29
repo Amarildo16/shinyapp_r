@@ -51,16 +51,16 @@ migrate_bg_state_if_needed <- function(st) {
   st
 }
 
-read_bg_state <- function() {
+read_bg_state <- function(path = BG_STATE_FILE) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
     stop("Mungon paketa 'jsonlite'. Instalo: install.packages('jsonlite')")
   }
 
   d <- default_bg_state()
-  if (!file.exists(BG_STATE_FILE)) return(d)
+  if (!file.exists(path)) return(d)
 
   raw <- tryCatch(
-    paste(readLines(BG_STATE_FILE, warn = FALSE, encoding = "UTF-8"), collapse = "\n"),
+    paste(readLines(path, warn = FALSE, encoding = "UTF-8"), collapse = "\n"),
     error = function(e) ""
   )
   if (!nzchar(trimws(raw))) return(d)
@@ -69,9 +69,9 @@ read_bg_state <- function() {
     jsonlite::fromJSON(raw),
     error = function(e) {
       ts <- format(Sys.time(), "%Y%m%d_%H%M%S")
-      bak <- paste0(BG_STATE_FILE, ".", ts, ".bak")
-      try(file.copy(BG_STATE_FILE, bak, overwrite = TRUE), silent = TRUE)
-      try(file.remove(BG_STATE_FILE), silent = TRUE)
+      bak <- paste0(path, ".", ts, ".bak")
+      try(file.copy(path, bak, overwrite = TRUE), silent = TRUE)
+      try(file.remove(path), silent = TRUE)
       d
     }
   )
@@ -109,7 +109,7 @@ read_bg_state <- function() {
   st
 }
 
-write_bg_state <- function(st) {
+write_bg_state <- function(st, path = BG_STATE_FILE) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
     stop("Mungon paketa 'jsonlite'. Instalo: install.packages('jsonlite')")
   }
@@ -120,6 +120,6 @@ write_bg_state <- function(st) {
     st$modes$image$scopes$custom$per_tab <- normalize_per_tab(st$modes$image$scopes$custom$per_tab)
   }
 
-  jsonlite::write_json(st, BG_STATE_FILE, auto_unbox = TRUE, pretty = TRUE)
+  jsonlite::write_json(st, path, auto_unbox = TRUE, pretty = TRUE)
 }
 
