@@ -64,6 +64,11 @@ test_that("V-26: glass_modal() merr madhësinë si klasë, header-i titull + X",
   expect_match(h, "glass-modal-sm", fixed = TRUE)   # e paracaktuara: e para e listës
   # Titulli para X-it, brenda header-it (U-09).
   expect_match(h, 'class="modal-header">\\s*<div class="shiny-html-output glass-modal-title" id="m_title"></div>\\s*<button[^>]*class="close"')
+  # U-10 (V-27): teksti i X-it për lexuesin e ekranit, sipas gjuhës.
+  expect_match(h, 'aria-label="Mbyll"', fixed = TRUE)
+  old <- current_lang(); on.exit(set_lang(old))
+  set_lang("en")
+  expect_match(as.character(glass_modal("m", "t", "b", NULL)), 'aria-label="Close"', fixed = TRUE)
 })
 
 test_that("V-26: madhësitë e modaleve të moduleve", {

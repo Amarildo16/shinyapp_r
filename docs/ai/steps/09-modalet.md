@@ -1,6 +1,6 @@
 # Faza 09 — Modalet
 
-Statusi: **gati, pa commit** (2026-10-29, V-26; provat te STATUS "Faza 9 — rezultati"). Problemet: U-09. Vendimet: V-26. Varet nga: 07, 08.
+Statusi: **commit `31611de`** (2026-10-29, V-26); V-27 (U-10) gati, pa commit (provat te STATUS "Faza 9 — rezultati"). Problemet: U-09, U-10. Vendimet: V-26, V-27. Varet nga: 07, 08.
 
 Kërkesa e përdoruesit (2026-10-29): modalet e projektit të rregullohen si sistemi i përdoruesit në Laravel (`main_modal_sm/md/lg/xl/fs`): një madhësi për çdo rast, header-i i rreshtuar, pa ndarjet që nuk i pëlqejnë. Pikat 2 (FilePond dhe CSV-të e mëdha) dhe 3 (pamja e shkurtër e CSV-së) vijnë më pas, si faza më vete.
 
