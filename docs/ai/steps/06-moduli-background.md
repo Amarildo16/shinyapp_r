@@ -1,6 +1,6 @@
 # Faza 06 — Moduli i background-it
 
-Statusi: **gati, pa commit** (2026-10-29, V-22, T-26). Kërkesat: R17, R18, R19, R23. Problemet: P-08, P-09, P-10, B-08. Varet nga Faza 03.
+Statusi: **i përfunduar** (2026-10-29, `9d6dceb`, V-22, T-26). Kërkesat: R17, R18, R19, R23. Problemet: P-08, P-09, P-10, B-08. Varet nga Faza 03.
 
 ## Qëllimi
 

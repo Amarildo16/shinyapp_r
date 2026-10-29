@@ -1,0 +1,25 @@
+/* tokens.css — Variablat e temës (ngjyra, hije, rreze, gjerësia e sidebar-it).
+   Faza 7: nga custom-style.css, me të njëjtën radhë kaskade (tokens → layout →
+   components → modals → datatables → background). */
+
+/* =========================
+   TOKENS
+========================= */
+:root {
+    --text: rgba(255, 255, 255, 0.95);
+    --text-soft: rgba(255, 255, 255, 0.85);
+    --text-muted: rgba(255, 255, 255, 0.65);
+    --glass-bg: rgba(255, 255, 255, 0.12);
+    --glass-border: rgba(255, 255, 255, 0.35);
+    --shadow-glass: 0 18px 40px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    --shadow-sidebar: 14px 0 34px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    --radius: 18px;
+    --pad: 18px;
+    --overlay: rgba(0, 0, 0, 0.35);
+    --sidebarMin: 260px;
+    --sidebarMax: 380px;
+    --sidebarW: 25vw;
+    --ease: 240ms ease;
+}

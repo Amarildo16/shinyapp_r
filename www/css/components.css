@@ -1,0 +1,350 @@
+/* components.css — Kartat glass, tekstet, tabelat, inputet e Shiny, butonat, lista e dataset-eve.
+   Faza 7: nga custom-style.css, me të njëjtën radhë kaskade (tokens → layout →
+   components → modals → datatables → background). */
+
+/* =========================
+   LIQUID GLASS CARDS (CORE)
+========================= */
+.section-box,
+.app-content .well {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: var(--shadow-glass);
+}
+
+.section-box {
+    padding: 18px 22px;
+    margin: 18px 0 24px;
+}
+
+.plot-container {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 12px;
+}
+
+.plot-wrap {
+    margin: 0 0 8px 0;
+    padding: 14px 16px 18px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .06);
+}
+
+.glass-divider {
+    height: 1px;
+    margin: 26px 0 18px;
+    background: linear-gradient(to right,
+            transparent,
+            rgba(255, 255, 255, .45),
+            transparent);
+}
+
+/* =========================
+   TEXT INSIDE CARDS
+========================= */
+.section-box h1,
+.section-box h2,
+.section-box h3,
+.section-box h4 {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.section-box p,
+.section-box li {
+    color: var(--text-soft);
+}
+
+.caption {
+    color: var(--text-muted);
+}
+
+/* =========================
+   TABLES – LIQUID GLASS
+========================= */
+.app-content table {
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-glass);
+}
+
+.app-content table thead th {
+    background: rgba(255, 255, 255, 0.18);
+    color: var(--text);
+    font-weight: 600;
+}
+
+.app-content table td {
+    color: var(--text-soft);
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.app-content table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+/* =========================================================
+   LIQUID GLASS INPUTS (Shiny controls)
+========================================================= */
+.form-control,
+select,
+.selectize-input,
+.selectize-control.single .selectize-input {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    color: #fff;
+    border-radius: 14px !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    padding: 10px 12px !important;
+}
+
+.selectize-input::after {
+    border-top-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.form-control:focus,
+.selectize-input.focus {
+    background: rgba(255, 255, 255, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.55) !important;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.selectize-dropdown {
+    background: rgba(20, 20, 20, 0.65) !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+    z-index: 2000 !important;
+}
+
+.selectize-dropdown .option {
+    color: #fff;
+}
+
+.selectize-dropdown .option:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.selectize-dropdown-content {
+    background: rgba(20, 20, 20, 0.65);
+}
+
+.selectize-dropdown [data-selectable] {
+    background: transparent;
+    color: #fff !important;
+}
+
+.selectize-dropdown [data-selectable].active,
+.selectize-dropdown [data-selectable]:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
+}
+
+.irs--shiny .irs-line {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
+}
+
+.irs--shiny .irs-bar {
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.65),
+            rgba(255, 255, 255, 0.95));
+}
+
+.irs--shiny .irs-handle {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* =========================
+   LIQUID GLASS – METRICS
+========================= */
+.metrics-glass {
+    background: rgba(255, 255, 255, 0.16) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.metrics-glass h4 {
+    color: white;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.metrics-glass table {
+    background: transparent !important;
+    color: white;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.metrics-glass thead th {
+    background: rgba(255, 255, 255, 0.18) !important;
+    color: white !important;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.metrics-glass td {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: white !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.18) !important;
+}
+
+.metrics-glass tbody tr:hover {
+    background: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* =========================
+   PLOTLY SAFE
+========================= */
+.js-plotly-plot .plotly .modebar {
+    z-index: 100;
+}
+
+.overview-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.overview-title {
+    margin: 0 !important;
+}
+
+/* =========================
+   GLASS BUTTONS
+========================= */
+.glass-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: rgba(255, 255, 255, 0.92) !important;
+    padding: 10px 14px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+    transition: transform .16s ease, background .16s ease, border-color .16s ease;
+}
+
+.glass-btn:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.38) !important;
+    transform: translateY(-1px);
+}
+
+.glass-btn:active {
+    transform: translateY(0);
+}
+
+/* =========================================================
+   Saved datasets list
+   ========================================================= */
+.saved-ds-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.saved-ds-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.saved-ds-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, .55);
+    display: inline-block;
+}
+
+.saved-ds-dot.on {
+    background: rgba(255, 255, 255, .95);
+    border-color: rgba(255, 255, 255, .95);
+}
+
+.saved-ds-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .16);
+}
+
+.saved-ds-trash {
+    border: none;
+    background: rgba(255, 255, 255, .10);
+    border-radius: 10px;
+    padding: 6px 10px;
+    color: white;
+}
+
+.saved-ds-item.is-active {
+    outline: 1px solid rgba(255, 255, 255, .35);
+}
+
+.saved-ds-grid-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 780px) {
+    .saved-ds-grid-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.saved-ds-item.is-active .saved-ds-badge {
+    background: rgba(52, 199, 89, .20);
+    border: 1px solid rgba(52, 199, 89, .45);
+    color: rgba(52, 199, 89, 1);
+    font-weight: 600;
+    letter-spacing: .2px;
+    box-shadow: 0 0 0 1px rgba(52, 199, 89, .10) inset;
+}
+
+.saved-ds-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.saved-ds-edit,
+.saved-ds-trash {
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    opacity: .85;
+}
+
+.saved-ds-edit:hover,
+.saved-ds-trash:hover {
+    opacity: 1;
+}

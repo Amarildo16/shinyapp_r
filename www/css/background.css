@@ -1,0 +1,333 @@
+/* background.css — Background-i (shtresat, kartat për faqe, ngjyrat) dhe Media Library.
+   Faza 7: nga custom-style.css, me të njëjtën radhë kaskade (tokens → layout →
+   components → modals → datatables → background). */
+
+/* =========================
+   BACKGROUND (UNCHANGED)
+========================= */
+#bg-wrapper {
+    position: fixed;
+    inset: 0;
+    z-index: -3;
+    overflow: hidden;
+    background: var(--bg-color, #0b1c24);
+}
+
+.bg-layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(var(--bg-blur, 9px)) brightness(0.85);
+    transform: scale(1.1);
+}
+
+#bg-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--overlay);
+    z-index: -2;
+}
+
+.bg-tabs-title {
+    margin-top: 12px;
+    font-weight: 600;
+    opacity: .9;
+}
+
+.bg-tabs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.bg-tab-card {
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .04);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.bg-tab-name {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.bg-tab-card .form-group {
+    margin-bottom: 0;
+}
+
+.bg-tab-thumb {
+    width: 140px;
+    height: 78px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: rgba(0, 0, 0, .15);
+    flex: 0 0 auto;
+}
+
+.bg-tab-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.bg-tab-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.bg-tab-status {
+    opacity: .75;
+    font-size: 12px;
+}
+
+.bg-tab-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+html.bg-color .bg-layer {
+    display: none;
+}
+
+html.bg-none .bg-layer {
+    display: none;
+}
+
+html.bg-none #bg-overlay {
+    display: none;
+}
+
+.bg-save-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.bg-badge {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .06);
+    opacity: .9;
+}
+
+.bg-hidden-fileinput {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.media-card {
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .06);
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+}
+
+.media-card.selected {
+    border-color: rgba(255, 255, 255, .55);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .12) inset;
+}
+
+.media-thumb {
+    height: 110px;
+}
+
+.media-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Fotot default nuk kanë butonin e fshirjes (V-22 a): karta ruan lartësinë e butonit (34px + padding). */
+.media-meta {
+    padding: 10px;
+    font-size: 12px;
+    opacity: .9;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 54px;
+}
+
+.media-meta .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.media-delete-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.media-delete-btn i {
+    font-size: 18px;
+}
+
+.media-tick {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .22);
+    background: rgba(0, 0, 0, .35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 6;
+    left: 10px;
+    pointer-events: none;
+}
+
+.media-tick i {
+    font-size: 18px;
+}
+
+.media-card.is-active {
+    border-color: rgba(255, 255, 255, .55);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .12) inset;
+}
+
+/* ===== BG Upload: make FilePond fill fullscreen modal ===== */
+.bg-upload-fill {
+    height: calc(100vh - 220px);
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+}
+
+.bg-upload-hint {
+    display: block;
+    margin-bottom: 10px;
+    opacity: .85;
+}
+
+.bg-pond-host {
+    flex: 1 1 auto;
+    min-height: 320px;
+}
+
+.bg-pond-host .filepond--root {
+    height: 100%;
+    min-height: 320px;
+    margin: 0;
+}
+
+.bg-pond-host .filepond--panel-root {
+    height: 100%;
+    border-radius: 14px;
+    border: 1px dashed rgba(255, 255, 255, .22);
+    background: rgba(255, 255, 255, .04);
+}
+
+.bg-pond-host .filepond--drop-label {
+    height: 100%;
+    min-height: 320px;
+}
+
+.bg-pond-host .filepond--drop-label label {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 18px;
+}
+
+.bg-color-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0 14px 0;
+}
+
+.bg-color-swatch {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+    cursor: pointer;
+    outline: none;
+    padding: 0;
+}
+
+.bg-color-swatch.is-selected {
+    border-color: rgba(255, 255, 255, .7);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, .12);
+    transform: translateY(-1px);
+}
+
+.bg-color-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bg-color-hex {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    opacity: .85;
+}
+
+.bg-thumb-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 84px;
+}
+
+.bg-thumb-empty svg {
+    width: 64px;
+    height: 64px;
+    opacity: .9;
+}
+
+.media-clear-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 7;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
+}

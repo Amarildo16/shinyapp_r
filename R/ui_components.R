@@ -1,11 +1,23 @@
 # Pjesët e përbashkëta të UI-së. HTML-i dhe klasat CSS janë të njëjtat si te app.R i
 # vjetër, që pamja të mos ndryshojë; menyja dhe titujt vijnë nga PAGES (P-12).
 
+# CSS-ja e app-it, me radhën e kaskadës (Faza 7: nga custom-style.css).
+APP_CSS <- c("tokens", "layout", "components", "modals", "datatables", "background")
+# JS-ja e ndarë nga custom.js (Faza 7), në vendin e tij të mëparshëm.
+APP_JS  <- c("preloader", "filepond-bridge", "modals", "color-picker")
+
+# Tekstet që përdor JS-ja (FilePond), sipas gjuhës (R26, V-23 b).
+js_i18n <- function() {
+  keys <- c("pond.drop", "pond.browse", "pond.type_not_allowed", "pond.only_csv", "pond.only_images")
+  tags$script(HTML(paste0("window.APP_I18N = ",
+                          jsonlite::toJSON(setNames(lapply(keys, tr), keys), auto_unbox = TRUE), ";")))
+}
+
 app_head <- function() {
   tags$head(
     tags$meta(name="viewport", content="width=device-width, initial-scale=1"),
     tags$link(rel="stylesheet", href="vendor/filepond/filepond.min.css"),
-    tags$link(rel="stylesheet", type="text/css", href="css/custom-style.css"),
+    lapply(APP_CSS, function(f) tags$link(rel = "stylesheet", type = "text/css", href = paste0("css/", f, ".css"))),
     tags$link(rel="icon", type="image/png", href="favicon/favicon.png"),
     tags$script(src="vendor/filepond/filepond.min.js"),
     tags$script(src="vendor/filepond/filepond-plugin-file-validate-type.min.js"),
@@ -14,7 +26,8 @@ app_head <- function() {
     tags$script(src="js/sidebar.js"),
     tags$script(src="js/plotly-animate.js"),
     tags$link(rel = "stylesheet", href = "vendor/remixicon/remixicon.css"),
-    tags$script(src="js/custom.js")
+    js_i18n(),
+    lapply(APP_JS, function(f) tags$script(src = paste0("js/", f, ".js")))
   )
 }
 

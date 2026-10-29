@@ -72,6 +72,11 @@
   "bg.err_too_big": "Foto është shumë e madhe. Limiti është 5 MB.",
   "bg.err_mime": "Tipi MIME i fotos nuk përputhet me formatin e lejuar.",
   "bg.err_content": "Përmbajtja e file-it nuk duket si foto e vlefshme.",
+  "pond.drop": "Drop files here or",
+  "pond.browse": "click to upload",
+  "pond.type_not_allowed": "Ky fajll s'pranohet",
+  "pond.only_csv": "Lejohet vetëm: .csv",
+  "pond.only_images": "Lejohen vetëm: JPG, PNG, WEBP",
 
   "ds.saved_title": "Datasetet e ruajtura",
   "ds.none_saved": "S’ka dataset të ruajtur te folderi storage/datasets.",

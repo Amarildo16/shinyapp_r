@@ -72,6 +72,11 @@
   "bg.err_too_big": "The photo is too large. The limit is 5 MB.",
   "bg.err_mime": "The photo's MIME type does not match the allowed format.",
   "bg.err_content": "The file content does not look like a valid photo.",
+  "pond.drop": "Drop files here or",
+  "pond.browse": "click to upload",
+  "pond.type_not_allowed": "This file is not accepted",
+  "pond.only_csv": "Only allowed: .csv",
+  "pond.only_images": "Only allowed: JPG, PNG, WEBP",
 
   "ds.saved_title": "Saved datasets",
   "ds.none_saved": "No saved datasets in the storage/datasets folder.",

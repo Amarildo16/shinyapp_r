@@ -1,0 +1,223 @@
+/* datatables.css — DataTables: modali i konfigurimit dhe tabelat e faqeve.
+   Faza 7: nga custom-style.css, me të njëjtën radhë kaskade (tokens → layout →
+   components → modals → datatables → background). */
+
+#datasets-main_modal_fs .dataTables_length select option {
+    background: rgba(16, 24, 28, 0.95);
+    color: rgba(255, 255, 255, 0.92);
+}
+
+/* =========================================================
+   DataTables DARK GLASS
+   ========================================================= */
+#datasets-main_modal_fs .dataTables_wrapper {
+    width: 100%;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+#datasets-main_modal_fs .dt-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+#datasets-main_modal_fs .dt-top-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#datasets-main_modal_fs .dt-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+#datasets-main_modal_fs .dataTables_length label,
+#datasets-main_modal_fs .dataTables_filter label,
+#datasets-main_modal_fs .dataTables_info {
+    color: rgba(255, 255, 255, 0.70);
+}
+
+#datasets-main_modal_fs .dataTables_filter input,
+#datasets-main_modal_fs .dataTables_length select {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    border-radius: 10px !important;
+    padding: 7px 10px !important;
+    outline: none;
+}
+
+#datasets-main_modal_fs .dataTables_filter input::placeholder {
+    color: rgba(255, 255, 255, 0.55) !important;
+}
+
+#datasets-main_modal_fs table.dataTable {
+    width: 100% !important;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+#datasets-main_modal_fs table.dataTable thead th {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.88);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+#datasets-main_modal_fs table.dataTable tbody td {
+    color: rgba(255, 255, 255, 0.82);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#datasets-main_modal_fs table.dataTable tbody tr {
+    background: transparent;
+}
+
+#datasets-main_modal_fs table.dataTable tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
+#datasets-main_modal_fs table.dataTable tbody tr:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+}
+
+#datasets-main_modal_fs .dataTables_paginate .paginate_button {
+    color: rgba(255, 255, 255, 0.72) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 6px 10px;
+    margin-left: 6px;
+}
+
+#datasets-main_modal_fs .dataTables_paginate .paginate_button:hover {
+    background: rgba(255, 255, 255, 0.10) !important;
+}
+
+#datasets-main_modal_fs .dataTables_paginate .paginate_button.current {
+    background: rgba(255, 255, 255, 0.14) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+#datasets-main_modal_fs table.dataTable thead .sorting:after,
+#datasets-main_modal_fs table.dataTable thead .sorting_asc:after,
+#datasets-main_modal_fs table.dataTable thead .sorting_desc:after {
+    opacity: 0.45 !important;
+}
+
+#datasets-main_modal_fs .dt-buttons button {
+    margin-left: 6px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.table-wrap .dataTables_wrapper {
+    width: 100%;
+}
+
+.table-wrap table.dataTable {
+    width: 100% !important;
+}
+
+/* =========================
+   DataTables (page tables)
+   ========================= */
+.app-content .dataTables_wrapper,
+.app-content .dataTables_wrapper label,
+.app-content .dataTables_wrapper .dataTables_info {
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.app-content .dataTables_filter input,
+.app-content .dataTables_length select {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    border-radius: 10px !important;
+    padding: 7px 10px !important;
+    outline: none;
+}
+
+.app-content .dataTables_filter input::placeholder {
+    color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.app-content table.dataTable {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.app-content table.dataTable thead th {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.92);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+.app-content table.dataTable tbody td {
+    color: rgba(255, 255, 255, 0.88);
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.app-content table.dataTable tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.app-content table.dataTable tbody tr:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+}
+
+.app-content .dataTables_paginate .paginate_button {
+    color: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-radius: 10px !important;
+}
+
+.app-content .dataTables_paginate .paginate_button.current {
+    background: rgba(255, 255, 255, 0.14) !important;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.app-content .dataTables_length select {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    border-radius: 10px !important;
+    padding: 6px 28px 6px 10px !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.75) 50%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.75) 50%, transparent 50%);
+    background-position: calc(100% - 16px) calc(50% - 2px),
+        calc(100% - 11px) calc(50% - 2px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+}
+
+.app-content .dataTables_length select:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.10);
+}
+
+.app-content .dataTables_length select option {
+    background: #1d232a;
+    color: rgba(255, 255, 255, 0.92);
+}

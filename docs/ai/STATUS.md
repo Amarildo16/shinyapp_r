@@ -277,7 +277,7 @@ Commit: `ac84f0a` (përdoruesi).
 
 Commit: `3bfdedc` (përdoruesi). Faza 5 e mbyllur.
 
-## Faza 6 — rezultati (2026-10-29, Claude Code)
+## Faza 6 — rezultati (2026-10-29, Claude Code, `9d6dceb`)
 
 Background-i dhe Media Library janë modul (`mod_background`, V-22, T-26). Fotot e ngarkuara jetojnë te `storage/images/` ("user-images/…"); 12 defaultet mbeten te `www/images/` dhe nuk fshihen. Fotot e vjetra të zyshës te `www/images/` kopjohen në nisje dhe origjinalet mbeten. `app.R` zbret nga 889 në 143 rreshta.
 
@@ -297,18 +297,40 @@ Background-i dhe Media Library janë modul (`mod_background`, V-22, T-26). Fotot
 
 Gjatë verifikimit në browser u kap një gabim imi në CSS (një `{` e tepërt pas selektorit të dialogut të fshirjes prishi leximin e pjesës tjetër të skedarit: 89 nga 233 rregulla); u ndreq para screenshot-eve përfundimtare. Gjetje e re, pa ndryshim: B-21 (lista e FilePond nuk pastrohet pas ngarkimit, Faza 7).
 
+Commit: `9d6dceb` (përdoruesi). Faza 6 e mbyllur.
+
+## Faza 7 — rezultati (2026-10-29, Claude Code)
+
+CSS dhe JS janë ndarë sipas përgjegjësisë (V-23, T-27): `www/css/{tokens,layout,components,modals,datatables,background}.css` dhe `www/js/{preloader,filepond-bridge,modals,color-picker}.js`; `custom-style.css` dhe `custom.js` u hoqën.
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| Q27 (stilet) | Stilet e llogaritura (+ `::before`/`::after`) të 735–1 284 elementëve në 21 gjendje (6 faqe, Settings, Upload, konfigurimi, fshirja e dataset-it, Media Library: Library/Upload/fshirja, sidebar) dhe 3 madhësi (1440, 780, 375 px): identike para (`9d6dceb`) / pas. I vetmi ndryshim: struktura e FilePond-it pas Proceed (para kishte instancën e dytë të B-16) | `style_tools.js` + `state_driver.js` në browser mbi kopje (T-04) |
+| Q27 (pamja) | 4 screenshot-e (desktop: Përmbledhja, Settings; 375 px: Përmbledhja, sidebar i hapur) identike bajt për bajt | `cmp` |
+| U-05 | `!important` 135 → 68; 20 selektorë të përsëritur të bashkuar | analiza e kaskadës në browser (`__impAnalysis`), `css_split.py` |
+| Q24 | Sidebar: hapet, Escape e mbyll, butoni aktiv ndjek faqen; dokumenti 375 px pa lëvizje horizontale. **Por** `.app-content` tejkalon te Përmbledhja (260 px) dhe Settings (77 px), i trashëguar → B-22 | browser 375 px, para/pas |
+| Q25 | 55 burime, të gjitha nga `127.0.0.1`; asnjë kërkesë jashtë | `performance.getEntriesByType('resource')` |
+| Q26 / B-10 | Busy 100 ms: para shfaqej, pas jo; busy > 400 ms: shfaqet; fshihet me idle; slider-i nuk e shfaq | browser |
+| B-16 | Ngarkim → Proceed → Cancel → rihapje → ngarkim → Save: console 0; CSV e ruajtur me md5 të njëjtë me fixture-in | browser |
+| B-21 | Pas ngarkimit të fotos, lista e FilePond ka 0 skedarë | browser |
+| R26 | Tekstet e FilePond nga `tr()` (+5 çelësa, 251 gjithsej); shqip si më parë, anglisht të përkthyera | `test-ui_components.R` |
+| Q01 | Console 0 në të gjitha sesionet, edhe gjatë Upload-it (pa përjashtimin V-16); log-u i R-së bosh | console, log-u i `runApp` |
+| Q29 / Q30 | 24 skedarë testesh, 992 pritje, 0 dështime, 0 warning; Q30 24/24 pa warning | `testthat::test_dir()`, `compare_reference.R` |
+
+Gjetje e re, pa ndryshim: B-22 (mobile: tabela e përmbledhjes dhe kartat e dataset-eve tejkalojnë gjerësinë). Animacioni i grafikëve punon si në Fazën 5 (`plotly-animate.js` i pandryshuar).
+
 Commit: pa commit.
 
 ## Kufizime dhe shënime
 
-- Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime, përveç B-16 deri në Fazën 7 (V-16).
+- Q01 në Fazat 0–4 lejon vetëm B-11/B-12 (V-13); nga Faza 5, pa përjashtime, përveç B-16 deri në Fazën 7 (V-16). Nga Faza 7 (B-16 i mbyllur), pa asnjë përjashtim.
 - **Ndryshim jashtë Claude-it (2026-10-27 19:02):** `data/background_state.json` u rishkrua dhe ndryshoi vetëm `"version"` (1773411658 → 1793124137); `active_mode` mbeti `none`. `datasets_state.json` u rishkrua me të njëjtën përmbajtje. Ka gjasa që app-i të jetë nisur nga dosja e projektit. Claude nuk e preku dhe nuk e ktheu mbrapsht (të dhëna state). Nuk është pjesë e Fazës 0: mos e përfshi në commit-in e fazës, përveçse kur përdoruesi e do. Ky është pikërisht problemi U-04, që zgjidhet në Fazën 3 (`storage/`).
 - `all.equal(tolerance)` mat **diferencën mesatare relative** për çdo vektor, si e përcakton QUALITY.md. Një devijim i vogël në një element të vetëm të një vektori të gjatë "hollohet". Provat negative më lart tregojnë që devijimet e rëndësishme kapen.
 - Testet `testthat` (Q29) ekzistojnë që nga Faza 2 (`tests/testthat/`).
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është gati, pa commit** (V-22, T-26). Hapi i radhës: commit i përdoruesit; pastaj, vetëm me autorizim: [Faza 7](steps/07-frontend.md). B-18, B-19, B-20, B-21 presin vendim.
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është gati, pa commit** (V-23, T-27). Hapi i radhës: commit i përdoruesit; pastaj, vetëm me autorizim: [Faza 8](steps/08-finalizimi.md). B-18, B-19, B-20, B-22 presin vendim.
 
 ## Regjistri i dorëzesave
 
