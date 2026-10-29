@@ -323,13 +323,13 @@ Commit: `16c0acb` (përdoruesi). Faza 7 e mbyllur.
 
 ## Faza 8 — rezultati (2026-10-29, Claude Code)
 
-U-01 (shqipërimi sipas V-24 a), U-02, U-07, B-19 (dhe me të B-09), D-04 dhe README i ri. B-14, B-18, B-20, B-22 u shtynë nga përdoruesi (V-24 c). Gjetje të reja që presin vendim: B-23, B-24, U-08.
+U-01 (shqipërimi sipas V-24 a), U-02, U-07, B-19 (dhe me të B-09), D-04 dhe README i ri. B-14, B-18, B-20, B-22 u shtynë nga përdoruesi (V-24 c). Gjetjet e reja B-23, B-24, U-08 u rregulluan pas commit-it `c4c8141` (V-25; shih "Rregullimet e V-25").
 
 ### Skenarët Q01–Q32
 
 | Q | Rezultati | Prova (ekzekutuar nga Claude, 2026-10-29) |
 |---|---|---|
-| Q01 | Console 0 në të gjitha sesionet. Log-u i R-së: bosh, përveç B-18 (shtyrë) dhe B-23 (gjetje e re) kur aktivizohet `constant.csv` | console, log-u i `runApp` |
+| Q01 | Console 0 në të gjitha sesionet. Log-u i R-së: bosh, përveç B-18 (shtyrë); B-23 i mbyllur (V-25) | console, log-u i `runApp` |
 | Q02 | Klon i ri (pa `storage/`): shembujt kopjohen, app-i hapet me dataset aktiv | kopje nga `git archive`, browser |
 | Q03 | Struktura e Fazës 0 (`data/*.csv` + JSON): kopjohet te `storage/`, kopje rezervë, state i njëjtë, origjinalet me md5 të njëjtë | kopje me `data/` e `531bc0c`, browser |
 | Q04 | 12 dataset-e: asnjë output nuk vizatohet dy herë pas aktivizimit (vetëm titulli i faqes, një herë për çdo faqe të vizituar) | numërim `shiny:value`/`shiny:error` |
@@ -338,14 +338,14 @@ U-01 (shqipërimi sipas V-24 a), U-02, U-07, B-19 (dhe me të B-09), D-04 dhe RE
 | Q07 | CSV vetëm me header: mesazh i qartë, asgjë e ruajtur | browser, Q29 |
 | Q08 | Fshirja e aktivit kalon te tjetri; pa dataset (`test-mod_datasets.R`) | browser, Q29 |
 | Q09–Q14 | Të dy shembujt: të gjitha tabelat dhe grafikët shfaqen, asnjë error; vlerat = referenca | browser, Q29, Q30 |
-| Q15–Q18 | Boshllëqe, dublikata, tremujor/vjetor (njësitë "tremujor", "vite", "muaj"), konstante, të shkurtra: mesazhe të qarta, asnjë rrëzim. **Përjashtim:** B-23 (konstante, tabela e saktësisë së Modelimit) | browser |
+| Q15–Q18 | Boshllëqe, dublikata, tremujor/vjetor (njësitë "tremujor", "vite", "muaj"), konstante, të shkurtra: mesazhe të qarta, asnjë rrëzim. B-23 (konstante, tabela e saktësisë së Modelimit) i mbyllur me V-25: ETS NA, ARIMA me vlera | browser |
 | Q19, Q24–Q27 | Si në Fazat 5–7 (kodi i frontend-it i pandryshuar, përveç teksteve); Q24 me B-22 të shtyrë | Fazat 5–7 |
 | Q20–Q23 | Si në Fazën 6; U-07 dhe Save me teste | Faza 6, Q29 |
 | Q28 | **I pa ekzekutuar**: `renv::restore()` në mjedis të pastër kërkon instalim paketash; `renv::status()`: "No issues found" | — (për përdoruesin) |
-| Q29 | 24 skedarë testesh, 1 049 pritje, 0 dështime, 0 warning | `testthat::test_dir()` |
-| Q30 | 24/24 pa warning | `compare_reference.R` |
+| Q29 | 24 skedarë testesh, 139 teste, 1 061 pritje, 0 dështime, 0 warning (pas V-25) | `testthat::test_dir()` |
+| Q30 | 24/24 pa warning (edhe pas V-25) | `compare_reference.R` |
 | Q31 | Anglisht: menyja, faqet, modalet, tabelat, ADF dhe numrat (me pikë) në anglisht, asnjë tekst shqip; gjuha ruhet pas rinisjes; dataset-i dhe background-i nuk ndryshojnë | browser |
-| Q32 | `test-i18n.R` kalon (264 çelësa në të dyja); kërkimi në kod gjeti 13 mesazhe jashtë `tr()`, të kaluara tani | Q29, kërkim |
+| Q32 | `test-i18n.R` kalon (277 çelësa në të dyja pas V-25); kërkimi në kod gjeti 13 mesazhe jashtë `tr()`, të kaluara tani | Q29, kërkim |
 
 ### Kërkesat R01–R26
 
@@ -355,16 +355,26 @@ U-01 (shqipërimi sipas V-24 a), U-02, U-07, B-19 (dhe me të B-09), D-04 dhe RE
 | R03 | ✅ Q25 (Faza 7) |
 | R04 | Zëvendësuar nga R26 |
 | R05–R08 | ✅ Q05–Q08, `test-data_parse.R`; B-14 shtyrë |
-| R09–R14 | ✅ Q09–Q14, Q30; B-20 shtyrë; B-23 e hapur |
-| R15, R16 | ✅ Q15–Q17; B-23 e hapur për seri konstante |
+| R09–R14 | ✅ Q09–Q14, Q30; B-20 shtyrë; B-23 ✅ (V-25) |
+| R15, R16 | ✅ Q15–Q18 (edhe seria konstante, V-25) |
 | R17–R19 | ✅ Q20–Q23 (Faza 6) |
 | R20 | ✅ me B-22 të shtyrë (mobile) |
 | R22, R23 | ✅ module + `storage/` me migrim (Q02, Q03) |
-| R26 | Pjesërisht: anglishtja e plotë; në shqip mbeten U-08 dhe B-24 (presin vendim) |
+| R26 | ✅ anglishtja e plotë; shqipja pa tekste angleze përveç emrit të app-it te menyja dhe "default" (V-24 a, V-25) |
 
-**Mbetet për përdoruesin:** provimi i app-it në RStudio (kriter i Fazës 8), Q28 me `renv::restore()` në një mjedis të pastër, vendimet për B-23, B-24, U-08, commit-i; merge/tag/push vetëm nga përdoruesi.
+**Mbetet për përdoruesin:** provimi i app-it në RStudio (kriter i Fazës 8), Q28 me `renv::restore()` në një mjedis të pastër, commit-i i rregullimeve të V-25; merge/tag/push vetëm nga përdoruesi.
 
-Commit: pa commit.
+### Rregullimet e V-25 (2026-10-29, Claude Code)
+
+| Gjetja | Ndryshimi | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| B-23 | `model_accuracy_table()`: rreshti i modelit pa metodë `accuracy()` del NA | testi "B-23"; browser: `constant.csv`, ETS NA, ARIMA 0,0000 / 0.0000, pa error, log-u i R-së bosh |
+| B-24 | `fmt_fixed(missing_pct, 2)`, `align = "lllllrr"` | HTML-ja e tabelës e njëjtë përveç presjes; `monthly_gap.csv`: 8,33 / 8.33 |
+| U-08 | 14 tekste te `sq.json`, `dt_language()` + 13 çelësa `dt.*` | browser: DataTables shqip në Përmbledhje dhe te modali i dataset-it, anglisht si default-i i DT-së; console 0 |
+
+Q29: 139 teste, 1 061 pritje, 0 dështime, 0 warning. Q30: 24/24, 0 warning.
+
+Commit: `c4c8141` (përdoruesi) për Fazën 8; rregullimet e V-25 pa commit.
 
 ## Kufizime dhe shënime
 
@@ -375,7 +385,7 @@ Commit: pa commit.
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është gati, pa commit** (V-24, T-28). Mbeten: vendimet për B-23, B-24, U-08; provimi në RStudio dhe Q28 nga përdoruesi; commit-i. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 u bë commit** (`c4c8141`, V-24, T-28); rregullimet e B-23, B-24, U-08 (V-25) janë gati, pa commit. Mbeten: provimi në RStudio dhe Q28 nga përdoruesi; commit-i. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
 
 ## Regjistri i dorëzesave
 

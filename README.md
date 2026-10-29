@@ -40,7 +40,7 @@ Ose hap `app.R` dhe kliko **Run App**.
 1. Hap menynë anësore (butoni ☰) dhe shko te **Cilësimet**.
 2. Te **Dataset**: ngarko një CSV, zgjidh kolonën e kohës dhe seritë numerike, pastaj **Ruaj**. Dataset-i aktiv përdoret në të gjitha faqet; mund ta ndryshosh ose ta fshish kur të duash.
 3. Faqet e analizës: Përmbledhja, Analiza eksploruese (seri kohore dhe marrëdhënie), Stacionariteti, Modelimi, Parashikimi.
-4. Te **Background** zgjidh një foto për të gjitha faqet ose për secilën veç e veç, një ngjyrë, ose asnjë background. Ndryshimet ruhen vetëm me **Ruaj**.
+4. Te **Sfondi** zgjidh një foto për të gjitha faqet ose për secilën veç e veç, një ngjyrë, ose pa sfond. Ndryshimet ruhen vetëm me **Ruaj**.
 
 Formatet e kohës që njihen: `YYYY`, `YYYY-MM`, `YYYY-MM-DD`, `YYYYQ#`, `dd/mm/YYYY`, `dd-mm-YYYY`, `YYYY/mm/dd`. Një kolonë me numra të thjeshtë (1, 2, 3…) pranohet për analizën eksploruese; analizat statistikore kërkojnë kohë kalendarike.
 

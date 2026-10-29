@@ -76,6 +76,17 @@ test_that("tabela e saktësisë: vlerat e accuracy(), NA kur modeli mungon", {
   expect_true(all(is.na(unlist(na[-1]))))
 })
 
+test_that("B-23: seri konstante, rreshti ETS NA pa gabim, ARIMA me vlerat e veta", {
+  x <- model_fits(data.frame(Time = 2000:2024, v = rep(5, 25)), "v", model_store())
+  expect_true(x$ok)
+  expect_error(forecast::accuracy(x$fit_ets))   # shkaku: objekti "ets" pa metodë accuracy()
+  t <- expect_no_error(model_accuracy_table(x, "v", NULL))
+  expect_true(all(is.na(unlist(t[1, -1]))))
+  acc <- training_accuracy(forecast::accuracy(x$fit_arima))
+  expect_equal(t$RMSE[2], fmt_table_value(as.numeric(acc[["RMSE"]])))
+  expect_false(anyNA(unlist(t[2, c("RMSE", "MAE")])))
+})
+
 test_that("B-02: kufijtë e horizontit rillogariten për çdo seri", {
   d <- data.frame(Time = 1998:2024, Plote = seq_len(27), Shkurter = c(1:8, rep(NA, 19)))
   full <- h_slider_state(d, "Plote", NULL)

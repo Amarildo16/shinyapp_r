@@ -22,8 +22,8 @@ test_that("periudha që mungon jep mesazhin e serisë jo të plotë (R15, Q15)",
   r <- validate_ts_ready(g, "Value")
   expect_false(r$ok)
   expect_equal(r$message, paste("Seria ka periudha që mungojnë, data të parregullta ose vlera bosh.",
-                                "Plotet EDA mund të shfaqen, por analizat statistikore dhe parashikimi kërkojnë seri kohore të rregullt pa boshllëqe."))
-  expect_match(validate_ts_ready(g, "Value")$message, "Plotet EDA")
+                                "Grafikët e EDA mund të shfaqen, por analizat statistikore dhe parashikimi kërkojnë seri kohore të rregullt pa boshllëqe."))
+  expect_match(validate_ts_ready(g, "Value")$message, "Grafikët e EDA")
 
   raw <- read_data_safe(fixture("monthly_gap.csv"), "monthly_gap.csv")
   reg <- assess_time_regular(parse_time_safe(raw$Date))

@@ -36,8 +36,8 @@ test_that("kufijtë dhe politikat kanë vlerat e kodit të vjetër", {
 
 test_that("page_title kthen titullin e faqes ose atë të paracaktuar", {
   expect_equal(page_title("tab_stationary"), "Stacionariteti")
-  expect_equal(page_title("tab_nuk_ekziston"), "Time Series Analysis")
-  expect_equal(page_title(NULL), "Time Series Analysis")
+  expect_equal(page_title("tab_nuk_ekziston"), "Analiza e serive kohore")
+  expect_equal(page_title(NULL), "Analiza e serive kohore")
 })
 
 test_that("get_app_dir përdor getwd() kur aty ka app.R (T-06)", {

@@ -194,7 +194,7 @@ mod_datasets_server <- function(id) {
         DT::DTOutput(ns("csv_preview_big"))
       ))
       output$csv_preview_big <- DT::renderDT({
-        DT::datatable(head(d, 200), rownames = FALSE, options = list(scrollX = TRUE))
+        DT::datatable(head(d, 200), rownames = FALSE, options = list(scrollX = TRUE, language = dt_language()))
       })
       toggle_glass_modal(session, "main_modal_fs", "show")
 

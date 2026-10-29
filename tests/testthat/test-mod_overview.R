@@ -32,11 +32,15 @@ test_that("overview_variables_table dhe overview_summary_table", {
   d <- data.frame(Time = 2000:2003, a = c(1, 2, 3, NA), b = c(0.1, 0.2, 0.3, 0.4))
   st <- overview_summary_table(d, c("a", "b"), meta)
   expect_equal(names(st), c("Variabla", "Mesatarja", "Devijimi standard", "Minimumi",
-                            "Maksimumi", "N (jo-NA)", "Missing %"))
+                            "Maksimumi", "N (jo-NA)", "% që mungon"))
   expect_equal(st$Mesatarja, c("2,00", "0,2500"))
   expect_equal(st$Minimumi, c("1,00", "0,1000"))
   expect_equal(st$`N (jo-NA)`, summary_stats(d, c("a", "b"))$n)
-  expect_equal(st$`Missing %`, summary_stats(d, c("a", "b"))$missing_pct)
+  # B-24: presja dhjetore e gjuhës, vlera e njëjtë e summary_stats().
+  expect_equal(st$`% që mungon`, c("25,00", "0,00"))
+  on.exit(set_lang("sq"), add = TRUE)
+  set_lang("en")
+  expect_equal(overview_summary_table(d, c("a", "b"), meta)$`Missing %`, c("25.00", "0.00"))
 })
 
 test_that("overview_selected_data: kolona e kohës me emrin origjinal, e renditur", {

@@ -102,7 +102,8 @@ overview_variables_table <- function(vc, meta) {
   out
 }
 
-# Vlerat e summary_stats(); mesatarja, sd, min dhe max formatohen me fmt_table_value (B-01).
+# Vlerat e summary_stats(); mesatarja, sd, min dhe max formatohen me fmt_table_value (B-01),
+# përqindja e vlerave që mungojnë me 2 decimale dhe presjen e gjuhës (B-24).
 overview_summary_table <- function(d, vc, meta) {
   st <- summary_stats(d, vc)
   fmt_safe <- function(x) if (is.na(x)) NA_character_ else fmt_table_value(x)
@@ -114,7 +115,7 @@ overview_summary_table <- function(d, vc, meta) {
     vapply(st$min, fmt_safe, character(1)),
     vapply(st$max, fmt_safe, character(1)),
     st$n,
-    st$missing_pct
+    fmt_fixed(st$missing_pct, digits = 2)
   )
   names(out) <- c(
     tr("ov.col.variable"), tr("ov.col.mean"), tr("ov.col.sd"), tr("ov.col.min"),
@@ -145,7 +146,8 @@ mod_overview_server <- function(id, active, series, current_tab) {
           lengthMenu = c(5, 10, 20, 50),
           scrollX = TRUE,
           autoWidth = TRUE,
-          deferRender = TRUE
+          deferRender = TRUE,
+          language = dt_language()
         )
       )
     }, server = TRUE)
@@ -167,7 +169,7 @@ mod_overview_server <- function(id, active, series, current_tab) {
       s <- series()
       req(s, s$value_cols)
       overview_summary_table(s$data, s$value_cols, s$meta)
-    })
+    }, align = "lllllrr")
 
     adjust_dt <- function() session$sendCustomMessage("dt_adjust", session$ns("ts_selected_tbl"))
 

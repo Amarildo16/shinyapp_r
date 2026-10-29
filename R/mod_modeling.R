@@ -99,16 +99,21 @@ model_accuracy_table <- function(x, series, meta) {
   }
 
   u <- var_meta(series, meta)$unit %||% ""
-  acc <- list(training_accuracy(forecast::accuracy(x$fit_ets)),
-              training_accuracy(forecast::accuracy(x$fit_arima)))
-  metric <- function(name) vapply(acc, function(a) as.numeric(a[[name]]), numeric(1))
+  # B-23 (V-25 a): për seri konstante forecast::ets() kthen objekt vetëm "ets", pa metodë
+  # accuracy(); rreshti i atij modeli del NA, si kur modeli mungon.
+  model_acc <- function(fit) tryCatch(training_accuracy(forecast::accuracy(fit)), error = function(e) NULL)
+  acc <- list(model_acc(x$fit_ets), model_acc(x$fit_arima))
+  missing <- vapply(acc, is.null, logical(1))
+  metric <- function(name) vapply(acc, function(a) if (is.null(a)) NA_real_ else as.numeric(a[[name]]), numeric(1))
   with_unit <- function(v) {
     txt <- fmt_table_value(v)
-    if (nzchar(u)) paste0(txt, " ", u) else txt
+    if (nzchar(u)) txt <- paste0(txt, " ", u)
+    ifelse(missing, NA_character_, txt)
   }
 
   out <- data.frame(c("ETS", "ARIMA"), RMSE = with_unit(metric("RMSE")), MAE = with_unit(metric("MAE")),
-                    MAPE = fmt_fixed(metric("MAPE"), digits = 2), check.names = FALSE)
+                    MAPE = ifelse(missing, NA_character_, fmt_fixed(metric("MAPE"), digits = 2)),
+                    check.names = FALSE)
   names(out)[1] <- col
   out
 }

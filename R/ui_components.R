@@ -13,6 +13,17 @@ js_i18n <- function() {
                           jsonlite::toJSON(setNames(lapply(keys, tr), keys), auto_unbox = TRUE), ";")))
 }
 
+# Tekstet e DataTables sipas gjuhës (U-08); anglishtja është e njëjtë me atë të DT-së.
+dt_language <- function() {
+  t <- function(k) tr(paste0("dt.", k))
+  list(
+    lengthMenu = t("lengthMenu"), search = t("search"), info = t("info"), infoEmpty = t("infoEmpty"),
+    infoFiltered = t("infoFiltered"), zeroRecords = t("zeroRecords"), emptyTable = t("emptyTable"),
+    processing = t("processing"), loadingRecords = t("loadingRecords"),
+    paginate = list(first = t("first"), last = t("last"), `next` = t("next"), previous = t("previous"))
+  )
+}
+
 app_head <- function() {
   tags$head(
     tags$meta(name="viewport", content="width=device-width, initial-scale=1"),

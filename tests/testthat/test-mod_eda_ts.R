@@ -84,14 +84,14 @@ test_that("B-06: pak pika -> validate(); k e përshtatur -> shënim nën grafik"
               meta = build_meta("v"))
   testServer(mod_eda_ts_server, args = list(series = reactive(few)), {
     session$setInputs(series = "v", roll_k = 3)
-    expect_error(output$roll, "Seria ka shumë pak vlera reale \\(jo-NA\\) për rolling mean.")
+    expect_error(output$roll, "Seria ka shumë pak vlera reale \\(jo-NA\\) për mesataren lëvizëse.")
   })
 
   three <- list(data = data.frame(Time = 2000:2002, v = c(1, 2, 4)), value_cols = "v",
                 meta = build_meta("v"))
   testServer(mod_eda_ts_server, args = list(series = reactive(three)), {
     session$setInputs(series = "v", roll_k = 3)
-    expect_equal(output$roll_note, "roll_k u përshtat automatikisht në k=2 (seri ka 3 vlera jo-NA).")
+    expect_equal(output$roll_note, "Dritarja u përshtat automatikisht në k=2 (seria ka 3 vlera jo-NA).")
     expect_match(output$roll, "k = 2")
   })
 })

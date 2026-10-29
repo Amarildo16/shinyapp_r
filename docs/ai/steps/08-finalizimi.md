@@ -1,6 +1,6 @@
 # Faza 08 — Finalizimi
 
-Statusi: **gati, pa commit** (2026-10-29, V-24, T-28); presin vendim B-23, B-24, U-08; provimi në RStudio nga përdoruesi. Kërkesat: R25, R26 dhe kontrolli i të gjitha kërkesave. Problemet: U-01, U-02, D-04. Vendimet: V-09, V-10.
+Statusi: **commit `c4c8141`** (2026-10-29, V-24, T-28); rregullimet e B-23, B-24, U-08 (V-25) gati, pa commit; provimi në RStudio nga përdoruesi. Kërkesat: R25, R26 dhe kontrolli i të gjitha kërkesave. Problemet: U-01, U-02, D-04. Vendimet: V-09, V-10.
 
 ## Veprimet
 
@@ -8,7 +8,7 @@ Statusi: **gati, pa commit** (2026-10-29, V-24, T-28); presin vendim B-23, B-24,
    - kërkim në kod për tekste të dukshme jashtë `tr()`
    - kalim i çdo faqeje në të dyja gjuhët
    - gabimet drejtshkrimore (U-02)
-   ✅ (V-24 a; mbetjet te U-08)
+   ✅ (V-24 a; mbetjet e U-08 me V-25)
 2. Metodologjia përputhet me atë që app-i bën realisht (D-04, V-10). ✅
 3. README i ri:
    - kërkesat

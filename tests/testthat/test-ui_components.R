@@ -29,6 +29,21 @@ test_that("tekstet e FilePond vijnë nga tr(), në të dyja gjuhët", {
   expect_match(en, '"pond.only_images":"Only allowed: JPG, PNG, WEBP"', fixed = TRUE)
 })
 
+test_that("U-08: tekstet e DataTables nga tr(); anglishtja si default-i i DT-së", {
+  sq <- dt_language()
+  expect_equal(sq$search, "Kërko:")
+  expect_equal(sq$paginate$`next`, "E radhës")
+  expect_match(sq$info, "_START_.*_END_.*_TOTAL_")
+
+  old <- current_lang(); on.exit(set_lang(old))
+  set_lang("en")
+  en <- dt_language()
+  expect_equal(en[c("lengthMenu", "search", "info", "zeroRecords")],
+               list(lengthMenu = "Show _MENU_ entries", search = "Search:",
+                    info = "Showing _START_ to _END_ of _TOTAL_ entries", zeroRecords = "No matching records found"))
+  expect_equal(unlist(en$paginate), c(first = "First", last = "Last", `next` = "Next", previous = "Previous"))
+})
+
 test_that("CSS-ja e ndarë: kllapat të balancuara dhe asnjë URL e jashtme", {
   for (f in APP_CSS) {
     s <- paste(readLines(file.path(APP_ROOT, "www", "css", paste0(f, ".css")), warn = FALSE), collapse = "\n")
