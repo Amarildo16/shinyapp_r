@@ -326,7 +326,8 @@ mod_datasets_server <- function(id) {
       tc_in   <- input$modal_time_col
       vals_in <- input$modal_value_cols
 
-      time_ok <- tryCatch({ parse_time_safe(d_pending[[tc_in]]); TRUE },
+      # B-19: kolona e zgjedhur pranon edhe numrat 1, 2, 3… (EDA punon; analizat japin mesazhin e B-09).
+      time_ok <- tryCatch({ parse_time_safe(d_pending[[tc_in]], allow_index = TRUE); TRUE },
                           error = function(e) conditionMessage(e))
       if (!isTRUE(time_ok)) {
         notify(tr("ds.bad_time_col", msg = time_ok), "error", 8)

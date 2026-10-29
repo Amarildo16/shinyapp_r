@@ -5,16 +5,16 @@ make_df_dyn <- function(df, time_col) {
 
   if (is.null(time_col) || length(time_col) != 1 || is.na(time_col) ||
       !nzchar(as.character(time_col)) || !(time_col %in% names(d))) {
-    stop("Zgjidh një kolonë kohe të vlefshme.")
+    stop(tr("err.time_choose"))
   }
 
   tm <- tryCatch(
-    parse_time_safe(d[[time_col]]),
-    error = function(e) stop("Kolona e kohës s’u parse dot: ", e$message)
+    parse_time_safe(d[[time_col]], allow_index = TRUE),
+    error = function(e) stop(tr("err.time_parse_detail", msg = conditionMessage(e)))
   )
 
   if (sum(!is.na(tm)) < 2) {
-    stop("Kolona e kohës duhet të ketë të paktën 2 vlera jo bosh.")
+    stop(tr("err.time_min2"))
   }
 
   d$Time <- tm
@@ -23,7 +23,7 @@ make_df_dyn <- function(df, time_col) {
 }
 
 apply_dup_policy <- function(d, vc, method = "mean") {
-  if (!("Time" %in% names(d))) stop("Mungon kolona Time.")
+  if (!("Time" %in% names(d))) stop(tr("err.no_time_col"))
   if (length(vc) == 0) return(d)
 
   d <- d[order(d$Time), c("Time", vc), drop = FALSE]
@@ -59,7 +59,7 @@ apply_dup_policy <- function(d, vc, method = "mean") {
 }
 
 apply_freq_policy <- function(d, freq = "auto", vc = NULL) {
-  if (!("Time" %in% names(d))) stop("Mungon kolona Time.")
+  if (!("Time" %in% names(d))) stop(tr("err.no_time_col"))
   if (is.null(vc)) vc <- setdiff(names(d), "Time")
   if (length(vc) == 0) return(d)
 

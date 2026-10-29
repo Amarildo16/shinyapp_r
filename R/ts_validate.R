@@ -108,12 +108,12 @@ assess_time_regular <- function(Time, freq_choice = "auto") {
 
 assess_complete_series <- function(d, value_col, freq_choice = "auto") {
   if (is.null(d) || !is.data.frame(d) || !("Time" %in% names(d))) {
-    return(list(ok = FALSE, message = "Mungon kolona Time.", data = NULL,
+    return(list(ok = FALSE, message = tr("err.no_time_col"), data = NULL,
                 freq_key = NULL, n = 0L, missing_periods = NULL, off_grid_periods = NULL))
   }
 
   if (is.null(value_col) || length(value_col) != 1 || !(value_col %in% names(d))) {
-    return(list(ok = FALSE, message = "Seria e zgjedhur nuk gjendet në dataset.", data = NULL,
+    return(list(ok = FALSE, message = tr("err.series_missing"), data = NULL,
                 freq_key = NULL, n = 0L, missing_periods = NULL, off_grid_periods = NULL))
   }
 

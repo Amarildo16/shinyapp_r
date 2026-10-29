@@ -70,6 +70,6 @@ test_that("mod_overview_server vizaton të katër tabelat dhe validate-t", {
     a <- agri_active(); a$value_cols <- "Mungon"
     act(a)
     session$flushReact()
-    expect_error(output$ts_selected_tbl, "S’ke zgjedh asnjë seri numerike te Settings.")
+    expect_error(output$ts_selected_tbl, "S’ke zgjedhur asnjë seri numerike te Cilësimet.")
   })
 })

@@ -1,5 +1,5 @@
 # app_head(): CSS dhe JS e ndara në Fazën 7, me radhën e kaskadës, asete vetëm lokale (R03)
-# dhe tekstet e FilePond sipas gjuhës (R26, V-23 b).
+# dhe tekstet e FilePond sipas gjuhës (R26, V-23 b, V-24 a).
 
 test_that("app_head ngarkon 6 CSS-të dhe 4 JS-të në radhë, pa custom-style/custom.js", {
   html <- htmltools::renderTags(app_head())$head
@@ -16,9 +16,9 @@ test_that("app_head ngarkon 6 CSS-të dhe 4 JS-të në radhë, pa custom-style/c
   expect_false(grepl('(href|src)="(https?:)?//', html))
 })
 
-test_that("tekstet e FilePond vijnë nga tr(): shqip si më parë, anglisht të përkthyera", {
+test_that("tekstet e FilePond vijnë nga tr(), në të dyja gjuhët", {
   sq <- as.character(js_i18n())
-  expect_match(sq, '"pond.drop":"Drop files here or"', fixed = TRUE)
+  expect_match(sq, '"pond.drop":"Lëshoji skedarët këtu ose"', fixed = TRUE)   # V-24 a
   expect_match(sq, '"pond.type_not_allowed":"Ky fajll s\'pranohet"', fixed = TRUE)
   expect_match(sq, '"pond.only_csv":"Lejohet vetëm: .csv"', fixed = TRUE)
 

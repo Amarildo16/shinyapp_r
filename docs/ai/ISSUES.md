@@ -8,9 +8,10 @@
 
 ## P — Struktura
 
-- [ ] **P-01 — Tre file monolitike.** `app.R` ka UI + server (2 365 rreshta); `helpers.R` përzien librari, globale, I/O, matematikë dhe background; `server_plots.R` është një funksion i vetëm 1 867 rreshta.
+- [x] **P-01 — Tre file monolitike.** `app.R` ka UI + server (2 365 rreshta); `helpers.R` përzien librari, globale, I/O, matematikë dhe background; `server_plots.R` është një funksion i vetëm 1 867 rreshta.
   - Zgjidhja: folderi `R/` + module Shiny ([ARCHITECTURE.md](ARCHITECTURE.md)). · Faza: 2–5
   - Faza 2 (2026-10-27): `helpers.R` u nda në 13 skedarë te `R/` (62 objekte, identike me origjinalin); `server_plots.R` → `R/legacy_server_plots.R`. Mbetet `app.R` (Fazat 3–6) dhe `legacy_server_plots.R` (Faza 5).
+  - Mbyllur 2026-10-29 (Faza 8): `app.R` ka 143 rreshta (UI e faqeve + thirrjet e moduleve); `helpers.R` dhe `server_plots.R` nuk ekzistojnë; kodi është te `R/` në 30 skedarë dhe 9 module.
 - [x] **P-02 — Zbulimi i kolonave numerike është kopjuar 8 herë.** Kontrolli `mean(!is.na(to_numeric_safe(x))) >= 0.70`.
   - `app.R`: 893, 992, 1221, 1333, 1410, 1548, 1622
   - `server_plots.R`: 41
@@ -43,9 +44,10 @@
   - Zgjidhja: konstante në `config.R`, ose opsion në konfigurimin e dataset-it. · Faza: 4
   - Faza 3 (2026-10-27): `DUP_POLICY`/`FREQ_POLICY` te `config.R` (vlerat default të inputeve të fshehura). Inputet hiqen në Fazën 4.
   - Mbyllur 2026-10-27: inputet u hoqën; `prepare_series()` dhe `legacy_server_plots.R` përdorin `DUP_POLICY`/`FREQ_POLICY`. Prova: `grep` pa `data_dup`/`data_freq`; Q30 24/24.
-- [ ] **P-12 — Lista e faqeve përsëritet në 5 vende.** Butonat në UI, `TITLE_MAP`, `BG_TABS`, `MAP` te `sidebar.js` dhe `AFFECTS` te `plotly-animate.js`.
+- [x] **P-12 — Lista e faqeve përsëritet në 5 vende.** Butonat në UI, `TITLE_MAP`, `BG_TABS`, `MAP` te `sidebar.js` dhe `AFFECTS` te `plotly-animate.js`.
   - Zgjidhja: `PAGES` në `config.R`, ku UI dhe JS gjenerohen prej saj. · Faza: 3
   - Faza 3 (2026-10-27): butonat e sidebar-it, tab-et, `TITLE_MAP` (→ `page_title()`), `BG_TABS` dhe harta e `sidebar.js` gjenerohen nga `PAGES`; `bg.js` nuk ka më ID. Prova: diff i HTML-së, `grep`, browser. **Mbetet:** `AFFECTS` te `plotly-animate.js` (Faza 7).
+  - Mbyllur 2026-10-29 (Faza 8): lista e vetme është `PAGES` te `config.R` (Faza 3); `BG_TABS` lexohet prej saj te `mod_background`; `AFFECTS` te `plotly-animate.js` u hoq në Fazën 5.
 
 ## B — Bug-e
 
@@ -72,9 +74,10 @@
 - [x] **B-08 — Emri i fotos futet në JS pa escape.** `sprintf("...'%s'...")` (`app.R:2053`). Një emër me `'` e prish klikimin.
   - Zgjidhja: `jsonlite::toJSON()` si te dataset-et. · Faza: 6
   - Mbyllur 2026-10-29: te kopja e `3bfdedc` klikimi mbi "foto e Ana's.png" jepte `SyntaxError` dhe fotoja nuk zgjidhej; me `mod_background` zgjidhet, console 0 (browser). Testi te `test-mod_background.R`.
-- [ ] **B-09 — Kolona e kohës numerike që nuk është vit refuzohet.** Vendimi: vetëm mesazh më i qartë (V-11). Klasifikohet si `index`, kështu që Stacionariteti, Modelimi dhe Parashikimi nuk punojnë.
+- [x] **B-09 — Kolona e kohës numerike që nuk është vit refuzohet.** Vendimi: vetëm mesazh më i qartë (V-11). Klasifikohet si `index`, kështu që Stacionariteti, Modelimi dhe Parashikimi nuk punojnë.
   - Vendim: ose mbështetje me frekuencë 1, ose mesazh më i qartë. · Faza: 5
   - Faza 5 (`mod_stationarity`, 2026-10-28): mesazhi i ri (V-19 c) del te Stacionariteti, Modelimi dhe Parashikimi kur koha është numër që s'është vit (`ts_freq_msg()`, `test-ts_validate.R`, `test-mod_stationarity.R`). **Por** nga CSV kjo kolonë nuk arrin deri këtu: shih B-19.
+  - Mbyllur 2026-10-29: me B-19 mesazhi arrin edhe nga CSV (browser, `index_demo.csv`: Stacionariteti, Modelimi, Parashikimi).
 - [x] **B-10 — Preloader-i errëson gjithë ekranin në çdo `shiny:busy`** (`custom.js:14`), edhe për një lëvizje slider-i.
   - Zgjidhja: shfaqet vetëm pas ~400 ms, ose vetëm për llogaritje të gjata. · Faza: 7
   - Mbyllur 2026-10-29 (V-23 a, `preloader.js`): busy 100 ms → para "block", pas "none"; busy 550 ms → shfaqet pas 400 ms; fshihet me `shiny:idle`. Slider-i i EDA (2–102 ms) nuk e shfaq (browser).
@@ -90,19 +93,28 @@
 - [x] **B-13 — Formati dd-mm-YYYY lexohet gabim** (mbyllur 2026-10-27 me V-14: formati pranohet vetëm kur teksti ka formën e plotë; prova: 300/300 raste dd-mm-YYYY të sakta, 2 100 raste të formateve të tjera identike me kodin e vjetër, Q29 0 dështime, Q30 24/24, në app dataset-i dd-mm-YYYY lexohet saktë — Claude) (gjetur në Fazën 2, 2026-10-27). `parse_time_safe(c("15-03-2021", "16-03-2021"))` → `0015-03-20`, `0016-03-20`: formati `%Y-%m-%d` provohet i pari dhe `as.Date` injoron karakteret e tepërta. R08 e liston dd-mm-YYYY si të mbështetur.
   - Zgjidhja (V-14, `c1c7048`): një format pranohet vetëm kur teksti ka formën e plotë të formatit. Testi te `test-data_parse.R` ekzekutohet dhe kalon. · Faza: 2
 - [ ] **B-14 — `to_numeric_safe()` lexon tekstin me shifra si numër** (gjetur në Fazën 2). Shkronjat hiqen, kështu që "shenim 2015" → 2015, dhe një kolonë shënimesh mund të dalë "numerike" (pragu 0.70). Sjellje ekzistuese, e dokumentuar në test; ndryshimi do prekte zbulimin e kolonave (R05). Diskutohet para çdo ndryshimi. · Faza: e pacaktuar
+  - Shtyrë nga përdoruesi në Fazën 8 (V-24 c, 2026-10-29): mbetet e dokumentuar, pa ndryshim.
 
 - [x] **B-15 — Dialogu i konfirmimit të fshirjes nuk lexohej** (gjetur në Fazën 4, 2026-10-27). `showModal(modalDialog())` delte me sfond të bardhë dhe tekst të bardhë: titulli dhe pyetja nuk shiheshin, vetëm butonat. Screenshot-i "para" në Obsidian `screenshots/faza-4/`.
   - Dataset-et: rregulluar në Fazën 4 (V-15 a): `glass_modal` me pamjen e modalit Upload; teksti lexohet (screenshot "pas"). Background-i: i konfirmuar te `3bfdedc` (sfond `rgb(255,255,255)`, tekst i bardhë); mbyllur 2026-10-29 me `glass_modal` (sfond `rgba(16,24,28,0.78)`), screenshot-e para/pas në Obsidian `screenshots/faza-6/`.
 - [ ] **B-18 — Warning "essentially perfect fit" i `adf.test` për seri konstante ose lineare** (gjetur në Fazën 5, 2026-10-28). `tseries::adf.test()` thërret `summary.lm()`, që jep "essentially perfect fit: summary may be unreliable" në console të R-së (p.sh. `constant.csv`, `quarterly.csv`). I trashëguar: del njësoj me `e47e4e2`. Seritë shembull nuk e prekin. Zgjidhja e mundshme: kapja e këtij warning-u specifik si te V-17 c, pa ndryshuar vlerat. Kërkon vendim. · Faza: e pacaktuar
-- [ ] **B-19 — CSV me kolonë kohe me numra të thjeshtë (1, 2, 3…) nuk lexohet dhe rrëzon sesionin** (gjetur në Fazën 5, 2026-10-28). `read_data_safe()` i lexon kolonat si tekst dhe `parse_time_safe()` jep error-in e `as.Date`: "Kolona e kohës s’u parse dot: character string is not in a standard unambiguous format". Kur ky dataset është aktiv, observer-at e moduleve japin error dhe Shiny shkëputet; meqë dataset-i aktiv ruhet, app-i rrëzohet edhe në hapjen tjetër. I trashëguar (njësoj me `e47e4e2`). Prandaj mesazhi i B-09 shfaqet vetëm kur koha vjen si numër (jo nga CSV). U provua vetëm me një dataset të konfiguruar direkt te state-i i kopjes; mbetet të shihet nëse modali i konfigurimit e lejon këtë kolonë kohe. Kërkon vendim. · Faza: e pacaktuar
+  - Shtyrë nga përdoruesi në Fazën 8 (V-24 c, 2026-10-29): mbetet e dokumentuar, pa ndryshim.
+- [x] **B-19 — CSV me kolonë kohe me numra të thjeshtë (1, 2, 3…) nuk lexohet dhe rrëzon sesionin** (gjetur në Fazën 5, 2026-10-28). `read_data_safe()` i lexon kolonat si tekst dhe `parse_time_safe()` jep error-in e `as.Date`: "Kolona e kohës s’u parse dot: character string is not in a standard unambiguous format". Kur ky dataset është aktiv, observer-at e moduleve japin error dhe Shiny shkëputet; meqë dataset-i aktiv ruhet, app-i rrëzohet edhe në hapjen tjetër. I trashëguar (njësoj me `e47e4e2`). Prandaj mesazhi i B-09 shfaqet vetëm kur koha vjen si numër (jo nga CSV). U provua vetëm me një dataset të konfiguruar direkt te state-i i kopjes; mbetet të shihet nëse modali i konfigurimit e lejon këtë kolonë kohe. Kërkon vendim. · Faza: e pacaktuar
+  - Mbyllur 2026-10-29 (V-24 b): kolona e zgjedhur si kohë me numra 1, 2, 3… lexohet si kohë numerike (`parse_time_safe(allow_index = TRUE)` te `make_df_dyn` dhe te ruajtja e konfigurimit); zbulimi automatik i kolonës së kohës nuk ndryshon. Prova: `test-data_prepare.R`; browser: `index_demo.csv` hapet pa rrëzim, EDA punon, analizat japin mesazhin e B-09.
 - [ ] **B-20 — Titulli "Tipi" i legjendës shfaqet te Modelimi** (gjetur në Fazën 5, 2026-10-29). ggplot e kishte `legend.title = element_blank()`, por ggplotly i jepte titullit madhësi 0, që plotly nuk e pranon dhe e vizaton me madhësinë e paracaktuar: mbi legjendë del "Tipi" (emri i kolonës). I trashëguar: screenshot-et para/pas janë identike. Zgjidhja e mundshme: legjendë pa titull. Kërkon vendim (pamja). · Faza: e pacaktuar
+  - Shtyrë nga përdoruesi në Fazën 8 (V-24 c, 2026-10-29): mbetet e dokumentuar, pa ndryshim.
 - [x] **B-21 — Lista e FilePond nuk pastrohet pas ngarkimit** (gjetur në Fazën 6, 2026-10-29). `pond_clear` te `custom.js` e kërkon instancën si `document.getElementById(id + "__pond_proxy")._pond`, por FilePond e zëvendëson atë `input` me një `div` me të njëjtin ID, ndaj `_pond` nuk gjendet: pas një ngarkimi të suksesshëm skedarët mbeten në listën e Upload-it (provuar në browser te background-i). I njëjti kod vlen edhe për dataset-et; i trashëguar (kodi i `pond_clear` është i pandryshuar që nga Faza 4). Ngarkimi vetë punon. · Faza: 7 (bashkë me B-16)
   - Mbyllur 2026-10-29 (V-23 c, `filepond-bridge.js`): instancat mbahen sipas `inputId`; pas ngarkimit në background lista ka 0 skedarë; te dataset-et zbrazet edhe kur mbyllet modali (browser).
 - [x] **B-16 — Console e browser-it gjatë Upload-it me FilePond** Mbyllur 2026-10-29 (shih rreshtin më poshtë). (gjetur në Fazën 4, 2026-10-27). Pas zgjedhjes së skedarit: `404 /[object Object]` dhe warning-u "Pond -> Shiny updatefiles sync failed: … parameter 1 is not of type 'File'" (`custom.js:193`). Dalin njësoj edhe me kodin e commit-it `5daa8fc` (para Fazës 4), pra nuk janë regresion. Ngarkimi punon: CSV-ja lexohet dhe ruhet md5-identike. Provuar vetëm me file chooser-in e Playwright; mbetet të shihet nëse ndodh edhe me klikim/drag-and-drop real. Përjashtuar përkohësisht nga Q01 me V-16. · Faza: 7 (FilePond bridge)
   - Shkaku (2026-10-29, Claude): pas Proceed, `shiny:bound` e thërriste sërish inicializimin; meqë FilePond ia kalon ID-në e proxy-t div-it të vet, `getElementById(proxy)._pond` dilte bosh dhe krijohej një FilePond i dytë mbi div-in, që i lexonte skedarët si objekte (404 `/[object Object]`, warning-u te `updatefiles`). Riprodhuar te `9d6dceb` me ngarkim → Proceed. Rregullimi: regjistër instancash; prova: e njëjta rrjedhë + Save, console 0, CSV-ja e ruajtur me md5 të njëjtë. Me këtë bie përjashtimi V-16 te Q01.
 - [ ] **B-22 — Në mobile (375 px) dy blloqe dalin jashtë ekranit** (gjetur në Fazën 7, 2026-10-29, Q24). Te Përmbledhja, tabela e përmbledhjes (`table.shiny-table`, 620 px) e zgjeron `.app-content` 260 px; te Settings, kartat e dataset-eve (`.saved-ds-item`) 77 px. Faqja nuk lëviz horizontalisht (`document` = 375 px), por përmbajtja duhet rrëshqitur anash. I trashëguar: njësoj te `9d6dceb` (stilet e llogaritura identike). Zgjidhja e mundshme: tabela brenda `.table-wrap` me `overflow-x: auto` dhe emrat e dataset-eve me `text-overflow: ellipsis`. Ndryshon pamjen në mobile: kërkon vendim. · Faza: 8 ose e pacaktuar
+  - Shtyrë nga përdoruesi në Fazën 8 (V-24 c, 2026-10-29): mbetet e dokumentuar, pa ndryshim.
 
 - [x] **B-17 — ADF jepte error me saktësisht 20 pika** (gjetur në Fazën 5, 2026-10-28). Te `adf_res()`, kur diferenca kishte < 20 pika, në vend të testit vendosej teksti `"try-error"`, pastaj `obj$statistic` jepte "$ operator is invalid for atomic vectors". Prova: rikrijimi i shprehjes në R. `run_adf()` e llogarit nivelin dhe e lë diferencën bosh; testi te `test-ts_models.R`. ✅ Pranuar si rregullim bug-u me V-18 (2026-10-28). · Faza: 5
+
+- [ ] **B-23 — Te Modelimi, seria konstante shfaq errorin e R-së te tabela e saktësisë** (gjetur në Fazën 8, 2026-10-29). `constant.csv`: `forecast::accuracy()` mbi modelin ETS jep "no applicable method for 'accuracy' applied to an object of class "ets"", që del te `modeling-acc_tbl` dhe në log (Q01, Q18). I trashëguar: në Fazën 5 dump-i para/pas e kishte këtë output identik. Zgjidhja e mundshme: tabela me NA si kur modeli mungon (vlerat statistikore nuk ekzistojnë, ndaj nuk ndryshon asnjë rezultat). Kërkon vendim. · Faza: e pacaktuar
+- [ ] **B-24 — Kolona "Missing %" e statistikave përmbledhëse del me pikë dhjetore në shqip** (gjetur në Fazën 8, 2026-10-29). Te Përmbledhja: "0.00" ndërsa kolonat e tjera dalin "1 412,67" (R26: numrat sipas gjuhës). I trashëguar. Kërkon vendim. · Faza: e pacaktuar
+- [ ] **U-08 — Tekste angleze që mbetën në UI-në shqip jashtë listës së V-24 a** (gjetur në Fazën 8, 2026-10-29): kontrollet e DataTables ("Show … entries", "Search:", "Showing 1 to 5 of 5 entries", "Previous/Next"), "Background" dhe "Pa background", "Foto për çdo tab", "Missing %", "rolling mean" / "roll_k" (mesazhet e EDA), "(Scatter plot)", titulli "Time Series Analysis" i Përmbledhjes, "(permissions)", "freq"/"missing" te mesazhet e dështimit të modeleve. Në anglisht UI-ja nuk ka asnjë tekst shqip (browser, të gjitha faqet dhe modalet). Kërkon vendim (R26). · Faza: e pacaktuar
 
 ## D — Kod dhe asete të vdekura
 
@@ -121,23 +133,28 @@
   - variabla `title` te `csv_file_modal`
   - parametri `context` te `validate_ts_ready`
   - Faza: 1–2
-- [ ] **D-04 — README dhe Metodologjia premtojnë gjëra që nuk ekzistojnë.** (Faza 1, 2026-10-27: rreshti ARMA/VAR/GARCH u hoq nga Metodologjia; `vars`/`rugarch` u hoqën nga README. Mbetet kontrolli i Metodologjisë kundrejt app-it në Fazën 8.) Vendimi: hiqen (V-10). README instalon `vars` dhe `rugarch`; Metodologjia përmend ARMA, VAR/IRF dhe GARCH, që nuk janë implementuar. · Faza: 1 dhe 8
+- [x] **D-04 — README dhe Metodologjia premtojnë gjëra që nuk ekzistojnë.** (Faza 1, 2026-10-27: rreshti ARMA/VAR/GARCH u hoq nga Metodologjia; `vars`/`rugarch` u hoqën nga README. Mbetet kontrolli i Metodologjisë kundrejt app-it në Fazën 8.) Vendimi: hiqen (V-10). README instalon `vars` dhe `rugarch`; Metodologjia përmend ARMA, VAR/IRF dhe GARCH, që nuk janë implementuar. · Faza: 1 dhe 8
+  - Mbyllur 2026-10-29 (Faza 8): Metodologjia te Përmbledhja përmend vetëm EDA, ADF + diferencimin dhe SES/Holt/ARIMA, që ekzistojnë; README i ri përshkruan vetëm atë që app-i bën.
 - [x] **D-05 — Dega numerike e `parse_time_safe` ka kod të tepërt.** Kontrolli i hapit kthen `xn` në të dyja rastet. · Faza: 2
   - Mbyllur 2026-10-27: blloku `xu`/`steps` u hoq. Prova: 308 raste numerike me dalje identike me kodin e vjetër; `test-data_parse.R` (Claude).
 
 ## U — Konsistencë dhe UX
 
-- [ ] **U-01 — Gjuha e përzier.** Vendimi: UI dygjuhëshe sq/en me `tr()` (V-09, R26). Etiketa në anglisht: Settings, Save, Proceed, Cancel, Library, Upload, Blur strength, Edit. · Faza: 8
+- [x] **U-01 — Gjuha e përzier.** Vendimi: UI dygjuhëshe sq/en me `tr()` (V-09, R26). Etiketa në anglisht: Settings, Save, Proceed, Cancel, Library, Upload, Blur strength, Edit. · Faza: 8
   - Faza 3 (2026-10-27): infrastruktura `tr()` + `i18n/`; layout-i, sidebar-i, topbar-i, Settings dhe modalet kalojnë nga `tr()`. Vlerat shqip janë tekstet e sotme (T-12), ndaj përzierja rregullohet te `sq.json` në Fazën 8.
-- [ ] **U-02 — Gabime drejtshkrimi.** "ndërtu", "u lexu", "Backround" (në koment). · Faza: 8
+  - Mbyllur 2026-10-29 (V-24 a): 36 tekste shqip të ndryshuara sipas listës; 13 mesazhe gabimi të leximit/validimit kaluan nga `tr()`. Mbetet anglisht (jashtë listës së miratuar): shih U-08.
+- [x] **U-02 — Gabime drejtshkrimi.** "ndërtu", "u lexu", "Backround" (në koment). · Faza: 8
+  - Mbyllur 2026-10-29: "Duke ndërtu" → "Duke ndërtuar" (2), "S’ke zgjedh" → "S’ke zgjedhur", "S’u arrit me ruajt datasetin" → "S’u arrit të ruhej dataset-i", "Backround" (README) u hoq me README-në e re; "u lexu" nuk u gjet më në kod.
 - [x] **U-03 — `.gitignore` ka `.Rproj`.** Duhet `*.Rproj`. · Faza: 0
   - Mbyllur 2026-10-27: `.Rproj` → `*.Rproj`; u shtuan `storage/` dhe `renv/library|staging|local/`. Prova: `git diff .gitignore` (Claude).
-- [ ] **U-04 — Ngarkimet e përdoruesit shkruhen brenda kodit** (`data/`, `www/images/`).
+- [x] **U-04 — Ngarkimet e përdoruesit shkruhen brenda kodit** (`data/`, `www/images/`).
   - Zgjidhja: folderi `storage/`. · Faza: 3
   - Faza 3 (2026-10-27): CSV-të dhe state-i shkojnë te `storage/` me migrim që kopjon (T-08); `data/` nuk shkruhet më. Prova: `test-storage.R` (Q02, Q03), browser mbi kopje me `data/` të vjetër. **Mbetet:** fotot e ngarkuara (`www/images/` → `storage/images/`, Faza 6).
+  - Mbyllur 2026-10-29 (Faza 8): edhe fotot shkojnë te `storage/images/` që nga Faza 6 (V-22, T-26), me migrim që kopjon.
 - [x] **U-05 — CSS ka 135 `!important` dhe selektorë të përsëritur.** P.sh. `.bg-tab-card`, `.media-card` dhe `.bg-tabs-grid` janë definuar 2–3 herë. · Faza: 7
   - Mbyllur 2026-10-29 (T-27): 20 selektorë të përsëritur u bashkuan; `!important` 135 → 68, hequr vetëm aty ku analiza e kaskadës në browser tregoi se fituesi nuk ndryshon. Të mbeturat mbishkruajnë Bootstrap, DataTables, selectize, ion.rangeSlider, FilePond ose stile inline.
 - [x] **U-06 — Line endings ndryshojnë vetvetiu.** Vendimi: discard i ndryshimit aktual (V-12) + `.gitattributes`. Windows i kthen në CRLF, kështu që `datasets_state.json` del si i ndryshuar edhe pa ndryshim real.
   - Zgjidhja: `.gitattributes`. · Faza: 0
   - Mbyllur 2026-10-27: në kompjuterin e përdoruesit `core.autocrlf=input`, prandaj git nuk shfaqte më ndryshim (s'kishte çfarë të hidhej poshtë). U shtua `.gitattributes` (`* text=auto eol=lf`, binare për foto/fonte/`.rds`/`.xlsx`/`.ico`…). Prova: `git status` pa ndryshime te `data/`, `git ls-files --eol` (index LF), `git check-attr` (Claude).
-- [ ] **U-07 — "Ke ndryshime pa Save" mbetet pasi kthehet zgjedhja fillestare** (gjetur në Fazën 0, 2026-10-27). Te Background, Foto → Pa background (pa Save) e lë mesazhin edhe pse gjendja është sërish ajo e ruajtur. E vogël; vetëm UX. · Faza: 6
+- [x] **U-07 — "Ke ndryshime pa Save" mbetet pasi kthehet zgjedhja fillestare** (gjetur në Fazën 0, 2026-10-27). Te Background, Foto → Pa background (pa Save) e lë mesazhin edhe pse gjendja është sërish ajo e ruajtur. E vogël; vetëm UX. · Faza: 6
+  - Mbyllur 2026-10-29 (Faza 8; ishte planifikuar për Fazën 6 dhe u kalua pa u parë): shenja llogaritet si krahasim i state-it të ruajtur me atë që do ruante Save (`bg_state_key`); Foto → Pa background → Foto e heq shenjën. Prova: `test-mod_background.R`.

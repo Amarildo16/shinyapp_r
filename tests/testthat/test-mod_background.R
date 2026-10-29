@@ -44,7 +44,7 @@ test_that("Save: ngjyra dhe fotoja për faqe ruhen te state-i (Q20, Q21)", {
       session$setInputs(edit__tab_overview = 1)
       session$setInputs(media_pick = "images/image5.jpeg")
       session$setInputs(btn_use = 1)
-      expect_match(as.character(output$dirty_badge$html), "Ke ndryshime pa Save")
+      expect_match(as.character(output$dirty_badge$html), "Ke ndryshime të paruajtura")
       session$setInputs(save = 2)
       st <- read_bg_state()
       expect_equal(st$active_mode, "image")
@@ -72,7 +72,7 @@ test_that("galeria: defaultet pa butonin e fshirjes, emri me ' kalon si JSON (V-
       expect_equal(lengths(regmatches(html, gregexpr("media-delete-btn", html))), 1)
       expect_match(html, "Shiny.setInputValue(&quot;proxy1-media_pick&quot;, &quot;user-images/foto e Ana&#39;s.png&quot;", fixed = TRUE)
       expect_match(html, '<img src="user-images/foto e Ana&#39;s.png"/>', fixed = TRUE)
-      expect_match(as.character(output$modal_fs_title$html), "Media Library – Global")
+      expect_match(as.character(output$modal_fs_title$html), "Galeria e fotove – Globale")
     })
   })
 })
@@ -126,4 +126,20 @@ test_that("bg_apply_save: fotoja globale dhe heqja e saj", {
   st3 <- bg_apply_save(st, "none", NULL, NULL, NULL, NULL, NULL, list())
   expect_equal(st3$active_mode, "none")
   expect_equal(st3$modes$image$scopes$global$global, "user-images/a.png")
+})
+
+test_that("U-07: shenja e ndryshimeve zhduket kur kthehet zgjedhja e ruajtur", {
+  with_clean_bg({
+    st <- default_bg_state()
+    st$active_mode <- "image"
+    write_bg_state(st)
+    testServer(mod_background_server, {
+      session$setInputs(mode = "image", scope = "custom", blur_on = TRUE, blur = 10)
+      expect_null(output$dirty_badge$html)
+      session$setInputs(mode = "none")
+      expect_match(as.character(output$dirty_badge$html), "Ke ndryshime të paruajtura")
+      session$setInputs(mode = "image")
+      expect_null(output$dirty_badge$html)
+    })
+  })
 })

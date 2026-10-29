@@ -31,7 +31,7 @@ detect_csv_delim <- function(path) {
 
 read_data_safe <- function(path, filename = NULL) {
   if (!file.exists(path)) {
-    stop("Dataset nuk u gjet në shtegun: ", normalizePath(path, winslash = "/", mustWork = FALSE))
+    stop(tr("err.ds_path_missing", path = normalizePath(path, winslash = "/", mustWork = FALSE)))
   }
 
   nm <- if (!is.null(filename) && nzchar(filename)) filename else path
@@ -62,7 +62,7 @@ read_data_safe <- function(path, filename = NULL) {
 
   } else if (ext %in% c("xlsx", "xls")) {
     has_readxl <- requireNamespace("readxl", quietly = TRUE)
-    if (!has_readxl) stop("Për Excel duhet paketa 'readxl' (instaloje).")
+    if (!has_readxl) stop(tr("err.readxl"))
 
     d <- readxl::read_excel(path, .name_repair = "unique_quiet")
     d <- dplyr::as_tibble(d)
@@ -84,11 +84,11 @@ read_data_safe <- function(path, filename = NULL) {
   d <- as.data.frame(d, stringsAsFactors = FALSE)
 
   if (nrow(d) == 0) {
-    stop("Dataset-i është bosh ose ka vetëm header. Ngarko dataset me të dhëna.")
+    stop(tr("err.ds_empty"))
   }
 
   if (ncol(d) == 0 || length(names(d)) == 0 || all(!nzchar(trimws(names(d))))) {
-    stop("Dataset-i nuk ka kolona të përdorshme.")
+    stop(tr("err.ds_no_cols"))
   }
 
   d

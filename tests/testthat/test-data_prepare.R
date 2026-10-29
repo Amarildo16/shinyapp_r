@@ -124,3 +124,18 @@ test_that("prepare_series kthen NULL pa dataset, pa kohë ose pa seri", {
   expect_null(prepare_series(list(file = "x.csv", data = d, time_col = "Year", value_cols = character(0))))
   expect_equal(prepare_series(list(file = "x.csv", data = d, time_col = "Year", value_cols = "v"))$data$v, c(1, 2))
 })
+
+test_that("B-19: kolona e kohës me numra 1, 2, 3… lexohet si kohë numerike, jo error (V-24 b)", {
+  d <- data.frame(Nr = as.character(1:30), V = as.character(round(cumsum(sin(1:30)), 3)), stringsAsFactors = FALSE)
+  s <- prepare_series(list(file = "index.csv", data = d, time_col = "Nr", value_cols = "V"))
+  expect_equal(s$data$Time, 1:30)
+  # Analizat statistikore e refuzojnë me mesazhin e B-09 (V-19 c); EDA e ka serinë.
+  v <- validate_ts_ready(s$data, "V", FREQ_POLICY, min_n = 20L)
+  expect_false(v$ok)
+  expect_match(v$message, "nuk janë vite", fixed = TRUE)
+
+  # Pa allow_index (zbulimi i kolonave) numrat si tekst nuk bëhen kohë: zbulimi nuk ndryshon.
+  expect_error(parse_time_safe(c("1", "2", "3")))
+  expect_equal(parse_time_safe(c("1", "2", "3"), allow_index = TRUE), c(1, 2, 3))
+  expect_equal(parse_time_safe(c("2001", "2002"), allow_index = TRUE), c(2001, 2002))
+})

@@ -1,6 +1,6 @@
 # Faza 07 — Frontend: CSS dhe JS
 
-Statusi: **gati, pa commit** (2026-10-29, V-23, T-27). Kërkesat: R03, R20. Problemet: U-05, B-10, B-16 (V-16).
+Statusi: **i përfunduar** (2026-10-29, `16c0acb`, V-23, T-27). Kërkesat: R03, R20. Problemet: U-05, B-10, B-16 (V-16).
 
 > [!important] Nga Faza 4
 > Rregullo B-16 (FilePond: `404 /[object Object]` dhe warning-u `updatefiles` gjatë Upload-it). Me mbylljen e kësaj faze, përjashtimi V-16 te Q01 bie.

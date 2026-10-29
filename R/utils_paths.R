@@ -17,7 +17,7 @@ is_path_inside_dir <- function(path, dir) {
 }
 
 resolve_saved_dataset_path <- function(file, data_dir = DATASETS_DIR) {
-  bad <- function(msg = "Dataset i pavlefshëm.") {
+  bad <- function(msg = tr("ds.invalid")) {
     list(ok = FALSE, file = NULL, path = NULL, msg = msg)
   }
 
@@ -29,18 +29,18 @@ resolve_saved_dataset_path <- function(file, data_dir = DATASETS_DIR) {
   files <- list_saved_datasets()
 
   if (sum(files == file) != 1) {
-    return(bad("Dataset-i i zgjedhur nuk është i ruajtur ose nuk lejohet."))
+    return(bad(tr("err.ds_not_saved")))
   }
 
   base_dir <- normalize_app_path(data_dir)
   path <- normalize_app_path(file.path(data_dir, file))
 
   if (!is_path_inside_dir(path, base_dir)) {
-    return(bad("Shtegu i dataset-it nuk lejohet."))
+    return(bad(tr("err.ds_path")))
   }
 
   if (!file.exists(path)) {
-    return(bad("Dataset-i s’u gjet në /data."))
+    return(bad(tr("err.ds_not_found")))
   }
 
   list(ok = TRUE, file = file, path = path, msg = NULL)

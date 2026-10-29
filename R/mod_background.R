@@ -189,6 +189,13 @@ bg_apply_save <- function(st, mode, color, blur_on, blur, scope, draft_global, d
   st
 }
 
+# Çelësi i krahasimit të dy state-ve: pa versionin, ngjyra pa dallim shkronjash.
+bg_state_key <- function(st) {
+  st$version <- NULL
+  if (!is.null(st$modes$color$value)) st$modes$color$value <- tolower(st$modes$color$value)
+  as.character(jsonlite::toJSON(st, auto_unbox = TRUE, null = "null"))
+}
+
 mod_background_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
@@ -206,16 +213,18 @@ mod_background_server <- function(id) {
 
     # P-09: state-i lexohet një herë për sesion.
     bg_saved <- reactiveVal(read_bg_state())
-    bg_dirty <- reactiveVal(FALSE)
 
     draft_global_path <- reactiveVal(NULL)
     draft_per_tab     <- reactiveVal(setNames(list(), character()))
 
-    observeEvent(
-      list(input$mode, input$scope, input$blur_on, input$blur, input$color),
-      { bg_dirty(TRUE) },
-      ignoreInit = TRUE
-    )
+    # U-07: ka ndryshime vetëm kur Save do ta ndryshonte state-in e ruajtur; kthimi te
+    # zgjedhja e ruajtur e heq shenjën.
+    bg_dirty <- reactive({
+      st <- bg_saved()
+      cand <- bg_apply_save(st, input$mode, input$color, input$blur_on, input$blur,
+                            input$scope, draft_global_path(), draft_per_tab())
+      !identical(bg_state_key(cand), bg_state_key(st))
+    })
 
     output$dirty_badge <- renderUI({
       if (!isTRUE(bg_dirty())) return(NULL)
@@ -270,7 +279,6 @@ mod_background_server <- function(id) {
       write_bg_state(st)
       st <- read_bg_state()
       bg_saved(st)
-      bg_dirty(FALSE)
 
       session$sendCustomMessage("bg_apply", st)
       notify(tr("bg.saved"))
@@ -419,7 +427,6 @@ mod_background_server <- function(id) {
         d[[x$tabid]] <- BG_CLEAR
         draft_per_tab(d)
       }
-      bg_dirty(TRUE)
       close_library()
       media_selected(NULL)
     }, ignoreInit = TRUE)
@@ -523,7 +530,6 @@ mod_background_server <- function(id) {
         d[[x$tabid]] <- media_selected()
         draft_per_tab(d)
       }
-      bg_dirty(TRUE)
       close_library()
     }, ignoreInit = TRUE)
   })

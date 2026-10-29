@@ -1,9 +1,11 @@
 # Parsimi i kohës dhe i numrave; zbulimi i kolonave.
 
-parse_time_safe <- function(x) {
+# allow_index = TRUE (kolona e zgjedhur si kohë): numrat e thjeshtë 1, 2, 3… lexohen si kohë numerike
+# (B-19, V-24 b); analizat statistikore e refuzojnë me mesazhin e B-09. Zbulimi i kolonave nuk e përdor.
+parse_time_safe <- function(x, allow_index = FALSE) {
   require_time_values <- function(v) {
     if (sum(!is.na(v)) < 2) {
-      stop("Kolona e kohës duhet të ketë të paktën 2 vlera jo bosh.")
+      stop(tr("err.time_min2"))
     }
     v
   }
@@ -15,7 +17,7 @@ parse_time_safe <- function(x) {
     xn0 <- xn[!is.na(xn)]
 
     if (length(xn0) < 2) {
-      stop("Kolona e kohës duhet të ketë të paktën 2 vlera jo bosh.")
+      stop(tr("err.time_min2"))
     }
 
     if (all(xn0 >= 1500 & xn0 <= 3000) &&
@@ -31,10 +33,11 @@ parse_time_safe <- function(x) {
   x_non_na <- x0[!is.na(x0)]
 
   if (length(x_non_na) < 2) {
-    stop("Kolona e kohës duhet të ketë të paktën 2 vlera jo bosh.")
+    stop(tr("err.time_min2"))
   }
 
   if (all(grepl("^\\d{4}$", x_non_na))) return(as.numeric(x0))
+  if (allow_index && all(grepl("^\\d+$", x_non_na))) return(as.numeric(x0))
 
   if (all(grepl("^\\d{4}-\\d{2}$", x_non_na))) {
     return(as.Date(paste0(x0, "-01")))
@@ -67,7 +70,7 @@ parse_time_safe <- function(x) {
   t <- suppressWarnings(as.Date(x0))
   if (ok_rate(t) >= 0.95) return(t)
 
-  stop("Kolona e kohës nuk u parse dot. Formate: YYYY, YYYY-MM, YYYY-MM-DD, YYYYQ#.")
+  stop(tr("err.time_parse"))
 }
 
 to_numeric_safe <- function(x) {
