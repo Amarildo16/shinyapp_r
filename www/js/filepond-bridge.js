@@ -16,8 +16,14 @@
         "pond.browse": "click to upload",
         "pond.type_not_allowed": "Ky fajll s'pranohet",
         "pond.only_csv": "Lejohet vetëm: .csv",
-        "pond.only_images": "Lejohen vetëm: JPG, PNG, WEBP"
+        "pond.only_images": "Lejohen vetëm: JPG, PNG, WEBP",
+        "pond.too_large": "Skedari është shumë i madh",
+        "pond.max_size": "Maksimumi: {filesize}",
+        "pond.upload_failed": "Ngarkimi dështoi"
     }, window.APP_I18N || {});
+
+    // Kufiri i CSV-së vjen nga R (UPLOAD_MAX_MB, V-28 a); fotot mbeten 25 MB si më parë.
+    const CSV_MAX_MB = (window.APP_CONFIG && window.APP_CONFIG.uploadMaxMB) || 150;
 
     function getHost(inputId) {
         return document.getElementById(inputId + "_pond_host");
@@ -30,6 +36,7 @@
             return {
                 mode: "csv",
                 acceptedFileTypes: ["text/csv"],
+                maxFileSize: CSV_MAX_MB + "MB",
                 expectedLabel: T["pond.only_csv"],
                 detectMime: (source, type) =>
                     new Promise((resolve) => {
@@ -54,6 +61,7 @@
             return {
                 mode: "image",
                 acceptedFileTypes: ["image/jpeg", "image/png", "image/webp"],
+                maxFileSize: "25MB",
                 expectedLabel: T["pond.only_images"],
                 detectMime: (source, type) =>
                     new Promise((resolve) => {
@@ -74,6 +82,7 @@
         return {
             mode: "any",
             acceptedFileTypes: [],
+            maxFileSize: "25MB",
             expectedLabel: "",
             detectMime: (source, type) => Promise.resolve(type || "application/octet-stream")
         };
@@ -120,7 +129,10 @@
         const proxy = document.createElement("input");
         proxy.type = "file";
         proxy.id = inputId + "__pond_proxy";
-        proxy.accept = accept;
+        // B-25: FilePond-i e lexon `accept` të proxy-t në vend të acceptedFileTypes. Me vetëm
+        // ".csv", tipi "text/csv" nuk përputhej kurrë dhe çdo CSV dilte "Ky fajll s'pranohet".
+        proxy.accept = Array.from(new Set(accept.split(",").map((s) => s.trim())
+            .concat(cfg.acceptedFileTypes).filter(Boolean))).join(",");
         if (isMulti) proxy.multiple = true;
         host.appendChild(proxy);
 
@@ -149,8 +161,10 @@
             allowFileTypeValidation: cfg.acceptedFileTypes.length > 0,
             fileValidateTypeDetectType: cfg.detectMime,
 
-            maxFileSize: "25MB",
+            maxFileSize: cfg.maxFileSize,
             allowFileSizeValidation: true,
+            labelMaxFileSizeExceeded: T["pond.too_large"],
+            labelMaxFileSize: T["pond.max_size"],
 
             labelIdle: `
                 <div class="pond-idle">
@@ -165,24 +179,53 @@
             credits: false
         });
 
-        pond.on("updatefiles", (fileItems) => {
-            try {
-                const dt = new DataTransfer();
-                fileItems.forEach((fi) => {
-                    if (fi && fi.file instanceof File) dt.items.add(fi.file);
-                });
+        // B-25: Shiny-t i kalojnë vetëm skedarët që kaluan kontrollet e tipit dhe madhësisë.
+        // Sinkronizimi pret derisa të gjithë skedarët e shtuar të jenë kontrolluar.
+        let syncTimer = null;
+        const S = FilePond.FileStatus;
+        const sync = () => {
+            clearTimeout(syncTimer);
+            syncTimer = setTimeout(() => {
+                const items = pond.getFiles();
+                if (items.some((fi) => fi.status === S.INIT || fi.status === S.LOADING)) return;
+                try {
+                    const dt = new DataTransfer();
+                    items.forEach((fi) => {
+                        if (fi.status !== S.LOAD_ERROR && fi.file instanceof File) dt.items.add(fi.file);
+                    });
 
-                try { shinyInput.value = ""; } catch (e) { }
-                shinyInput.files = dt.files;
+                    try { shinyInput.value = ""; } catch (e) { }
+                    shinyInput.files = dt.files;
 
-                shinyInput.dispatchEvent(new Event("change", { bubbles: true }));
-            } catch (e) {
-                console.warn("Pond -> Shiny updatefiles sync failed:", e);
-            }
-        });
+                    shinyInput.dispatchEvent(new Event("change", { bubbles: true }));
+                } catch (e) {
+                    console.warn("Pond -> Shiny sync failed:", e);
+                }
+            }, 30);
+        };
+        pond.on("addfile", sync);
+        pond.on("removefile", sync);
 
+        watchUploadError(inputId);
         ponds.set(inputId, { pond, cfg: { mode: cfg.mode, multiple: isMulti, accept } });
         return true;
+    }
+
+    // B-26: Shiny e shkruan gabimin e ngarkimit vetëm te shiriti i fshehur i fileInput-it
+    // (klasa progress-bar-danger); këtu ai del si njoftim.
+    function watchUploadError(inputId) {
+        const bar = document.querySelector("#" + inputId + "_progress .progress-bar");
+        if (!bar || bar._pondWatch) return;
+        bar._pondWatch = true;
+        new MutationObserver(() => {
+            if (!bar.classList.contains("progress-bar-danger")) return;
+            const msg = (bar.textContent || "").trim();
+            if (!msg || bar._pondLastError === msg) return;
+            bar._pondLastError = msg;
+            setTimeout(() => { bar._pondLastError = null; }, 1000);
+            const text = /maximum upload size/i.test(msg) ? T["pond.too_large"] : T["pond.upload_failed"] + ": " + msg;
+            if (window.Shiny && Shiny.notifications) Shiny.notifications.show({ html: $("<span>").text(text).html(), type: "error", duration: 8000 });
+        }).observe(bar, { attributes: true, attributeFilter: ["class"], childList: true, characterData: true, subtree: true });
     }
 
     function initWithRetry(inputId, tries) {

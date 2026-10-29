@@ -171,6 +171,15 @@ detect_time_candidates <- function(df) {
 }
 
 
+# Rreshtat ku kërkohen kolona e kohës dhe seritë (B-27): të gjithë kur janë <= n, ndryshe
+# n rreshtat e parë. Me rreshtat e parë propozimi del si mbi gjithë dataset-in edhe te
+# CSV-të sintetike me 200 000 / 2 000 000 rreshta (V-28 d); një mostër e shpërndarë
+# ndryshonte raportin e vlerave unike të kohës dhe propozonte tjetër kolonë.
+detection_sample <- function(d, n = DETECT_SAMPLE_ROWS) {
+  if (nrow(d) <= n) return(d)
+  d[seq_len(n), , drop = FALSE]
+}
+
 # Kolonat që lexohen si numerike në të paktën `threshold` të rreshtave (P-02).
 # fallback_all = TRUE: nëse asnjë nuk kalon, kthehen të gjitha kolonat jashtë `exclude`.
 detect_numeric_cols <- function(d, exclude = character(0), threshold = 0.70, fallback_all = TRUE) {

@@ -185,8 +185,9 @@ pick_value_cols <- function(num_cols, preferred = NULL, current = NULL) {
 # cfg: list(time_col, value_cols) nga state-i ose nga modali; current_*: inputet aktuale.
 resolve_dataset_defaults <- function(d, cfg = NULL, current_time = NULL, current_values = NULL) {
   nm <- names(d)
+  s  <- detection_sample(d)   # B-27: e njëjta gjë kur dataset-i ka pak rreshta
 
-  cand <- tryCatch(detect_time_candidates(d), error = function(e) data.frame(col = nm, score = 0))
+  cand <- tryCatch(detect_time_candidates(s), error = function(e) data.frame(col = nm, score = 0))
   time_choices <- unique(cand$col)
   if (length(time_choices) == 0) time_choices <- nm
 
@@ -198,7 +199,7 @@ resolve_dataset_defaults <- function(d, cfg = NULL, current_time = NULL, current
               else if (is_choice(current_time)) current_time
               else time_choices[1]
 
-  num_cols <- detect_numeric_cols(d, exclude = time_col)
+  num_cols <- detect_numeric_cols(s, exclude = time_col)
 
   list(
     time_choices = time_choices,

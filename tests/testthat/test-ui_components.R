@@ -94,3 +94,21 @@ test_that("V-26: modals.css sipas klasës, pa madhësi sipas ID-së dhe pa vijat
   expect_match(s, "\\.glass-modal \\.modal-header \\{[^}]*border-bottom: 0;")
   expect_match(s, "\\.glass-modal \\.modal-footer \\{[^}]*border-top: 0;")
 })
+
+test_that("V-28: kufiri i ngarkimit dhe tekstet e FilePond-it për madhësinë", {
+  expect_equal(UPLOAD_MAX_MB, 150)
+  sq <- as.character(js_i18n())
+  expect_match(sq, 'window.APP_CONFIG = {"uploadMaxMB":150};', fixed = TRUE)
+  expect_match(sq, '"pond.too_large":"Skedari është shumë i madh"', fixed = TRUE)
+  expect_match(sq, '"pond.max_size":"Maksimumi: {filesize}"', fixed = TRUE)
+  old <- current_lang(); on.exit(set_lang(old))
+  set_lang("en")
+  en <- as.character(js_i18n())
+  expect_match(en, '"pond.too_large":"File is too large"', fixed = TRUE)
+  expect_match(en, '"pond.upload_failed":"Upload failed"', fixed = TRUE)
+  # B-25: proxy-t i shtohet tipi që pret FilePond-i, përveç `accept`-it të fileInput-it.
+  js <- paste(readLines(file.path(APP_ROOT, "www", "js", "filepond-bridge.js"), warn = FALSE), collapse = "\n")
+  expect_match(js, "concat(cfg.acceptedFileTypes)", fixed = TRUE)
+  expect_match(js, "fi.status !== S.LOAD_ERROR", fixed = TRUE)
+  expect_false(grepl('pond.on("updatefiles"', js, fixed = TRUE))
+})

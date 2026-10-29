@@ -77,6 +77,9 @@
   "pond.type_not_allowed": "This file is not accepted",
   "pond.only_csv": "Only allowed: .csv",
   "pond.only_images": "Only allowed: JPG, PNG, WEBP",
+  "pond.too_large": "File is too large",
+  "pond.max_size": "Maximum is {filesize}",
+  "pond.upload_failed": "Upload failed",
 
   "ds.saved_title": "Saved datasets",
   "ds.none_saved": "No saved datasets in the storage/datasets folder.",
@@ -91,6 +94,8 @@
   "ds.value_cols": "Numeric series",
   "ds.only_csv": "This file is not accepted. Only .csv is allowed",
   "ds.csv_loaded": "CSV uploaded. Now click Proceed to configure it.",
+  "ds.reading": "Reading the CSV…",
+  "ds.detecting": "Finding the columns…",
   "ds.pick_series": "Select at least 1 numeric series!",
   "ds.bad_time_col": "The time column is not valid: {msg}",
   "ds.name_not_allowed": "This dataset name is not allowed.",

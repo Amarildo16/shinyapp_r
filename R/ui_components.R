@@ -6,11 +6,15 @@ APP_CSS <- c("tokens", "layout", "components", "modals", "datatables", "backgrou
 # JS-ja e ndarë nga custom.js (Faza 7), në vendin e tij të mëparshëm.
 APP_JS  <- c("preloader", "filepond-bridge", "modals", "color-picker")
 
-# Tekstet që përdor JS-ja (FilePond), sipas gjuhës (R26, V-23 b).
+# Tekstet që përdor JS-ja (FilePond), sipas gjuhës (R26, V-23 b), dhe kufiri i
+# ngarkimit (V-28 a) te window.APP_CONFIG.
 js_i18n <- function() {
-  keys <- c("pond.drop", "pond.browse", "pond.type_not_allowed", "pond.only_csv", "pond.only_images")
+  keys <- c("pond.drop", "pond.browse", "pond.type_not_allowed", "pond.only_csv", "pond.only_images",
+            "pond.too_large", "pond.max_size", "pond.upload_failed")
   tags$script(HTML(paste0("window.APP_I18N = ",
-                          jsonlite::toJSON(setNames(lapply(keys, tr), keys), auto_unbox = TRUE), ";")))
+                          jsonlite::toJSON(setNames(lapply(keys, tr), keys), auto_unbox = TRUE), ";\n",
+                          "window.APP_CONFIG = ",
+                          jsonlite::toJSON(list(uploadMaxMB = UPLOAD_MAX_MB), auto_unbox = TRUE), ";")))
 }
 
 # Tekstet e DataTables sipas gjuhës (U-08); anglishtja është e njëjtë me atë të DT-së.

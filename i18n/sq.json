@@ -77,6 +77,9 @@
   "pond.type_not_allowed": "Ky fajll s'pranohet",
   "pond.only_csv": "Lejohet vetëm: .csv",
   "pond.only_images": "Lejohen vetëm: JPG, PNG, WEBP",
+  "pond.too_large": "Skedari është shumë i madh",
+  "pond.max_size": "Maksimumi: {filesize}",
+  "pond.upload_failed": "Ngarkimi dështoi",
 
   "ds.saved_title": "Datasetet e ruajtura",
   "ds.none_saved": "S’ka dataset të ruajtur te folderi storage/datasets.",
@@ -91,6 +94,8 @@
   "ds.value_cols": "Seritë numerike",
   "ds.only_csv": "Ky fajll s'pranohet. Lejohet vetëm: .csv",
   "ds.csv_loaded": "CSV u ngarkua. Tani kliko Vazhdo për konfigurim.",
+  "ds.reading": "Duke lexuar CSV-në…",
+  "ds.detecting": "Duke gjetur kolonat…",
   "ds.pick_series": "Zgjidh të paktën 1 seri numerike!",
   "ds.bad_time_col": "Kolona e kohës nuk është e vlefshme: {msg}",
   "ds.name_not_allowed": "Emri i dataset-it nuk lejohet.",

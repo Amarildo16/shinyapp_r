@@ -52,6 +52,8 @@ mod_datasets_server <- function(id) {
     notify <- function(msg, type = "message", duration = 5) {
       showNotification(msg, type = type, duration = duration)
     }
+    # V-28 e: treguesi gjatë leximit dhe gjetjes së kolonave (CSV të mëdha).
+    busy <- function(key, expr) withProgress(message = tr(key), value = 0.5, expr)
 
     files       <- reactiveVal(list_saved_datasets())
     st0         <- tryCatch(sync_state(isolate(files())), error = function(e) list(active = NULL))
@@ -217,13 +219,13 @@ mod_datasets_server <- function(id) {
       f <- ds$file
       notify(tr("ds.edit_notice", file = f), duration = 2)
 
-      d <- tryCatch(read_data_safe(ds$path, f), error = function(e) {
+      d <- tryCatch(busy("ds.reading", read_data_safe(ds$path, f)), error = function(e) {
         notify(tr("ds.read_error", msg = conditionMessage(e)), "error", 8)
         NULL
       })
       if (is.null(d)) return()
 
-      def <- resolve_dataset_defaults(d, get_dataset_config(read_state(), f))
+      def <- busy("ds.detecting", resolve_dataset_defaults(d, get_dataset_config(read_state(), f)))
       uploaded_tmp_path(NULL)
       uploaded_tmp_name(NULL)
       editing_file(f)
@@ -233,7 +235,7 @@ mod_datasets_server <- function(id) {
     observeEvent(input$modal_time_col, {
       d <- pending_data()
       req(d)
-      num_cols <- detect_numeric_cols(d, exclude = input$modal_time_col)
+      num_cols <- detect_numeric_cols(detection_sample(d), exclude = input$modal_time_col)   # B-27
       sel <- pick_value_cols(num_cols, isolate(input$modal_value_cols))
       updateSelectizeInput(session, "modal_value_cols", choices = num_cols, selected = sel, server = TRUE)
     }, ignoreInit = TRUE)
@@ -260,7 +262,7 @@ mod_datasets_server <- function(id) {
       uploaded_tmp_path(up$datapath)
       uploaded_tmp_name(up$name)
 
-      d <- tryCatch(read_data_safe(up$datapath, up$name), error = function(e) {
+      d <- tryCatch(busy("ds.reading", read_data_safe(up$datapath, up$name)), error = function(e) {
         notify(tr("ds.read_error", msg = conditionMessage(e)), "error", 8)
         NULL
       })
@@ -280,7 +282,7 @@ mod_datasets_server <- function(id) {
       req(d)
       toggle_glass_modal(session, "main_modal_sm", "hide")
       # Titulli bosh, si në ngarkimin e parë të versionit të vjetër.
-      open_config_modal(d, "", resolve_dataset_defaults(d))
+      open_config_modal(d, "", busy("ds.detecting", resolve_dataset_defaults(d)))
     }, ignoreInit = TRUE)
 
     observeEvent(input$btn_cancel_config, {

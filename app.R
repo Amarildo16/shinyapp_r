@@ -14,7 +14,7 @@ suppressPackageStartupMessages({
   library(jsonlite)
   library(zoo)
 })
-options(scipen = 999)
+options(scipen = 999, shiny.maxRequestSize = UPLOAD_MAX_MB * 1024^2)   # V-28 a
 
 # Të dhënat e përdoruesit te storage/ (migrim që kopjon), fotot e ngarkuara si
 # "user-images/" dhe gjuha nga settings.json.

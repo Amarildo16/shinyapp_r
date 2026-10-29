@@ -398,7 +398,38 @@ U-09 (V-26): modalet me madhësi të përbashkëta dhe header-i i rreshtuar. U-1
 
 Pamja: screenshot-et para/pas te Obsidian (`screenshots/faza-9`).
 
-Commit: `31611de` (përdoruesi) për V-26; V-27 (U-10) pa commit.
+Commit: `31611de` (përdoruesi) për V-26; `ecdfc99` për V-27.
+
+## Faza 10 — rezultati (2026-10-29, Claude Code)
+
+B-25, B-26, B-27 (V-28). Gjetje të reja, pa ndryshim: P-13 (`prepare_series` i ngadaltë me shumë rreshta), U-11 (kohët me orë).
+
+| Ndryshimi | Skedari |
+|---|---|
+| `UPLOAD_MAX_MB <- 150`, `DETECT_SAMPLE_ROWS <- 5000L` | `R/config.R` |
+| `shiny.maxRequestSize = UPLOAD_MAX_MB * 1024^2` | `app.R` |
+| `window.APP_CONFIG` (kufiri) dhe tri tekste të reja të FilePond-it te `js_i18n()` | `R/ui_components.R` |
+| `accept` i proxy-t + `acceptedFileTypes`; `maxFileSize` sipas llojit (CSV nga config, fotot 25 MB); sinkronizimi vetëm i skedarëve të pranuar; njoftimi i gabimit të Shiny-t | `www/js/filepond-bridge.js` |
+| `detection_sample()` | `R/data_parse.R` |
+| Default-et nga mostra | `R/data_prepare.R` |
+| `busy()` me `withProgress` ("Duke lexuar CSV-në…", "Duke gjetur kolonat…") te ngarkimi, "Vazhdo" dhe Edit; mostra te ndryshimi i kolonës së kohës | `R/mod_datasets.R` |
+| 5 tekste të reja (277 → 282 çelësa) | `i18n/sq.json`, `i18n/en.json` |
+| 3 teste të reja | `tests/testthat/test-data_parse.R`, `test-ui_components.R` |
+
+| Kontrolli | Rezultati (ekzekutuar nga Claude, 2026-10-29) |
+|---|---|
+| Q29 | 24 skedarë, 145 teste, 1 111 pritje, 0 dështime, 0 warning |
+| Q30 | 24/24, 0 warning |
+| Default-et (R) | 25 dataset-e prove: propozimi identik me rrugën e vjetër; CSV-të sintetike: 12 s → 0,37 s, 130 s → 0,46 s, i njëjti propozim (Year) |
+| CSV 12,2 MB (browser) | FilePond IDLE (jo e kuqe); lexohet; "Vazhdo" 1,0 s; "Ruaj" deri te Përmbledhja 7,6 s; 27 vrojtime, 3 seri |
+| CSV 122,1 MB (browser) | Ngarkohet dhe ruhet (`storage/datasets/` i kopjes); faqja e testit u mbyll gjatë pritjes, ndaj kohët e "Vazhdo"/"Ruaj" nuk u matën në browser. Në një sesion të ri me këtë dataset aktiv, Përmbledhja del pas 58 s (P-13); serveri 1,5 GB RAM |
+| CSV 256 MB, TXT | Refuzohen nga FilePond-i me mesazhin në shqip; Shiny merr 0 skedarë |
+| Galeria | JPEG + TXT: ngarkohet vetëm JPEG-u, një herë |
+| Console, log-u i R-së | 0 mesazhe; log-u bosh |
+
+Shënim: R-ja e Shiny-t është një proces i vetëm; ndërsa përgatit 2 000 000 rreshta (P-13), app-i nuk u përgjigjet sesioneve të tjera.
+
+Commit: pa commit.
 
 ## Kufizime dhe shënime
 
@@ -409,7 +440,7 @@ Commit: `31611de` (përdoruesi) për V-26; V-27 (U-10) pa commit.
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është e përfunduar** (`c4c8141`, V-24, T-28; V-25 `651e510`, `9064473`). **Faza 9 (modalet) është e përfunduar** (`31611de`, V-26); V-27 (U-10) gati, pa commit. Radha e mëtejshme e diskutuar: FilePond dhe CSV-të e mëdha, pastaj pamja e shkurtër e CSV-së (secila me vendim më vete). Mbeten: provimi në RStudio dhe Q28 nga përdoruesi. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është e përfunduar** (`c4c8141`, V-24, T-28; V-25 `651e510`, `9064473`). **Faza 9 (modalet) është e përfunduar** (`31611de`, V-26; `ecdfc99`, V-27). **Faza 10 (ngarkimi i CSV-ve të mëdha) është gati, pa commit** (V-28). Hapat e diskutuar më tej: pamja e shkurtër e CSV-së te modali i ngarkimit; performanca (P-13); kohët me orë (U-11). Radha e mëtejshme e diskutuar: FilePond dhe CSV-të e mëdha, pastaj pamja e shkurtër e CSV-së (secila me vendim më vete). Mbeten: provimi në RStudio dhe Q28 nga përdoruesi. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
 
 ## Regjistri i dorëzesave
 

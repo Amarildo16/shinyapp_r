@@ -95,3 +95,35 @@ test_that("detect_numeric_cols përdor pragun 0.70 dhe rezervën (P-02)", {
   expect_equal(detect_numeric_cols(none, exclude = "t"), "s")
   expect_equal(detect_numeric_cols(none, exclude = "t", fallback_all = FALSE), character(0))
 })
+
+test_that("B-27: detection_sample, të gjitha rreshtat kur janë pak, ndryshe rreshtat e parë", {
+  d <- data.frame(t = as.character(2001:2010), v = as.character(1:10), stringsAsFactors = FALSE)
+  expect_identical(detection_sample(d), d)
+  expect_identical(detection_sample(d, n = 10), d)
+
+  big <- data.frame(i = seq_len(1000))
+  s <- detection_sample(big, n = 50)
+  expect_equal(s$i, 1:50)
+  expect_equal(DETECT_SAMPLE_ROWS, 5000L)
+})
+
+test_that("B-27: në një dataset të madh, mostra jep të njëjtat kolona si i gjithë dataset-i", {
+  n <- 12000
+  big <- data.frame(
+    Data   = format(as.Date("2000-01-01") + seq_len(n) - 1),
+    Viti   = as.character(rep(2000:2011, each = n / 12)),
+    Vlera  = sprintf("%.2f", sin(seq_len(n) / 50) * 100),
+    Teksti = rep(c("a", "b", "c"), length.out = n),
+    Masa   = format(seq_len(n) * 1.5, big.mark = ",", nsmall = 1),
+    stringsAsFactors = FALSE
+  )
+  full <- detect_time_candidates(big)
+  samp <- detect_time_candidates(detection_sample(big))
+  expect_equal(samp$col, full$col)
+  expect_equal(samp$score, full$score)
+  expect_equal(detect_numeric_cols(detection_sample(big), exclude = "Data"),
+               detect_numeric_cols(big, exclude = "Data"))
+  def <- resolve_dataset_defaults(big)
+  expect_equal(def$time_col, "Data")
+  expect_equal(def$num_cols, detect_numeric_cols(big, exclude = "Data"))
+})
