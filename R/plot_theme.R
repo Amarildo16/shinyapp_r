@@ -1,9 +1,3 @@
-# Ndihmës për Plotly.
-
-plotly_cfg <- function(p) {
-  config(p, displayModeBar = FALSE, responsive = TRUE)
-}
-
 # ---- Tema e përbashkët e grafikëve plot_ly (V-08, P-04) -----------------------
 # Riprodhon atë që ggplotly() nxirrte nga theme_minimal(base_size): madhësitë në px,
 # margjinat dhe boshtet me tick-e të llogaritura si te ggplot2. Pamja mbetet e njëjtë.
@@ -102,7 +96,7 @@ gg_legend <- function(color, sz, title = NULL) {
   out
 }
 
-# Konfigurimi që kishin grafikët e ggplotly + plotly_cfg().
+# Konfigurimi që kishin grafikët e ggplotly (shiriti i veglave i fshehur).
 GLASS_CONFIG <- list(
   doubleClick = "reset", modeBarButtonsToAdd = c("hoverclosest", "hovercompare"),
   showSendToCloud = FALSE, displayModeBar = FALSE, responsive = TRUE
@@ -113,28 +107,3 @@ GLASS_CONFIG <- list(
 glass_figure <- function(traces, layout) {
   plotly::as_widget(list(data = traces, layout = layout, config = GLASS_CONFIG))
 }
-
-find_traces <- function(pl, predicate) {
-  idx <- integer(0)
-  for (i in seq_along(pl$x$data)) {
-    tr <- pl$x$data[[i]]
-    if (isTRUE(predicate(tr))) idx <- c(idx, i)
-  }
-  idx
-}
-
-set_trace_text <- function(pl, trace_index, text_vec) {
-  if (length(trace_index) == 0 || is.na(trace_index)) return(pl)
-  pl$x$data[[trace_index]]$text <- text_vec
-  pl$x$data[[trace_index]]$hoverinfo <- "text"
-  pl
-}
-
-skip_trace_hover <- function(pl, idx) {
-  if (length(idx) == 0) return(pl)
-  for (i in idx) {
-    pl$x$data[[i]]$hoverinfo <- "skip"
-  }
-  pl
-}
-

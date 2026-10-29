@@ -191,62 +191,7 @@ ui <- function(req) {
         title = tr("page.forecast.menu"),
         value = page_tab("forecast"),
 
-        div(class = "glass-divider"),
-
-        sidebarLayout(
-          position = "left",
-
-          sidebarPanel(
-            h4("Cilësimet e parashikimit"),
-
-            selectInput("forecast_series", "Seria", choices = character(0)),
-
-            selectInput(
-              "method",
-              "Metoda e parashikimit",
-              choices = c(
-                "SES (sheshim eksponencial i thjeshtë)" = "ses",
-                "Holt (trend i zbutur)"                  = "holt",
-                "ARIMA"                                  = "arima"
-              )
-            ),
-
-            sliderInput(
-              "h",
-              "Horizonti i parashikimit", 
-              min = 1, 
-              max =1, 
-              value = 1,
-              step = 1
-              ),
-
-            hr(),
-            p("Grafiku paraqet vlerat e vëzhguara dhe parashikimet për periudhat pasuese, së bashku me intervalet e pasigurisë.")
-          ),
-
-          mainPanel(
-            div(
-              class = "section-box",
-              h4("Parashikimi"),
-              div(
-                class = "plot-wrap",
-                plotlyOutput("forecast_plot", height = "520px")
-              ),
-              tags$small(textOutput("cap_forecast_plot"))
-            ),
-
-            div(class = "glass-divider"),
-
-            div(
-              class = "section-box",
-              h4("Saktësia e parashikimit"),
-              div(
-                class = "table-wrap",
-                uiOutput("forecast_metrics")
-              )
-            )
-          )
-        )
+        mod_forecast_ui("forecast")
       )
     ),
 
@@ -272,22 +217,6 @@ server <- function(input, output, session) {
   active <- mod_datasets_server("datasets")
   series <- reactive(prepare_series(active()))
   fits   <- model_store()   # ETS/ARIMA të përbashkët për Modelimin dhe Parashikimin (P-07)
-
-  pick_choice <- function(cur, choices, fallback) {
-    if (!is.null(cur) && length(cur) == 1 && nzchar(cur) && cur %in% choices) cur else fallback
-  }
-
-  # Zgjedhësit e serive të faqeve të analizës (kalojnë te modulet në Fazën 5).
-  observeEvent(active(), {
-    choices <- active()$value_cols
-    if (length(choices) == 0) return()
-
-    for (id in "forecast_series") {
-      updateSelectInput(session, id, choices = choices,
-                        selected = pick_choice(isolate(input[[id]]), choices, choices[1]))
-    }
-  })
-
 
   # =========================================================
   # 3) BACKGROUND SETTINGS
@@ -954,8 +883,7 @@ server <- function(input, output, session) {
   mod_eda_rel_server("eda_rel", series)
   mod_stationarity_server("stationary", series)
   mod_modeling_server("modeling", series, fits)
-
-  server_plots(input, output, session, series, active, fits)
+  mod_forecast_server("forecast", series, fits)
 }
 
 shinyApp(ui, server)

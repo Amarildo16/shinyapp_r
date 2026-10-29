@@ -256,7 +256,24 @@ Commit: `33d175a` (përdoruesi, para V-20).
 | i18n | +14 çelësa (`model.*`, `time.h_label`), 187 gjithsej; tekstet shqip si më parë; anglisht "Forecast comparison", "Observed", numrat me pikë | `test-i18n.R`, kontroll në anglisht |
 | Q29 / Q30 | 20 skedarë testesh, 854 pritje, 0 dështime, 0 warning; Q30 24/24 pa warning | `testthat::test_dir()`, `compare_reference.R` |
 
-Të ruajtura si në origjinal: titulli "Tipi" i legjendës (B-20, gjetje e re); teksti i progresit "Duke ndërtu ETS & ARIMA...". Progresi shfaqet vetëm kur modelet s'janë në cache (testuar me `test-mod_modeling.R`, jo me sy në browser).
+Të ruajtura si në origjinal: titulli "Tipi" i legjendës (B-20, gjetje e re); teksti i progresit "Duke ndërtu ETS & ARIMA...". Progresi shfaqet vetëm kur modelet s'janë në cache (testuar me `test-mod_modeling.R`; 2026-10-29 edhe në browser, gjatë Q19).
+
+Commit: `ac84f0a` (përdoruesi).
+
+**Pjesa 7 — `mod_forecast` + fshirja e `legacy_server_plots.R`** (V-21, T-25): Parashikimi është modul me grafik plot_ly (V-08). `legacy_server_plots.R` u fshi (hapi 8); u hoqën edhe ndihmësit e ggplotly-t dhe `WATCH`/`AFFECTS` te `plotly-animate.js`. Q30 merr gjithçka nga funksionet e pastra.
+
+| Pika | Rezultati | Prova (ekzekutuar nga Claude) |
+|---|---|---|
+| Q27 (JSON) | 207 kombinime seri × metodë × h në 15 dataset-e: tabela, titulli dhe kutia e saktësisë identike; te 131 grafikë ndryshojnë vetëm ngjyra e parashikimit, e intervalit dhe hover-i (B-04, V-21); 40 grafikë ARIMA tregojnë shkakun ("Për ARIMA rekomandohen ≥ 30 pika…") dhe 9 me seri konstante mesazhin në vend të faqes bosh (V-17 d) | `dump_fc.R` + `cmp_fc.R` mbi `testServer` para (`ac84f0a`) / pas |
+| Q14 / B-04 / B-05 | Parashikimi dhe intervali të kuq, e vëzhguara e bardhë; hover-i "Production ton: 5 832 128,00" (më parë ",0000"); çdo vijë me tekstin e vet edhe kur h = n | `test-mod_forecast.R`, browser (`gd.data`), screenshot-e para/pas |
+| B-02 | `b02_demo`: Shkurter max 7 (më parë 9), Plote max 9 | browser para/pas |
+| V-17 d | ARIMA me 27 pika: "Për ARIMA rekomandohen ≥ 30 pika reale…" te grafiku; h = 19 në 36 muaj: shënimi nën grafik | browser, dump |
+| Q19 | 3 cikle me slider-a dhe ndërrim faqesh të shpejtë: asnjë error, asnjë njoftim i përsëritur (vetëm progresi "Duke ndërtu ETS & ARIMA..." një herë për seri të re), sesioni i lidhur | browser (`MutationObserver`) |
+| Animacioni | Të gjitha faqet: grafikët `anim-plot` animohen kur hapet faqja dhe pas çdo ndryshimi | browser (`__animatedEpoch`) |
+| Q30 (rrugët) | `compute_results.R` mbi `ac84f0a` (me `server_plots()`) dhe mbi kodin e ri: rezultate identike | `cr_paths.R` |
+| Q01 | Console 0 mesazhe; log-u i R-së bosh (3 nisje) | log-u i `runApp`, console |
+| i18n | +27 çelësa (`fc.*`), 214 gjithsej; tekstet shqip si më parë | `test-i18n.R` |
+| Q29 / Q30 | 21 skedarë testesh, 897 pritje, 0 dështime, 0 warning; Q30 24/24 pa warning | `testthat::test_dir()`, `compare_reference.R` |
 
 Commit: pa commit.
 
@@ -269,7 +286,7 @@ Commit: pa commit.
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është në punë:** bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`; `mod_stationarity` `33d175a`, V-20 `3dded11`; `mod_modeling` gati, pa commit (T-24, B-02, B-12). Hapi i radhës: commit i përdoruesit, pastaj "vazhdo" për `mod_forecast` (hapi 4.6 i [Fazës 5](steps/05-faqet-e-analizes.md)); B-18, B-19, B-20 presin vendim.
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar në kod, pa commit-in e fundit:** bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` gati, pa commit (V-21, T-25). Hapi i radhës: commit i përdoruesit. Pastaj, vetëm me autorizim: [Faza 6](steps/06-moduli-background.md). B-18, B-19, B-20 presin vendim.
 
 ## Regjistri i dorëzesave
 

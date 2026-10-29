@@ -7,33 +7,15 @@
 
     const TAB_ID = "main_tabs";
 
-    const WATCH = new Set([
-        "forecast_series",
-        "method",
-        "h"
-    ]);
-
-    // Grafikët e moduleve kanë klasën "anim-plot" (ID me namespace, p.sh. "eda_ts-raw");
-    // këtu mbeten vetëm grafikët e vjetër me ID globale.
+    // Grafikët e animueshëm kanë klasën "anim-plot" (ID me namespace, p.sh. "eda_ts-raw").
+    // Animohen kur hapet faqja dhe sa herë marrin vlerë të re (shiny:value).
     const ANIM_CLASS = "anim-plot";
-
-    const AFFECTS = {
-        forecast_series: ["forecast_plot"],
-        method: ["forecast_plot"],
-        h: ["forecast_plot"]
-    };
-
-    const ALL_TARGETS = uniq(Object.values(AFFECTS).reduce((acc, ids) => acc.concat(ids), []));
 
     function uniq(arr) {
         return Array.from(new Set(arr || []));
     }
 
-    function getTargetsForInput(name) {
-        return uniq(AFFECTS[name] || []);
-    }
-
-    const INPUT_DELAY_MS = 120;
+    const OUTPUT_DELAY_MS = 120;
     const TAB_DELAY_MS = 160;
     const DEBOUNCE_MS = 260;
 
@@ -224,7 +206,6 @@
 
     function isKnownTarget(id) {
         if (!id) return false;
-        if (ALL_TARGETS.indexOf(id) >= 0) return true;
         const el = document.getElementById(id);
         return !!(el && el.classList && el.classList.contains(ANIM_CLASS));
     }
@@ -324,22 +305,14 @@
 
     function triggerTab(reason) {
         if (debounced(reason)) return;
-        markPending(ALL_TARGETS.concat(animPlotIds()), reason, [TAB_DELAY_MS, TAB_DELAY_MS + 260]);
-    }
-
-    function triggerInput(name) {
-        const reason = "input_" + name;
-        if (debounced(reason)) return;
-
-        const targets = getTargetsForInput(name);
-        markPending(targets, reason);
+        markPending(animPlotIds(), reason, [TAB_DELAY_MS, TAB_DELAY_MS + 260]);
     }
 
     function triggerOutput(id) {
         if (!isKnownTarget(id)) return;
         ensurePending(id, "output_" + id);
-        scheduleReadyCheck(id, INPUT_DELAY_MS);
-        scheduleReadyCheck(id, INPUT_DELAY_MS + 180);
+        scheduleReadyCheck(id, OUTPUT_DELAY_MS);
+        scheduleReadyCheck(id, OUTPUT_DELAY_MS + 180);
     }
 
     function getEventName(e) {
@@ -379,10 +352,6 @@
 
                 if (name === TAB_ID) {
                     triggerTab("tab_changed");
-                    return;
-                }
-                if (WATCH.has(name)) {
-                    triggerInput(name);
                 }
             });
         }

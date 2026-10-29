@@ -1,9 +1,11 @@
 # Llogarit rezultatet statistike të app-it për një dataset shembull (V-07, R21).
 #
 # Faza 0: thërriste helpers.R + server_plots.R. Që nga Faza 2 ngarkon R/ me
-# shiny::loadSupport(), njësoj si app-i (server_plots() jeton te R/legacy_server_plots.R).
-#   - Pjesët reaktive (df_dyn, ADF, modelet, parashikimet, kufijtë e slider-ave)
-#     merren nga vetë server_plots() me shiny::testServer.
+# shiny::loadSupport(), njësoj si app-i.
+#   - Te kodi që ka ende server_plots() (para fundit të Fazës 5), pjesët reaktive
+#     (df_dyn, ADF, modelet, parashikimet) merren nga vetë server_plots() me
+#     shiny::testServer. Pas Fazës 5 merren nga funksionet e pastra të moduleve
+#     (adf_summary, model_fits, forecast_data/forecast_run/forecast_accuracy).
 #   - Llogaritjet që jetonin brenda render*-ave (mesatarja lëvizëse, regresioni,
 #     korrelacioni, diferenca, ACF/PACF, ADF) merren që nga Faza 5 nga funksionet e
 #     pastra të app-it (R/stats_eda.R, R/ts_models.R, R/ts_time.R); këtu vetëm
@@ -173,13 +175,16 @@ compute_results <- function(root, ds) {
     fits   = app_code$model_store()
   )
 
-  shiny::testServer(legacy_plots_module(app_code), args = module_args, {
+  # Kodi para Fazës 5 merret nga server_plots() me testServer (sp, session); pas
+  # fshirjes së legacy_server_plots.R, nga funksionet e pastra të moduleve.
+  legacy <- is.function(app_code$server_plots)
 
-    d0 <- sp$df_dyn()
+  collect <- function(sp = NULL, session = NULL) {
+    d0 <- if (legacy) sp$df_dyn() else shiny::isolate(module_args$series())$data
     if (!identical(names(d0), c("Time", vc))) stop("df_dyn() nuk ka kolonat e pritura.")
 
     det <- list(
-      value_cols = sp$value_cols(),
+      value_cols = if (legacy) sp$value_cols() else shiny::isolate(module_args$series())$value_cols,
       df_dyn     = d0,
       summary    = app_code$summary_stats(d0, vc),
       corr       = correlation_matrix_ref(app_code, d0)
@@ -204,9 +209,11 @@ compute_results <- function(root, ds) {
       rb <- app_code$roll_bounds(n_non_na, d0$Time)
       hb <- app_code$h_bounds(n_non_na, d0$Time)
 
-      session$setInputs(stat_series = s)
       # Faza 5: ADF jeton te mod_stationarity (adf_summary); kodi i vjetër: adf_res().
-      adf_app <- if (is.function(app_code$adf_summary)) app_code$adf_summary(d0, s) else sp$adf_res()
+      adf_app <- if (is.function(app_code$adf_summary)) app_code$adf_summary(d0, s) else {
+        session$setInputs(stat_series = s)
+        sp$adf_res()
+      }
 
       det$series[[s]] <- list(
         roll_bounds = rb,
@@ -261,14 +268,21 @@ compute_results <- function(root, ds) {
         forms$modeling[[s]] <- list(ok = FALSE)
       }
 
-      # Parashikimi: forecast_obj() + acc_obj()
+      # Parashikimi: forecast_run() + forecast_accuracy() te mod_forecast (Faza 5);
+      # kodi i vjetër: forecast_obj() + acc_obj() + arima_fit().
+      fdat <- if (!legacy) app_code$forecast_data(d0, s)
       for (m in FORECAST_METHODS) {
         f_forms  <- list()
         f_values <- list()
         for (h in hs) {
-          session$setInputs(forecast_series = s, method = m, h = h)
-          session$elapse(1000)  # debounce i h-së (350 ms)
-          fc <- sp$forecast_obj()
+          if (legacy) {
+            session$setInputs(forecast_series = s, method = m, h = h)
+            session$elapse(1000)  # debounce i h-së (350 ms)
+            fc <- sp$forecast_obj()
+          } else {
+            r  <- if (isTRUE(fdat$ok)) app_code$forecast_run(fdat$dd, m, h, module_args$fits)
+            fc <- if (isTRUE(r$ok)) r$fc
+          }
 
           if (is.null(fc)) {
             f_forms[[paste0("h", h)]] <- list(ok = FALSE)
@@ -280,11 +294,11 @@ compute_results <- function(root, ds) {
           f_values[[paste0("h", h)]] <- list(
             forecast  = forecast_values(fc),
             model_par = if (!is.null(fc$model$par)) fc$model$par else stats::coef(fc$model),
-            accuracy  = accuracy_values(sp$acc_obj())
+            accuracy  = accuracy_values(if (legacy) sp$acc_obj() else app_code$forecast_accuracy(fc))
           )
         }
         if (m == "arima") {
-          af <- sp$arima_fit()
+          af <- if (legacy) sp$arima_fit() else if (isTRUE(fdat$ok)) app_code$forecast_arima_fit(fdat$dd, module_args$fits)
           f_forms$arima_fit_ok <- isTRUE(af$ok)
           if (isTRUE(af$ok)) f_forms$arima_order <- forecast::arimaorder(af$fit)
         }
@@ -298,7 +312,13 @@ compute_results <- function(root, ds) {
       deterministic = det,
       models        = list(forms = forms, values = values)
     )
-  })
+  }
+
+  if (legacy) {
+    shiny::testServer(legacy_plots_module(app_code), args = module_args, collect(sp, session))
+  } else {
+    collect()
+  }
 
   if (is.null(out$res)) stop("Llogaritja nuk u krye për ", ds$file)
   out$res
