@@ -280,7 +280,10 @@ html.bg-none #bg-overlay {
    FilePond-it, butoni i tij i ndalimit dhe teksti lart djathtas fshihen. */
 .bg-pond-host .filepond--progress-indicator,
 .bg-pond-host .filepond--action-abort-item-processing,
-.bg-pond-host [data-filepond-item-state~="processing"] .filepond--file-status {
+.bg-pond-host [data-filepond-item-state~="processing"] .filepond--file-status,
+.csv-pond-host .filepond--progress-indicator,
+.csv-pond-host .filepond--action-abort-item-processing,
+.csv-pond-host [data-filepond-item-state~="processing"] .filepond--file-status {
     display: none;
 }
 
@@ -353,7 +356,8 @@ html.bg-none #bg-overlay {
 
 /* V-32: mesazhi i gabimit në mes, poshtë shigjetës: i gjatë, nuk nxë pranë emrit të skedarit.
    Skedarët e refuzuar para ngarkimit (load-invalid) janë kartela të ulëta dhe e mbajnë te vendi. */
-.bg-pond-host [data-filepond-item-state*="error"] .filepond--file-status {
+.bg-pond-host [data-filepond-item-state*="error"] .filepond--file-status,
+.csv-pond-host [data-filepond-item-state="processing-error"] .filepond--file-status {
     position: absolute;
     left: 12px;
     right: 12px;
@@ -363,16 +367,19 @@ html.bg-none #bg-overlay {
     transform: none !important;
 }
 
-.bg-pond-host [data-filepond-item-state*="error"] .filepond--file-status-main {
+.bg-pond-host [data-filepond-item-state*="error"] .filepond--file-status-main,
+.csv-pond-host [data-filepond-item-state="processing-error"] .filepond--file-status-main {
     white-space: normal;
 }
 
-.bg-pond-host [data-filepond-item-state*="error"] .filepond--file-status-sub {
+.bg-pond-host [data-filepond-item-state*="error"] .filepond--file-status-sub,
+.csv-pond-host [data-filepond-item-state="processing-error"] .filepond--file-status-sub {
     display: none;
 }
 
 /* V-32: kur dështon, shigjeta e riprovimit në mes dhe X-i në qoshe. */
-.bg-pond-host .filepond--file .filepond--action-retry-item-processing[data-align] {
+.bg-pond-host .filepond--file .filepond--action-retry-item-processing[data-align],
+.csv-pond-host .filepond--file .filepond--action-retry-item-processing[data-align] {
     left: calc(50% - 30px);
     right: auto;
     top: 62px;
@@ -380,6 +387,13 @@ html.bg-none #bg-overlay {
     height: 60px;
     color: #fff;
     background-color: rgba(0, 0, 0, .55);
+}
+
+/* Kuti me ndërprerje vetëm te fotot; CSV-ja mban panelin e FilePond-it (V-33). :where() e
+   mban përparësinë e rregullit të vjetër, që mos të prekë mbështjellësin e panelit. */
+:where(.bg-pond-host) .filepond--panel-root {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px dashed rgba(255, 255, 255, 0.22) !important;
 }
 
 .bg-pond-host .filepond--panel-root {

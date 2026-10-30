@@ -6,14 +6,11 @@ APP_CSS <- c("tokens", "layout", "components", "modals", "datatables", "backgrou
 # JS-ja e ndarë nga custom.js (Faza 7), në vendin e tij të mëparshëm.
 APP_JS  <- c("preloader", "filepond-bridge", "modals", "color-picker")
 
-# Tekstet që përdor JS-ja (FilePond), sipas gjuhës (R26, V-23 b), dhe kufiri i
-# ngarkimit (V-28 a) te window.APP_CONFIG.
+# Tekstet që përdor JS-ja (FilePond), sipas gjuhës (R26, V-23 b).
 js_i18n <- function() {
   keys <- grep("^pond\\.", names(translations()[[DEFAULT_LANG]]), value = TRUE)   # të gjitha tekstet "pond.*"
   tags$script(HTML(paste0("window.APP_I18N = ",
-                          jsonlite::toJSON(setNames(lapply(keys, tr), keys), auto_unbox = TRUE), ";\n",
-                          "window.APP_CONFIG = ",
-                          jsonlite::toJSON(list(uploadMaxMB = UPLOAD_MAX_MB), auto_unbox = TRUE), ";")))
+                          jsonlite::toJSON(setNames(lapply(keys, tr), keys), auto_unbox = TRUE), ";")))
 }
 
 # Tekstet e DataTables sipas gjuhës (U-08); anglishtja është e njëjtë me atë të DT-së.
@@ -174,6 +171,40 @@ glass_modal <- function(id, title_output, body_output, footer, size = GLASS_MODA
         ),
         tags$div(class = "modal-body", uiOutput(body_output)),
         tags$div(class = "modal-footer", footer)
+      )
+    )
+  )
+}
+
+# Pamja e vogël e CSV-së pas ngarkimit (V-33, V-34): g vjen nga csv_glance(), remove_id është
+# X-i që e heq skedarin.
+csv_glance_ui <- function(g, remove_id) {
+  count <- function(n, one, many) tr(if (n == 1) one else many, n = fmt_fixed(n, 0))
+  size <- if (g$size < 1024^2) paste(fmt_fixed(g$size / 1024, 1), "KB") else paste(fmt_fixed(g$size / 1024^2, 1), "MB")
+  cell <- function(x) tags$td(if (!is.na(x)) x)
+
+  tags$div(
+    class = "csv-glance",
+    tags$div(
+      class = "csv-glance-head",
+      tags$div(
+        class = "csv-glance-meta",
+        tags$div(class = "csv-glance-title", g$title),
+        tags$div(class = "csv-glance-dims",
+                 paste0(count(g$rows, "ds.glance_row", "ds.glance_rows"), " × ",
+                        count(g$cols, "ds.glance_col", "ds.glance_cols"), " · ", size))
+      ),
+      actionButton(remove_id, label = NULL, icon = tags$i(class = "ri-close-line"),
+                   class = "csv-glance-remove", `aria-label` = tr("pond.btn_remove"))
+    ),
+    tags$div(
+      class = "csv-glance-scroll",
+      tags$table(
+        class = "csv-glance-table",
+        tags$thead(tags$tr(tags$th(), lapply(names(g$head), tags$th))),
+        tags$tbody(lapply(seq_len(nrow(g$head)), function(i) {
+          tags$tr(tags$td(class = "csv-glance-n", i), lapply(unname(g$head), function(col) cell(col[i])))
+        }))
       )
     )
   )

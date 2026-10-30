@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Spreadsheet">
+  <rect x="42" y="20" width="46" height="60" rx="4" fill="#d9d9d9"/>
+  <g fill="#3a3a3a">
+    <rect x="50" y="29" width="14" height="8"/>
+    <rect x="68" y="29" width="13" height="8"/>
+    <rect x="50" y="41" width="14" height="8"/>
+    <rect x="68" y="41" width="13" height="8"/>
+    <rect x="50" y="53" width="14" height="8"/>
+    <rect x="68" y="53" width="13" height="8"/>
+    <rect x="50" y="65" width="14" height="8"/>
+    <rect x="68" y="65" width="13" height="8"/>
+  </g>
+  <path d="M8 16 56 8v80L8 80z" fill="#fff"/>
+  <path d="M20 32h10l6 12 6-12h9L41 49l11 17H42l-7-12-7 12h-9l11-17z" fill="#1a1a1a"/>
+</svg>

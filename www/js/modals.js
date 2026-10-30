@@ -9,11 +9,6 @@ Shiny.addCustomMessageHandler('toggle_modal', function (msg) {
     if (msg.action === 'hide') $m.modal('hide');
 });
 
-// Kur mbyllet modali i Upload-it, zbrazet FilePond-i dhe input-i i CSV-së.
-$(document).on("hidden.bs.modal", "#datasets-main_modal_sm", function () {
-    if (window.PondBridge) window.PondBridge.clear("datasets-csv_file_modal");
-});
-
 // DataTables brenda modaleve: kolonat rillogariten pasi modali shfaqet.
 $(document).on("shown.bs.modal", "#datasets-main_modal_fs, #bg-modal_fs", function () {
     setTimeout(function () {

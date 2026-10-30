@@ -504,6 +504,70 @@ Commit: `5802636` (përdoruesi).
 | 375 px | Një kolonë, gjerësia e dokumentit 375 px; mesazhi i gjatë brenda kartelës |
 | Console, log-u i R-së | Console 0; log-u: një warning nga ndalimi (B-30) |
 
+Commit: `4216592` (përdoruesi).
+
+## Faza 12 — rezultati (2026-10-30, Claude Code)
+
+U-13 (pjesa e CSV-së), V-33. CSV-ja kalon nga rruga e fotove dhe, pas ngarkimit, del një pamje e vogël 5 × 8. Rruga e vjetër e `fileInput`-it u hoq; B-25 dhe B-26 mbeten të mbyllura me kodin e ri.
+
+| Ndryshimi | Skedari |
+|---|---|
+| `stage_new()`, `stage_write()`, `stage_remove()`, `stage_discard()`, `csv_stage_add()`, `pond_handler()` (të përbashkëta me fotot) | `R/upload_staging.R` (i ri) |
+| `bg_stage_add()`, `bg_stage_commit()`, `bg_pond_handler()` mbi pritjen e përbashkët | `R/media_library.R`, `R/mod_background.R` |
+| `read_delim_text()`, `read_data_safe(n_max)`, `count_csv_rows()`, `csv_title()`, `csv_glance()` | `R/data_read.R` |
+| `PREVIEW_ROWS`, `PREVIEW_COLS` | `R/config.R` |
+| `csv_glance_ui()`; hiqet `window.APP_CONFIG` (kufiri vjen me `data-max-mb`) | `R/ui_components.R` |
+| Hiqet `fileInput`; `csv_stage`, `csv_uploaded`, `csv_removed`; leximi i plotë te "Vazhdo"; zona vizatohet një herë | `R/mod_datasets.R` |
+| `MODES` (image, csv) mbi `initServerPond`; hiqet ura e vjetër (`sync`, proxy, `watchUploadError`, `clearPond`, `PondBridge`) | `www/js/filepond-bridge.js`, `www/js/modals.js` |
+| Zona e CSV-së, unaza, pamja e vogël; korniza me ndërprerje vetëm te fotot, me `:where()` që të mos ndryshojë përparësia | `www/css/modals.css`, `www/css/background.css` |
+| Ikonat `excel.svg`, `csv-file.svg` (të vizatuara nga ne) | `www/icons/` |
+| 4 tekste të reja, 2 të hequra (298 → 300 çelësa) | `i18n/sq.json`, `i18n/en.json` |
+| B-03, Q06, Q07 me rrugën e re (të njëjtat pritje); 3 teste të reja në `test-mod_datasets.R`, 1 në `test-ui_components.R` | `tests/testthat/` |
+
+Shkaqet e gjetura: **dy vijat** vinin nga rregulli global `.filepond--panel-root`, i vendosur mbi 4 elemente (mbështjellësi dhe 3 pjesët e panelit). Edhe pa të, një ngjyrë e tejdukshme tregon vija te bashkimet, ndaj paneli i CSV-së ka ngjyrë të plotë. **Zona e humbur pas hapjes së dytë:** rivizatimi i trupit të modalit në çdo hapje garonte me `shown.bs.modal` kur serveri vonohej mbi 0,3 s; tani trupi vizatohet një herë.
+
+| Kontrolli | Rezultati (ekzekutuar nga Claude, 2026-10-30) |
+|---|---|
+| Q29 | 24 skedarë, 153 teste, 1 254 pritje, 0 dështime, 0 warning |
+| Q30 | 24/24, 0 FAIL |
+| Numërimi (R) | `count_csv_rows()` = rreshtat e leximit të plotë te çdo fixture e vlefshme; fillimi i `n_max` identik me leximin e plotë |
+| CSV 122,1 MB (browser, kopje e skedarit të përdoruesit) | Ngarkim + pamje 2,8–3,4 s; "2 000 000 rreshta × 6 kolona · 122,1 MB"; 5 rreshta, 6 kolona + numri; "Vazhdo" 5,8 s me "Duke lexuar CSV-në…"; "Ruaj": md5 e skedarit të ruajtur = origjinali |
+| CSV 12,2 MB | "Vazhdo" 0,5 s; kthimi nga konfigurimi: skedari dhe pamja mbeten, "Vazhdo" i dytë 0,17 s; "Ruaj" me emër ekzistues: kopje me kohë në emër, asgjë e mbishkruar |
+| Ndalimi | X te unaza dhe "Anulo" gjatë ngarkimit (800 KB/s): lista bosh; zona punon në hapjen tjetër |
+| Dështimi | Kërkesë e ndërprerë me `page.route`: shigjeta në mes, mesazhi, X në qoshe; riprovimi mbaron dhe del pamja |
+| Heqja dhe ndërrimi | X-i heq pamjen; një ngarkim tjetër e zëvendëson |
+| Refuzimet | 160 MB: "Skedari është shumë i madh", "Maksimumi: 150 MB"; TXT: "Lejohet vetëm: .csv"; vetëm kokë: njoftim gabimi, lista zbrazet, asgjë nuk ruhet |
+| Pamja | Një kuti e vetme (4 elemente paneli, `border` none); `font-size` 16 px te `.filepond--root`; 375 px: gjerësia e dokumentit 375, tabela rrëshqet anash; shqip dhe anglisht |
+| Fotot pas ndryshimit | Stilet e llogaritura të zonës së fotove të krahasuara me `4216592`: 0 dallime në 20 elementë pa foto dhe në 224 me 2 foto; ngarkimi, unaza, "Ruaj fotot": të dyja fotot te `storage/images/` e kopjes |
+| Console, log-u i R-së | Console 0 gjatë rrjedhave të CSV-së (përveç dështimit të qëllimshëm); log-u: vetëm B-30. Një 404 te `user-images/` gjatë provave të fotove: shih B-31 |
+
+Nuk u provua: në RStudio nga përdoruesi; heqja e skedarit nga pritja pas "Anulo" u provua vetëm me testet (Q29), jo duke parë diskun gjatë sesionit në browser.
+
+Shënim: `styleItemPanelAspectRatio` kërkon tekst dhe FilePond-i e mban lartësinë e vjetër kur hiqet, ndaj rreshti i ngushtë caktohet me raport (56 px), jo me `null`.
+
+Commit: pa commit.
+
+### Bardh e zi dhe X-i te pamja (V-34, 2026-10-30)
+
+Pas provës së përdoruesit: ikonat bardh e zi; pas ngarkimit zona fshihet (`shinyjs`) dhe X-i del te pamja. Hiqen `csv_removed` dhe `data-removed-input`, sepse X-i i pamjes kalon nga `clear_pending()`. `pond_server_clear` e krijon FilePond-in e CSV-së nga e para: një skedar i hequr kur zona është e fshehur linte një rresht të padukshëm që mbante radhën e ngarkimeve (skedari i ri mbetej në `PROCESSING_QUEUED`). `destroy()` mbaron me vonesë, ndaj zona e re krijohet pasi e vjetra të ketë dalë nga faqja; ndryshe `insertBefore` jep gabim në console.
+
+| Kontrolli | Rezultati (ekzekutuar nga Claude, 2026-10-30) |
+|---|---|
+| Q29 | 24 skedarë, 153 teste, 1 257 pritje, 0 dështime, 0 warning (me kodin përfundimtar) |
+| Q30 | 24/24, 0 FAIL (me kodin përfundimtar) |
+| Sukses | Zona `display: none`, pamja e vetme, X-i 13 px nga djathtas dhe nga lart, 28 px |
+| X-i te pamja | Zona rikthehet 170 px, 0 skedarë; i njëjti skedar ngarkohet sërish |
+| Kthimi nga konfigurimi | Pamja mbetet me X-in; X-i punon |
+| Mbyllja me X-in e modalit, rihapja | Zona bosh; ngarkimi i radhës punon (defekti i `PROCESSING_QUEUED` u mbyll) |
+| "Anulo" gjatë ngarkimit (122 MB, 800 KB/s) | `XMLHttpRequest.abort` thirret 1 herë; zona bosh; ngarkimi i radhës punon |
+| "Anulo" pas ngarkimit, "Ruaj" (12 MB), rihapja | Zona bosh dhe ngarkimi i radhës punon |
+| Refuzimi, dështimi | Refuzimi: rresht i ngushtë me X-in e FilePond-it; dështimi: kartelë 170 px, shigjeta në mes; riprovimi mbaron te pamja |
+| Fotot | 2 foto me unazë, "Ruaj fotot", kalim te Galeria; 0 gabime nga `filepond-bridge.js` |
+| 375 px | Gjerësia e dokumentit 375 px |
+| Console | Vetëm ndërprerja e qëllimshme e provës së dështimit dhe 404 e B-31 |
+
+Pas provave u gjet shkaku i B-31 (bug i Fazës 6, jo i kësaj faze); nuk u rregullua, pret vendim.
+
 Commit: pa commit.
 
 ## Kufizime dhe shënime
@@ -515,7 +579,7 @@ Commit: pa commit.
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është e përfunduar** (`c4c8141`, V-24, T-28; V-25 `651e510`, `9064473`). **Faza 9 (modalet) është e përfunduar** (`31611de`, V-26; `ecdfc99`, V-27). **Faza 10 është e përfunduar** (`b87a9cd`, V-28). **Faza 11 (ngarkimi i fotove) u bë commit** (`6b01bd8`, V-29); preview `57ec96b` (V-30); pamja pa ngjyra `5802636` (V-31); unaza e ngarkimit (V-32) gati, pa commit. Hapi i radhës (V-29 d): Faza 12, ngarkimi i CSV-së me të njëjtën rrugë dhe pamja e shkurtër (vetëm ikona "zgjero"); pastaj performanca (P-13) dhe U-11. Radha e mëtejshme e diskutuar: FilePond dhe CSV-të e mëdha, pastaj pamja e shkurtër e CSV-së (secila me vendim më vete). Mbeten: provimi në RStudio dhe Q28 nga përdoruesi. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është e përfunduar** (`c4c8141`, V-24, T-28; V-25 `651e510`, `9064473`). **Faza 9 (modalet) është e përfunduar** (`31611de`, V-26; `ecdfc99`, V-27). **Faza 10 është e përfunduar** (`b87a9cd`, V-28). **Faza 11 (ngarkimi i fotove) u bë commit** (`6b01bd8`, V-29); preview `57ec96b` (V-30); pamja pa ngjyra `5802636` (V-31); unaza e ngarkimit `4216592` (V-32). **Faza 12 (ngarkimi i CSV-së dhe pamja e vogël) është gati, pa commit** (V-33, V-34). B-31 pret vendim. Hapi i radhës, me vendim më vete: performanca (P-13) dhe U-11. Mbeten: provimi në RStudio dhe Q28 nga përdoruesi. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
 
 ## Regjistri i dorëzesave
 

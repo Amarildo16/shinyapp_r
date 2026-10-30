@@ -301,16 +301,16 @@ mod_background_server <- function(id) {
     pending_delete    <- reactiveVal(NULL)
 
     # V-29: fotot e ngarkuara presin këtu derisa "Ruaj fotot"; FilePond-i i dërgon te pond_url.
-    staging  <- bg_staging()
+    staging  <- stage_new()
     pond_url <- session$registerDataObj("bg_pond", NULL, bg_pond_handler(staging))
     session$onSessionEnded(function() {
-      bg_stage_discard(staging)
+      stage_discard(staging)
       unlink(staging$dir, recursive = TRUE)
     })
 
     # P-08: modalet hapen e mbyllen vetëm me toggle_glass_modal().
     open_library <- function(target, tabid = NULL) {
-      bg_stage_discard(staging)   # fotot e pa ruajtura të një hapjeje të mëparshme
+      stage_discard(staging)   # fotot e pa ruajtura të një hapjeje të mëparshme
       media_selected(NULL)
       ctx(list(type = "bg_picker", target = target, tabid = tabid))
       updateTabsetPanel(session, "media_tabs", selected = "library")
@@ -519,7 +519,7 @@ mod_background_server <- function(id) {
     }, ignoreInit = TRUE)
 
     observeEvent(input$btn_cancel_upload, {
-      bg_stage_discard(staging)
+      stage_discard(staging)
       back_to_library()
     }, ignoreInit = TRUE)
 

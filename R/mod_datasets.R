@@ -66,6 +66,16 @@ mod_datasets_server <- function(id) {
     uploaded_tmp_path <- reactiveVal(NULL)
     uploaded_tmp_name <- reactiveVal(NULL)
     pending_delete    <- reactiveVal(NULL)
+    glance            <- reactiveVal(NULL)   # pamja e vogël e CSV-së së ngarkuar (V-33)
+
+    # V-33: CSV-ja e ngarkuar pret këtu derisa "Ruaj"; FilePond-i e dërgon te pond_url.
+    csv_stage <- stage_new()
+    pond_url  <- session$registerDataObj("csv_pond", NULL, pond_handler(
+      csv_stage, function(read_chunk, name, mime) csv_stage_add(csv_stage, read_chunk, name)))
+    session$onSessionEnded(function() {
+      stage_discard(csv_stage)
+      unlink(csv_stage$dir, recursive = TRUE)
+    })
 
     read_dataset <- function(file) {
       ds <- resolve_saved_dataset_path(file, DATASETS_DIR)
@@ -77,6 +87,10 @@ mod_datasets_server <- function(id) {
     clear_pending <- function() {
       pending_data(NULL); editing_file(NULL)
       uploaded_tmp_path(NULL); uploaded_tmp_name(NULL)
+      glance(NULL)
+      stage_discard(csv_stage)
+      shinyjs::show("csv_pond_host")   # para zbrazjes: FilePond-i krijohet te zona e dukshme
+      session$sendCustomMessage("pond_server_clear", list(hostId = ns("csv_pond_host")))
     }
 
     # ---- Ngarkimi: rruga e vetme (P-06) ----------------------------------------
@@ -241,36 +255,50 @@ mod_datasets_server <- function(id) {
     }, ignoreInit = TRUE)
 
     # ---- Ngarkimi i CSV-së -----------------------------------------------------
+    # Zona vizatohet vetëm një herë: po të rivizatohej në çdo hapje, FilePond-i mund të lidhej
+    # me zonën e vjetër kur serveri vonohet (V-33). Mbetet e pastër me clear_pending().
+    output$modal_sm_title <- renderUI(tags$h5(class = "modal-title", tr("settings.upload_csv")))
+    output$modal_sm_body <- renderUI(tagList(
+      tags$div(id = ns("csv_pond_host"), class = "csv-pond-host",
+               `data-pond-mode` = "csv",
+               `data-process-url` = pond_url,
+               `data-max-mb` = UPLOAD_MAX_MB,
+               `data-uploaded-input` = ns("csv_uploaded")),
+      uiOutput(ns("csv_glance"))
+    ))
+    outputOptions(output, "modal_sm_body", suspendWhenHidden = FALSE)
+
     observeEvent(input$btn_open_upload, {
-      output$modal_sm_title <- renderUI(tags$h5(class = "modal-title", tr("settings.upload_csv")))
-      output$modal_sm_body <- renderUI(tagList(
-        tags$div(id = ns("csv_file_modal_pond_host")),
-        fileInput(ns("csv_file_modal"), label = NULL, accept = c(".csv"))
-      ))
       toggle_glass_modal(session, "main_modal_sm", "show")
+      clear_pending()   # skedari i një hapjeje të mëparshme, kur modali u mbyll me X
     }, ignoreInit = TRUE)
 
-    observeEvent(input$csv_file_modal, {
-      up <- input$csv_file_modal
-      req(up$datapath, up$name)
+    output$csv_glance <- renderUI({
+      g <- glance()
+      req(g)
+      csv_glance_ui(g, ns("csv_glance_remove"))
+    })
 
-      if (tolower(tools::file_ext(up$name)) != "csv") {
-        notify(tr("ds.only_csv"), "error", 6)
-        return()
-      }
-
-      uploaded_tmp_path(up$datapath)
-      uploaded_tmp_name(up$name)
-
-      d <- tryCatch(busy("ds.reading", read_data_safe(up$datapath, up$name)), error = function(e) {
+    # FilePond-i njofton kur skedari ka mbërritur te pritja; pamja lexon vetëm fillimin (V-33).
+    observeEvent(input$csv_uploaded, {
+      f <- csv_stage$files[[input$csv_uploaded]]
+      req(f)
+      g <- tryCatch(csv_glance(f$path, f$name), error = function(e) {
         notify(tr("ds.read_error", msg = conditionMessage(e)), "error", 8)
         NULL
       })
-      if (is.null(d)) return()
-
-      pending_data(d)
-      notify(tr("ds.csv_loaded"))
+      if (is.null(g)) {
+        clear_pending()
+        return()
+      }
+      uploaded_tmp_path(f$path)
+      uploaded_tmp_name(f$name)
+      glance(g)
+      shinyjs::hide("csv_pond_host")   # V-34: mbetet vetëm pamja, me X-in e vet
     }, ignoreInit = TRUE)
+
+    # X-i te pamja: skedari hiqet dhe zona e ngarkimit rikthehet.
+    observeEvent(input$csv_glance_remove, clear_pending(), ignoreInit = TRUE)
 
     observeEvent(input$btn_cancel_upload, {
       toggle_glass_modal(session, "main_modal_sm", "hide")
@@ -278,8 +306,17 @@ mod_datasets_server <- function(id) {
     }, ignoreInit = TRUE)
 
     observeEvent(input$btn_proceed_upload, {
-      d <- pending_data()
-      req(d)
+      path <- uploaded_tmp_path()
+      req(path)
+      d <- pending_data()   # kur kthehesh nga konfigurimi, skedari është lexuar
+      if (is.null(d)) {
+        d <- tryCatch(busy("ds.reading", read_data_safe(path, uploaded_tmp_name())), error = function(e) {
+          notify(tr("ds.read_error", msg = conditionMessage(e)), "error", 8)
+          NULL
+        })
+        if (is.null(d)) return()
+        pending_data(d)
+      }
       toggle_glass_modal(session, "main_modal_sm", "hide")
       # Titulli bosh, si në ngarkimin e parë të versionit të vjetër.
       open_config_modal(d, "", busy("ds.detecting", resolve_dataset_defaults(d)))

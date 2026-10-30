@@ -118,7 +118,7 @@ file_reader <- function(path) {
 
 test_that("V-29: pritja e fotove: shto, refuzo, hiq, ruaj, anulo (Q22)", {
   with_clean_bg({
-    stg <- bg_staging(tempfile("stg_"))
+    stg <- stage_new(tempfile("stg_"))
     good <- png_bytes(tempfile(fileext = ".png"))
     fake <- tempfile(fileext = ".jpg"); writeLines("nuk jam foto", fake)
 
@@ -132,9 +132,9 @@ test_that("V-29: pritja e fotove: shto, refuzo, hiq, ruaj, anulo (Q22)", {
     expect_length(list.files(stg$dir), 2)          # të refuzuarat nuk mbeten në pritje
     expect_length(setdiff(list.files(IMAGES_DIR), "foto.png"), length(setdiff(list.files(IMAGES_DIR), "foto.png")))
 
-    expect_true(bg_stage_remove(stg, r2$id))
-    expect_false(bg_stage_remove(stg, r2$id))
-    expect_false(bg_stage_remove(stg, "../../x"))
+    expect_true(stage_remove(stg, r2$id))
+    expect_false(stage_remove(stg, r2$id))
+    expect_false(stage_remove(stg, "../../x"))
     expect_false(file.exists(file.path(IMAGES_DIR, "nova_foto.png")))   # para "Ruaj fotot", Galeria e paprekur
 
     res <- bg_stage_commit(stg)
@@ -144,14 +144,14 @@ test_that("V-29: pritja e fotove: shto, refuzo, hiq, ruaj, anulo (Q22)", {
     expect_length(list.files(stg$dir), 0)
 
     bg_stage_add(stg, file_reader(good), "e treta.png", "image/png")
-    bg_stage_discard(stg)                           # "Anulo"
+    stage_discard(stg)                           # "Anulo"
     expect_length(list.files(stg$dir), 0)
     expect_false(file.exists(file.path(IMAGES_DIR, "e_treta.png")))
   })
 })
 
 test_that("V-29: adresa e FilePond-it: process, revert dhe përgjigjet e gabimit", {
-  stg <- bg_staging(tempfile("stg_"))
+  stg <- stage_new(tempfile("stg_"))
   h <- bg_pond_handler(stg)
   good <- png_bytes(tempfile(fileext = ".png"))
   bytes <- readBin(good, "raw", file.info(good)$size)

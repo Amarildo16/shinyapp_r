@@ -78,10 +78,13 @@ FREQ_POLICY <- "auto"   # P-11: frekuenca
 SERIES_COLORS <- c(observed = "white", ets = "#0a84ff", arima = "#ff3b30")
 
 # ---- Ngarkimi i CSV-së (V-28) ---------------------------------------------------
-# Kufiri i njëjtë për Shiny-n (shiny.maxRequestSize, te app.R) dhe FilePond-in (APP_CONFIG).
+# Kufiri i njëjtë për Shiny-n (shiny.maxRequestSize, te app.R) dhe FilePond-in (data-max-mb).
 UPLOAD_MAX_MB <- 150
 # Kolona e kohës dhe seritë propozohen nga kaq rreshta të shpërndarë njëtrajtësisht (B-27).
 DETECT_SAMPLE_ROWS <- 5000L
+# Pamja e vogël pas ngarkimit (V-33): vetëm kaq rreshta dhe kolona, jo gjithë skedari.
+PREVIEW_ROWS <- 5L
+PREVIEW_COLS <- 8L
 
 # Horizonti maksimal i parashikimit dhe dritarja lëvizëse sipas hapit të kohës.
 H_CAP    <- c(day = 90L, week = 26L, month = 24L, quarter = 12L, year = 10L)

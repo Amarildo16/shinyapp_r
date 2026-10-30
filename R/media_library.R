@@ -144,92 +144,33 @@ migrate_legacy_images <- function(legacy_dir = LEGACY_IMAGES_DIR, user_dir = IMA
 # FilePond-i i dërgon fotot një nga një te adresa e sesionit (session$registerDataObj).
 # Ato presin te stg$dir (tempdir) derisa përdoruesi shtyp "Ruaj fotot"; "Anulo" dhe X-i
 # i çdo fotoje i hedhin vetëm nga pritja. Galeria nuk preket para "Ruaj fotot".
-bg_staging <- function(dir = tempfile("bg_staging_")) {
-  stg <- new.env(parent = emptyenv())
-  stg$dir <- dir
-  stg$files <- list()
-  stg$n <- 0L
-  stg
-}
-
-# read_chunk() kthen raw() bosh kur mbaron trupi i kërkesës. Kthen list(ok, id | msg).
+# Pritja dhe filtri janë te upload_staging.R, të përbashkëta me CSV-në (V-33).
 bg_stage_add <- function(stg, read_chunk, name, mime = NULL, max_bytes = BG_UPLOAD_MAX_BYTES) {
   name <- basename(name %||% "")
   ext <- tolower(tools::file_ext(name))
   if (!ext %in% c("jpg", "jpeg", "png", "webp")) return(list(ok = FALSE, msg = tr("bg.err_format")))
 
-  if (!dir.exists(stg$dir)) dir.create(stg$dir, recursive = TRUE)
-  stg$n <- stg$n + 1L
-  id <- sprintf("f%04d", stg$n)
-  path <- file.path(stg$dir, paste0(id, ".", ext))
+  w <- stage_write(stg, read_chunk, ext, max_bytes)
+  if (!isTRUE(w$ok)) return(list(ok = FALSE, msg = tr("bg.err_too_big")))
 
-  con <- file(path, "wb")
-  size <- 0
-  too_big <- FALSE
-  repeat {
-    buf <- read_chunk()
-    if (!length(buf)) break
-    size <- size + length(buf)
-    if (size > max_bytes) { too_big <- TRUE; break }
-    writeBin(buf, con)
-  }
-  close(con)
-  if (too_big) {
-    unlink(path)
-    return(list(ok = FALSE, msg = tr("bg.err_too_big")))
-  }
-
-  chk <- validate_bg_upload_file(path, name, mime = mime, size = size, max_bytes = max_bytes)
+  chk <- validate_bg_upload_file(w$path, name, mime = mime, size = w$size, max_bytes = max_bytes)
   if (!isTRUE(chk$ok)) {
-    unlink(path)
+    unlink(w$path)
     return(list(ok = FALSE, msg = chk$msg))
   }
-  stg$files[[id]] <- list(path = path, name = name, mime = mime, size = size)
-  list(ok = TRUE, id = id)
-}
-
-bg_stage_remove <- function(stg, id) {
-  if (!is.character(id) || length(id) != 1 || is.null(stg$files[[id]])) return(FALSE)
-  unlink(stg$files[[id]]$path)
-  stg$files[[id]] <- NULL
-  TRUE
-}
-
-bg_stage_discard <- function(stg) {
-  for (f in stg$files) unlink(f$path)
-  stg$files <- list()
-  invisible(TRUE)
+  stg$files[[w$id]] <- list(path = w$path, name = name, mime = mime, size = w$size)
+  list(ok = TRUE, id = w$id)
 }
 
 # "Ruaj fotot": çdo foto e pritjes kalon te dest_dir me bg_store_upload() (i njëjti kontroll
 # dhe emër si ngarkimi i vjetër), pastaj pritja zbrazet.
 bg_stage_commit <- function(stg, dest_dir = IMAGES_DIR) {
   res <- lapply(stg$files, function(f) bg_store_upload(f$path, f$name, mime = f$mime, size = f$size, dest_dir = dest_dir))
-  bg_stage_discard(stg)
+  stage_discard(stg)
   list(n = sum(vapply(res, function(r) isTRUE(r$ok), logical(1))),
        msgs = unlist(lapply(res, function(r) if (!isTRUE(r$ok)) r$msg)))
 }
 
-# Filtri i registerDataObj: X-Pond-Op "process" (trupi = fotoja) ose "revert" (trupi = id).
-# Një foto e refuzuar kthehet me 200 dhe X-Pond-Status "error" (mesazhi në trup): me një
-# status 4xx browser-i e shkruan si gabim te console, edhe pse është përgjigje e pritur.
 bg_pond_handler <- function(stg) {
-  text <- function(status, body, error = FALSE) {
-    httpResponse(status, "text/plain; charset=UTF-8", enc2utf8(body),
-                 headers = list(`X-Pond-Status` = if (error) "error" else "ok"))
-  }
-  function(data, req) {
-    if (!identical(req$REQUEST_METHOD, "POST")) return(text(405L, "POST", TRUE))
-    op <- req$HTTP_X_POND_OP %||% ""
-    if (identical(op, "process")) {
-      r <- bg_stage_add(stg, function() req$rook.input$read(2^16),
-                        utils::URLdecode(req$HTTP_X_FILE_NAME %||% ""), mime = req$HTTP_X_FILE_TYPE)
-      return(if (isTRUE(r$ok)) text(200L, r$id) else text(200L, r$msg, TRUE))
-    }
-    if (identical(op, "revert")) {
-      bg_stage_remove(stg, trimws(rawToChar(req$rook.input$read())))   # id e panjohur: s'ka çfarë të hiqet
-      return(text(200L, "ok"))
-    }
-    text(400L, "op", TRUE)
-  }
+  pond_handler(stg, function(read_chunk, name, mime) bg_stage_add(stg, read_chunk, name, mime = mime))
 }

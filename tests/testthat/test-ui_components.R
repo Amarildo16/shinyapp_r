@@ -126,17 +126,43 @@ test_that("V-31, V-32: pa ngjyra; unaza me X gjatë ngarkimit; riprovimi kur dë
 test_that("V-28: kufiri i ngarkimit dhe tekstet e FilePond-it për madhësinë", {
   expect_equal(UPLOAD_MAX_MB, 150)
   sq <- as.character(js_i18n())
-  expect_match(sq, 'window.APP_CONFIG = {"uploadMaxMB":150};', fixed = TRUE)
   expect_match(sq, '"pond.too_large":"Skedari është shumë i madh"', fixed = TRUE)
   expect_match(sq, '"pond.max_size":"Maksimumi: {filesize}"', fixed = TRUE)
   old <- current_lang(); on.exit(set_lang(old))
   set_lang("en")
   en <- as.character(js_i18n())
   expect_match(en, '"pond.too_large":"File is too large"', fixed = TRUE)
-  expect_match(en, '"pond.upload_failed":"Upload failed"', fixed = TRUE)
-  # B-25: proxy-t i shtohet tipi që pret FilePond-i, përveç `accept`-it të fileInput-it.
+  # B-25: `accept` i input-it përmban tipin që pret FilePond-i.
   js <- paste(readLines(file.path(APP_ROOT, "www", "js", "filepond-bridge.js"), warn = FALSE), collapse = "\n")
-  expect_match(js, "concat(cfg.acceptedFileTypes)", fixed = TRUE)
-  expect_match(js, "fi.status !== S.LOAD_ERROR", fixed = TRUE)
-  expect_false(grepl('pond.on("updatefiles", (fileItems)', js, fixed = TRUE))   # sinkronizimi i vjetër
+  expect_match(js, 'accept: ".csv,text/csv"', fixed = TRUE)
+  expect_match(js, 'acceptedFileTypes: ["text/csv"]', fixed = TRUE)
+})
+
+test_that("V-33: pamja e vogël: titulli, 5 × 8, madhësia dhe vlerat e sigurta", {
+  expect_equal(csv_title("albania_agriculture_timeseries_1998_2024.csv"), "Albania Agriculture Timeseries 1998 2024")
+  expect_equal(csv_title("çmimet-e_tregut.2024.csv"), "Çmimet E Tregut 2024")
+
+  head <- as.data.frame(matrix("v", 5, 8), stringsAsFactors = FALSE)
+  head[1, 1] <- "<b>x</b>"
+  head[2, 2] <- NA
+  g <- list(title = "T", rows = 2000000, cols = 12L, size = 120.6 * 1024^2, head = head)
+  html <- as.character(csv_glance_ui(g, "x-hiq"))
+  expect_match(html, 'id="x-hiq"', fixed = TRUE)                                # V-34: X-i te pamja
+  expect_match(html, "2 000 000 rreshta × 12 kolona · 120,6 MB", fixed = TRUE)
+  expect_match(html, "&lt;b&gt;x&lt;/b&gt;", fixed = TRUE)
+  expect_false(grepl(">NA<", html, fixed = TRUE))
+  expect_equal(lengths(regmatches(html, gregexpr("<tr>", html, fixed = TRUE))), 6L)
+  expect_equal(lengths(regmatches(html, gregexpr("<th>", html, fixed = TRUE))), 9L)   # numri + 8 kolona
+
+  g$rows <- 1; g$cols <- 1L; g$size <- 2048
+  expect_match(as.character(csv_glance_ui(g, "x-hiq")), "1 rresht × 1 kolonë · 2,0 KB", fixed = TRUE)
+  css <- paste(readLines(file.path(APP_ROOT, "www", "css", "modals.css"), warn = FALSE), collapse = "\n")
+  expect_match(css, "\\.csv-pond-host \\.filepond--root \\{[^}]*font-size: 16px;")
+  expect_false(grepl("(^|\\n)\\.filepond--panel-root", css, perl = TRUE))        # kutia e dytë (U-13)
+  for (f in c("excel.svg", "csv-file.svg")) {
+    svg <- paste(readLines(file.path(APP_ROOT, "www", "icons", f), warn = FALSE), collapse = "")
+    hex <- substring(unique(regmatches(svg, gregexpr("#[0-9a-fA-F]{3,6}", svg))[[1]]), 2)
+    hex <- ifelse(nchar(hex) == 3, gsub("(.)", "\\1\\1", hex), hex)
+    expect_true(all(substr(hex, 1, 2) == substr(hex, 3, 4) & substr(hex, 3, 4) == substr(hex, 5, 6)), info = f)   # V-34: pa ngjyra
+  }
 })
