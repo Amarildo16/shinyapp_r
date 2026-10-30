@@ -95,7 +95,7 @@ sidebar_footer <- function() {
     tags$div(
       class = "footer-social",
       social("https://instagram.com/amarildo__alla", "Instagram", "ri-instagram-line"),
-      social("https://al.linkedin.com/in/amarildo-alla-49a793316", "LinkedIn", "ri-linkedin-box-line"),
+      social("https://al.linkedin.com/in/amarildo-alla", "LinkedIn", "ri-linkedin-box-line"),
       social("https://github.com/Amarildo16", "GitHub", "ri-github-line")
     )
   )
