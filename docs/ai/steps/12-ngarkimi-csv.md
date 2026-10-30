@@ -1,6 +1,6 @@
 # Faza 12 — Ngarkimi i CSV-së dhe pamja e vogël
 
-Statusi: **gati, pa commit** (2026-10-30, V-33; provat te STATUS "Faza 12 — rezultati"). Problemet: U-13 (pjesa e CSV-së), B-25, B-26 (rruga e tyre zëvendësohet). Vendimet: V-29, V-32, V-33, V-34. Varet nga: 10, 11.
+Statusi: **commit `b32c558`** (2026-10-30, V-33, V-34); B-31 gati, pa commit (V-35; provat te STATUS "Faza 12 — rezultati"). Problemet: U-13 (pjesa e CSV-së), B-25, B-26 (rruga e tyre zëvendësohet), B-31. Vendimet: V-29, V-32, V-33, V-34, V-35. Varet nga: 10, 11.
 
 Kërkesa e përdoruesit (2026-10-30): modali i ngarkimit me një kuti të vetme (jo dy kornizat që mbivendosen) dhe ikonë Excel-i në vend të resë; pas zgjedhjes së skedarit, ngarkimi si te fotot, me ikonë skedari Excel-i si preview; pas ngarkimit një pamje e vogël si shembulli i ChatGPT-së, vetëm rreth 5 rreshta × 8 kolona; "Vazhdo" dhe modali i dytë nuk ndryshojnë.
 

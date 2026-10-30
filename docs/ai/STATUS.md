@@ -545,7 +545,7 @@ Nuk u provua: në RStudio nga përdoruesi; heqja e skedarit nga pritja pas "Anul
 
 Shënim: `styleItemPanelAspectRatio` kërkon tekst dhe FilePond-i e mban lartësinë e vjetër kur hiqet, ndaj rreshti i ngushtë caktohet me raport (56 px), jo me `null`.
 
-Commit: pa commit.
+Commit: `b32c558` (përdoruesi).
 
 ### Bardh e zi dhe X-i te pamja (V-34, 2026-10-30)
 
@@ -566,7 +566,20 @@ Pas provës së përdoruesit: ikonat bardh e zi; pas ngarkimit zona fshihet (`sh
 | 375 px | Gjerësia e dokumentit 375 px |
 | Console | Vetëm ndërprerja e qëllimshme e provës së dështimit dhe 404 e B-31 |
 
-Pas provave u gjet shkaku i B-31 (bug i Fazës 6, jo i kësaj faze); nuk u rregullua, pret vendim.
+Pas provave u gjet shkaku i B-31 (bug i Fazës 6, jo i kësaj faze).
+
+Commit: `b32c558` (përdoruesi).
+
+### Karta bosh te Galeria (B-31, V-35, 2026-10-30)
+
+`bg_user_src()` me `recycle0 = TRUE`: pa foto të ngarkuara nuk del më rreshti fantazmë `user-images/`. Një test i ri te `test-media_library.R`.
+
+| Kontrolli | Rezultati (ekzekutuar nga Claude, 2026-10-30) |
+|---|---|
+| Q29 | 24 skedarë, 154 teste, 1 261 pritje, 0 dështime, 0 warning |
+| Q30 | 24/24, 0 FAIL |
+| Galeria me `storage/images/` bosh (kopje) | 12 karta, vetëm fotot default (para: 13); asnjë përgjigje 404, console 0 |
+| Pas 2 fotove | 14 karta, foto1 dhe foto2 në krye; console 0 |
 
 Commit: pa commit.
 
@@ -579,7 +592,7 @@ Commit: pa commit.
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është e përfunduar** (`c4c8141`, V-24, T-28; V-25 `651e510`, `9064473`). **Faza 9 (modalet) është e përfunduar** (`31611de`, V-26; `ecdfc99`, V-27). **Faza 10 është e përfunduar** (`b87a9cd`, V-28). **Faza 11 (ngarkimi i fotove) u bë commit** (`6b01bd8`, V-29); preview `57ec96b` (V-30); pamja pa ngjyra `5802636` (V-31); unaza e ngarkimit `4216592` (V-32). **Faza 12 (ngarkimi i CSV-së dhe pamja e vogël) është gati, pa commit** (V-33, V-34). B-31 pret vendim. Hapi i radhës, me vendim më vete: performanca (P-13) dhe U-11. Mbeten: provimi në RStudio dhe Q28 nga përdoruesi. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është e përfunduar** (`c4c8141`, V-24, T-28; V-25 `651e510`, `9064473`). **Faza 9 (modalet) është e përfunduar** (`31611de`, V-26; `ecdfc99`, V-27). **Faza 10 është e përfunduar** (`b87a9cd`, V-28). **Faza 11 (ngarkimi i fotove) u bë commit** (`6b01bd8`, V-29); preview `57ec96b` (V-30); pamja pa ngjyra `5802636` (V-31); unaza e ngarkimit `4216592` (V-32). **Faza 12 (ngarkimi i CSV-së dhe pamja e vogël) u bë commit** (`b32c558`, V-33, V-34); rregullimi i B-31 (V-35) është gati, pa commit. Hapi i radhës, me vendim më vete: performanca (P-13) dhe U-11. Mbeten: provimi në RStudio dhe Q28 nga përdoruesi. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
 
 ## Regjistri i dorëzesave
 

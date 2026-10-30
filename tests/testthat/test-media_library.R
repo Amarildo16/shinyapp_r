@@ -37,6 +37,14 @@ test_that("bg_image_list: defaultet e kodit dhe fotot e ngarkuara, sipas emrit",
   expect_length(imgs, 14)
 })
 
+test_that("B-31: pa foto të ngarkuara, vetëm 12 fotot default", {
+  imgs <- bg_image_list(file.path(APP_ROOT, "www", "images"), new_dir())
+  expect_length(imgs, 12)
+  expect_false("user-images/" %in% imgs)
+  expect_length(bg_user_src(character(0)), 0)
+  expect_equal(bg_user_src("a.png"), "user-images/a.png")
+})
+
 test_that("resolve_user_image_path lejon vetëm storage/images/ dhe jo defaultet", {
   user <- new_dir()
   r <- resolve_user_image_path("user-images/x.png", user)

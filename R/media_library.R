@@ -6,7 +6,8 @@
 BG_IMAGE_PATTERN     <- "\\.(png|jpe?g|webp|gif|svg)$"
 BG_UPLOAD_MAX_BYTES  <- 5 * 1024^2
 
-bg_user_src <- function(name) paste0(USER_IMAGES_PREFIX, "/", name)
+# recycle0: pa foto, asnjë rresht (B-31); paste0() do të jepte "user-images/".
+bg_user_src <- function(name) paste0(USER_IMAGES_PREFIX, "/", name, recycle0 = TRUE)
 
 bg_is_default <- function(src) {
   is.character(src) && length(src) == 1 && !is.na(src) &&
