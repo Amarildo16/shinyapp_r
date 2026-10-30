@@ -9,8 +9,7 @@ APP_JS  <- c("preloader", "filepond-bridge", "modals", "color-picker")
 # Tekstet që përdor JS-ja (FilePond), sipas gjuhës (R26, V-23 b), dhe kufiri i
 # ngarkimit (V-28 a) te window.APP_CONFIG.
 js_i18n <- function() {
-  keys <- c("pond.drop", "pond.browse", "pond.type_not_allowed", "pond.only_csv", "pond.only_images",
-            "pond.too_large", "pond.max_size", "pond.upload_failed")
+  keys <- grep("^pond\\.", names(translations()[[DEFAULT_LANG]]), value = TRUE)   # të gjitha tekstet "pond.*"
   tags$script(HTML(paste0("window.APP_I18N = ",
                           jsonlite::toJSON(setNames(lapply(keys, tr), keys), auto_unbox = TRUE), ";\n",
                           "window.APP_CONFIG = ",

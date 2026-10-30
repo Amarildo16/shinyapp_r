@@ -429,6 +429,36 @@ B-25, B-26, B-27 (V-28). Gjetje të reja, pa ndryshim: P-13 (`prepare_series` i 
 
 Shënim: R-ja e Shiny-t është një proces i vetëm; ndërsa përgatit 2 000 000 rreshta (P-13), app-i nuk u përgjigjet sesioneve të tjera.
 
+Commit: `b87a9cd` (përdoruesi).
+
+## Faza 11 — rezultati (2026-10-29, Claude Code)
+
+B-28, B-29, U-12 dhe pjesa e fotove e U-13 (V-29). Prototipi i ngarkimit të drejtpërdrejtë u provua para ndryshimit të Galerisë (app i veçantë në scratchpad): 3 foto paralelisht me 39 ngjarje progresi, `revert` që heq foton nga serveri, ndalimi gjatë ngarkimit që nuk lë asgjë te serveri (httpuv nuk e thërret filtrin për një trup të paplotë).
+
+| Ndryshimi | Skedari |
+|---|---|
+| `bg_staging()`, `bg_stage_add()`, `bg_stage_remove()`, `bg_stage_discard()`, `bg_stage_commit()`, `bg_pond_handler()` | `R/media_library.R` |
+| `registerDataObj("bg_pond")`, pritja e sesionit (zbrazet në hapje, "Anulo", mbarimin e sesionit), butonat "Ruaj fotot"/"Anulo" te skeda Ngarko, host-i me `data-process-url` / `data-max-mb`; u hoq `fileInput("media_upload")` dhe vëzhguesi që ruante menjëherë | `R/mod_background.R` |
+| `initServerPond()` (process/revert me XHR, progres, ndalim), `pond_server_clear`, tekstet e FilePond-it | `www/js/filepond-bridge.js` |
+| `js_i18n()` merr të gjitha tekstet `pond.*` | `R/ui_components.R` |
+| Skedat si çelës, pa vijë | `www/css/modals.css` |
+| Zona e fotove, rrjeta 3/2/1, ngjyrat sipas gjendjes | `www/css/background.css` |
+| 16 tekste të reja (282 → 298 çelësa) | `i18n/sq.json`, `i18n/en.json` |
+| 3 teste në vend të testit të vjetër të `media_upload` | `tests/testthat/test-mod_background.R` |
+
+| Kontrolli | Rezultati (ekzekutuar nga Claude, 2026-10-29) |
+|---|---|
+| Q29 | 24 skedarë, 147 teste, 1 144 pritje, 0 dështime, 0 warning |
+| Q30 | 24/24, 0 warning |
+| Butonat | Galeria: "Mbyll", "Përdor foton"; Ngarko: "Anulo", "Ruaj fotot" |
+| Ngarkimi | 5 skedarë njëherësh: 3 foto të ngarkuara (jeshile), `jo_foto.png` (1 MB tekst) "Përmbajtja e file-it nuk duket si foto e vlefshme.", `e_madhe.png` (6,5 MB) "Skedari është shumë i madh – Maksimumi: 5 MB" |
+| X-i | Foto e ngarkuar hiqet nga lista dhe nga pritja |
+| Ruaj fotot / Anulo | "U ngarkuan 3 foto", kalim te Galeria, lista bosh; "Anulo": Galeria 18 → 18, asnjë foto e re te `storage/images/` |
+| Pamja | Skedat pa vijë (0 px), titulli i zonës 20 px; 375 px: një kolonë, pa lëvizje anash |
+| Console, log-u i R-së | 0 në sesionin e fundit (një 422 në kopjen e parë u zgjidh: refuzimi kthehet me 200 + `X-Pond-Status: error`); log-u bosh |
+
+Shënim: kur procesi i R-së ndalet me forcë (si kopjet e provës), dosja e pritjes mbetet te `tempdir()` sepse `onSessionEnded` nuk ekzekutohet; në një mbyllje normale ajo zbrazet.
+
 Commit: pa commit.
 
 ## Kufizime dhe shënime
@@ -440,7 +470,7 @@ Commit: pa commit.
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është e përfunduar** (`c4c8141`, V-24, T-28; V-25 `651e510`, `9064473`). **Faza 9 (modalet) është e përfunduar** (`31611de`, V-26; `ecdfc99`, V-27). **Faza 10 (ngarkimi i CSV-ve të mëdha) është gati, pa commit** (V-28). Hapat e diskutuar më tej: pamja e shkurtër e CSV-së te modali i ngarkimit; performanca (P-13); kohët me orë (U-11). Radha e mëtejshme e diskutuar: FilePond dhe CSV-të e mëdha, pastaj pamja e shkurtër e CSV-së (secila me vendim më vete). Mbeten: provimi në RStudio dhe Q28 nga përdoruesi. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është e përfunduar** (`c4c8141`, V-24, T-28; V-25 `651e510`, `9064473`). **Faza 9 (modalet) është e përfunduar** (`31611de`, V-26; `ecdfc99`, V-27). **Faza 10 është e përfunduar** (`b87a9cd`, V-28). **Faza 11 (ngarkimi i fotove) është gati, pa commit** (V-29). Hapi i radhës (V-29 d): Faza 12, ngarkimi i CSV-së me të njëjtën rrugë dhe pamja e shkurtër (vetëm ikona "zgjero"); pastaj performanca (P-13) dhe U-11. Radha e mëtejshme e diskutuar: FilePond dhe CSV-të e mëdha, pastaj pamja e shkurtër e CSV-së (secila me vendim më vete). Mbeten: provimi në RStudio dhe Q28 nga përdoruesi. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
 
 ## Regjistri i dorëzesave
 

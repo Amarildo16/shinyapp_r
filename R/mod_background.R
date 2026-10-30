@@ -108,7 +108,12 @@ mod_background_modals_ui <- function(id) {
       ns("modal_fs"), ns("modal_fs_title"), ns("modal_fs_body"),
       tagList(
         actionButton(ns("btn_close"), tr("common.close"), class = "btn btn-light"),
-        actionButton(ns("btn_use"), tr("bg.use_photo"), class = "btn btn-success")
+        actionButton(ns("btn_use"), tr("bg.use_photo"), class = "btn btn-success"),
+        # V-29: te skeda Ngarko, në vend të dy butonave të mësipërm.
+        shinyjs::hidden(
+          actionButton(ns("btn_cancel_upload"), tr("common.cancel"), class = "btn btn-light"),
+          actionButton(ns("btn_save_upload"), tr("bg.save_photos"), class = "btn btn-success")
+        )
       ),
       size = "fs"
     ),
@@ -294,10 +299,18 @@ mod_background_server <- function(id) {
     media_selected    <- reactiveVal(NULL)
     media_refresh     <- reactiveVal(0L)
     pending_delete    <- reactiveVal(NULL)
-    processed_uploads <- reactiveVal(character(0))
+
+    # V-29: fotot e ngarkuara presin këtu derisa "Ruaj fotot"; FilePond-i i dërgon te pond_url.
+    staging  <- bg_staging()
+    pond_url <- session$registerDataObj("bg_pond", NULL, bg_pond_handler(staging))
+    session$onSessionEnded(function() {
+      bg_stage_discard(staging)
+      unlink(staging$dir, recursive = TRUE)
+    })
 
     # P-08: modalet hapen e mbyllen vetëm me toggle_glass_modal().
     open_library <- function(target, tabid = NULL) {
+      bg_stage_discard(staging)   # fotot e pa ruajtura të një hapjeje të mëparshme
       media_selected(NULL)
       ctx(list(type = "bg_picker", target = target, tabid = tabid))
       updateTabsetPanel(session, "media_tabs", selected = "library")
@@ -342,13 +355,9 @@ mod_background_server <- function(id) {
           value = "upload",
           tags$div(
             class = "bg-upload-fill",
-            tags$div(id = ns("media_upload_pond_host"), class = "bg-pond-host"),
-            fileInput(
-              ns("media_upload"),
-              label = NULL,
-              multiple = TRUE,
-              accept = c("image/png", "image/jpeg", "image/jpg", "image/webp")
-            )
+            tags$div(id = ns("media_pond_host"), class = "bg-pond-host",
+                     `data-process-url` = pond_url,
+                     `data-max-mb` = BG_UPLOAD_MAX_BYTES / 1024^2)
           )
         )
       )
@@ -486,38 +495,32 @@ mod_background_server <- function(id) {
     }, ignoreInit = TRUE)
 
     # ---- Ngarkimi (Q22, R19) ---------------------------------------------------------
-    observeEvent(input$media_upload, {
-      up <- input$media_upload
-      req(up)
-      if (!is.data.frame(up) || nrow(up) == 0) return()
+    # V-29: butonat e footer-it sipas skedës; "Ruaj fotot" dhe "Anulo" të çojnë te Galeria.
+    observeEvent(input$media_tabs, {
+      up <- identical(input$media_tabs, "upload")
+      for (b in c("btn_close", "btn_use")) shinyjs::toggle(b, condition = !up)
+      for (b in c("btn_cancel_upload", "btn_save_upload")) shinyjs::toggle(b, condition = up)
+    })
 
-      seen <- processed_uploads()
-      new_count <- 0L
-      for (i in seq_len(nrow(up))) {
-        dp <- up$datapath[i]
-        if (is.na(dp) || !nzchar(dp) || dp %in% seen) next
-        seen <- c(seen, dp)
+    back_to_library <- function() {
+      session$sendCustomMessage("pond_server_clear", list(hostId = ns("media_pond_host")))
+      updateTabsetPanel(session, "media_tabs", selected = "library")
+    }
 
-        orig_name <- up$name[i] %||% paste0("image_", i)
-        r <- bg_store_upload(dp, orig_name,
-                             mime = if ("type" %in% names(up)) up$type[i] else NULL,
-                             size = if ("size" %in% names(up)) up$size[i] else NULL)
-        if (isTRUE(r$ok)) {
-          new_count <- new_count + 1L
-        } else if (!is.null(r$msg)) {
-          notify(r$msg, "error", 6)
-        }
-      }
-      processed_uploads(seen)
-
-      if (new_count > 0) {
+    observeEvent(input$btn_save_upload, {
+      r <- bg_stage_commit(staging)
+      for (m in r$msgs) notify(m, "error", 6)
+      if (r$n > 0) {
         media_refresh(media_refresh() + 1L)
         media_selected(NULL)
-        session$sendCustomMessage("pond_clear", list(inputId = ns("media_upload")))
-        processed_uploads(character(0))
-        updateTabsetPanel(session, "media_tabs", selected = "library")
-        notify(tr("bg.uploaded", n = new_count))
+        notify(tr("bg.uploaded", n = r$n))
       }
+      back_to_library()
+    }, ignoreInit = TRUE)
+
+    observeEvent(input$btn_cancel_upload, {
+      bg_stage_discard(staging)
+      back_to_library()
     }, ignoreInit = TRUE)
 
     observeEvent(input$btn_use, {

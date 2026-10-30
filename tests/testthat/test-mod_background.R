@@ -103,18 +103,105 @@ test_that("fshirja: fotoja në përdorim bllokohet, e lira fshihet, defaultet jo
   })
 })
 
-test_that("ngarkimi: fotot e vlefshme te storage/images, të pavlefshmet refuzohen (Q22)", {
+# Kërkesa e FilePond-it te adresa e registerDataObj (V-29), pa server HTTP.
+pond_req <- function(op, body = raw(), name = NULL, type = NULL, method = "POST") {
+  done <- FALSE
+  list(REQUEST_METHOD = method, HTTP_X_POND_OP = op,
+       HTTP_X_FILE_NAME = if (!is.null(name)) utils::URLencode(name, reserved = TRUE),
+       HTTP_X_FILE_TYPE = type,
+       rook.input = list(read = function(n = -1L) { if (done) return(raw()); done <<- TRUE; body }))
+}
+file_reader <- function(path) {
+  x <- readBin(path, "raw", file.info(path)$size); done <- FALSE
+  function() { if (done) return(raw()); done <<- TRUE; x }
+}
+
+test_that("V-29: pritja e fotove: shto, refuzo, hiq, ruaj, anulo (Q22)", {
   with_clean_bg({
+    stg <- bg_staging(tempfile("stg_"))
     good <- png_bytes(tempfile(fileext = ".png"))
     fake <- tempfile(fileext = ".jpg"); writeLines("nuk jam foto", fake)
+
+    r1 <- bg_stage_add(stg, file_reader(good), "nova foto.png", "image/png")
+    expect_true(r1$ok); expect_equal(r1$id, "f0001")
+    r2 <- bg_stage_add(stg, file_reader(good), "e dyta.png", "image/png")
+    expect_true(r2$ok)
+    expect_equal(bg_stage_add(stg, file_reader(fake), "rreme.jpg", "image/jpeg")$msg, tr("bg.err_content"))
+    expect_equal(bg_stage_add(stg, file_reader(good), "shenime.txt")$msg, tr("bg.err_format"))
+    expect_equal(bg_stage_add(stg, file_reader(good), "e madhe.png", "image/png", max_bytes = 10)$msg, tr("bg.err_too_big"))
+    expect_length(list.files(stg$dir), 2)          # të refuzuarat nuk mbeten në pritje
+    expect_length(setdiff(list.files(IMAGES_DIR), "foto.png"), length(setdiff(list.files(IMAGES_DIR), "foto.png")))
+
+    expect_true(bg_stage_remove(stg, r2$id))
+    expect_false(bg_stage_remove(stg, r2$id))
+    expect_false(bg_stage_remove(stg, "../../x"))
+    expect_false(file.exists(file.path(IMAGES_DIR, "nova_foto.png")))   # para "Ruaj fotot", Galeria e paprekur
+
+    res <- bg_stage_commit(stg)
+    expect_equal(res$n, 1L)
+    expect_true(file.exists(file.path(IMAGES_DIR, "nova_foto.png")))
+    expect_false(file.exists(file.path(IMAGES_DIR, "e_dyta.png")))
+    expect_length(list.files(stg$dir), 0)
+
+    bg_stage_add(stg, file_reader(good), "e treta.png", "image/png")
+    bg_stage_discard(stg)                           # "Anulo"
+    expect_length(list.files(stg$dir), 0)
+    expect_false(file.exists(file.path(IMAGES_DIR, "e_treta.png")))
+  })
+})
+
+test_that("V-29: adresa e FilePond-it: process, revert dhe përgjigjet e gabimit", {
+  stg <- bg_staging(tempfile("stg_"))
+  h <- bg_pond_handler(stg)
+  good <- png_bytes(tempfile(fileext = ".png"))
+  bytes <- readBin(good, "raw", file.info(good)$size)
+
+  ok <- h(NULL, pond_req("process", bytes, "foto ime.png", "image/png"))
+  expect_equal(ok$status, 200L)
+  id <- ok$content
+  expect_equal(stg$files[[id]]$name, "foto ime.png")
+  expect_equal(file.info(stg$files[[id]]$path)$size, length(bytes))
+
+  expect_equal(ok$headers$`X-Pond-Status`, "ok")
+  bad <- h(NULL, pond_req("process", charToRaw("tekst"), "x.png", "image/png"))
+  expect_equal(bad$status, 200L)                       # 200 + shenja e gabimit: pa gabim te console
+  expect_equal(bad$headers$`X-Pond-Status`, "error")
+  expect_equal(bad$content, enc2utf8(tr("bg.err_content")))
+
+  expect_equal(h(NULL, pond_req("revert", charToRaw(id)))$status, 200L)
+  expect_length(stg$files, 0)
+  expect_equal(h(NULL, pond_req("revert", charToRaw(id)))$status, 200L)   # e dyta: s'ka çfarë të hiqet
+  expect_equal(h(NULL, pond_req("process", bytes, "a.png", method = "GET"))$status, 405L)
+  expect_equal(h(NULL, pond_req("tjeter"))$status, 400L)
+  expect_length(stg$files, 0)
+})
+
+test_that("V-29: moduli: adresa te UI-ja, \"Ruaj fotot\" dhe \"Anulo\" (B-28)", {
+  with_clean_bg({
+    good <- png_bytes(tempfile(fileext = ".png"))
+    bytes <- readBin(good, "raw", file.info(good)$size)
     testServer(mod_background_server, {
       session$flushReact()
-      session$setInputs(media_upload = data.frame(
-        name = c("nova foto.png", "rreme.jpg"), size = c(28, 13), type = c("image/png", "image/jpeg"),
-        datapath = c(good, fake), stringsAsFactors = FALSE))
+      session$setInputs(edit_global_btn = 1)
+      html <- as.character(output$modal_fs_body$html)
+      expect_match(html, 'id="[a-z0-9]+-media_pond_host"')
+      # MockShinySession$registerDataObj() kthen NULL: adresa e vërtetë provohet në browser.
+      expect_match(html, 'data-max-mb="5"', fixed = TRUE)
+      expect_false(grepl("media_upload", html, fixed = TRUE))
+
+      h <- bg_pond_handler(staging)
+      for (nm in c("e para.png", "e dyta.png", "e treta.png")) h(NULL, pond_req("process", bytes, nm, "image/png"))
+      expect_length(staging$files, 3)                     # shumë foto njëherësh, pa u ruajtur ende
+      expect_false(file.exists(file.path(IMAGES_DIR, "e_para.png")))
+      session$setInputs(btn_save_upload = 1)
+      expect_true(all(file.exists(file.path(IMAGES_DIR, c("e_para.png", "e_dyta.png", "e_treta.png")))))
+      expect_length(staging$files, 0)
+
+      h(NULL, pond_req("process", bytes, "anuluar.png", "image/png"))
+      session$setInputs(btn_cancel_upload = 1)
+      expect_length(staging$files, 0)
+      expect_false(file.exists(file.path(IMAGES_DIR, "anuluar.png")))
     })
-    expect_true(file.exists(file.path(IMAGES_DIR, "nova_foto.png")))
-    expect_false(file.exists(file.path(IMAGES_DIR, "rreme.jpg")))
   })
 })
 

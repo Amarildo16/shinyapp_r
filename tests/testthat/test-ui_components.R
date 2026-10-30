@@ -110,5 +110,5 @@ test_that("V-28: kufiri i ngarkimit dhe tekstet e FilePond-it për madhësinë",
   js <- paste(readLines(file.path(APP_ROOT, "www", "js", "filepond-bridge.js"), warn = FALSE), collapse = "\n")
   expect_match(js, "concat(cfg.acceptedFileTypes)", fixed = TRUE)
   expect_match(js, "fi.status !== S.LOAD_ERROR", fixed = TRUE)
-  expect_false(grepl('pond.on("updatefiles"', js, fixed = TRUE))
+  expect_false(grepl('pond.on("updatefiles", (fileItems)', js, fixed = TRUE))   # sinkronizimi i vjetër
 })

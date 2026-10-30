@@ -254,9 +254,121 @@
         initWithRetry("datasets-csv_file_modal", 25);
     });
 
-    $(document).on("shown.bs.modal", "#datasets-main_modal_fs, #bg-modal_fs", function () {
-        initWithRetry("bg-media_upload", 25);
+    // ---- Fotot e Galerisë: FilePond-i i dërgon drejt e te serveri (V-29) ----------
+    // Host-i ka data-process-url (session$registerDataObj): POST me X-Pond-Op "process"
+    // (trupi = fotoja, përgjigjja = id) ose "revert" (trupi = id). Çdo foto ka progresin,
+    // ndalimin dhe heqjen e vet; ruajtja te Galeria bëhet nga serveri me "Ruaj fotot".
+    const serverPonds = new Map();   // hostId -> pond
+
+    function serverProcess(url) {
+        return (fieldName, file, metadata, load, error, progress, abort) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", url);
+            xhr.setRequestHeader("X-Pond-Op", "process");
+            xhr.setRequestHeader("X-File-Name", encodeURIComponent(file.name));
+            xhr.setRequestHeader("X-File-Type", file.type || "");
+            xhr.upload.onprogress = (e) => progress(e.lengthComputable, e.loaded, e.total);
+            xhr.onload = () => (xhr.status === 200 && xhr.getResponseHeader("X-Pond-Status") !== "error"
+                ? load(xhr.responseText)
+                : error(xhr.responseText || T["pond.error"]));
+            xhr.onerror = () => error(T["pond.error"]);
+            xhr.send(file);
+            return { abort: () => { xhr.abort(); abort(); } };
+        };
+    }
+
+    function serverRevert(url) {
+        return (id, load, error) => {
+            fetch(url, { method: "POST", headers: { "X-Pond-Op": "revert" }, body: id })
+                .then((r) => (r.ok ? load() : error("")))
+                .catch(() => error(""));
+        };
+    }
+
+    function initServerPond(hostId) {
+        const host = document.getElementById(hostId);
+        if (!host || !window.FilePond) return false;
+        const old = serverPonds.get(hostId);
+        if (old && document.body.contains(old.element)) return true;
+        if (old) { try { old.destroy(); } catch (e) { } serverPonds.delete(hostId); }
+
+        const url = host.getAttribute("data-process-url");
+        if (!url) return false;
+        const maxMB = host.getAttribute("data-max-mb") || "5";
+        const input = document.createElement("input");
+        input.type = "file";
+        input.multiple = true;
+        input.accept = "image/jpeg,image/png,image/webp";
+        host.innerHTML = "";
+        host.appendChild(input);
+
+        if (window.FilePondPluginFileValidateType) FilePond.registerPlugin(FilePondPluginFileValidateType);
+        if (window.FilePondPluginFileValidateSize) FilePond.registerPlugin(FilePondPluginFileValidateSize);
+
+        const cfg = detectConfig({ getAttribute: () => "image" }, "bg-images");
+        const pond = FilePond.create(input, {
+            allowMultiple: true,
+            maxFiles: 50,
+            maxParallelUploads: 3,
+            instantUpload: true,
+            allowRevert: true,
+            server: { process: serverProcess(url), revert: serverRevert(url), load: null, fetch: null, restore: null },
+
+            acceptedFileTypes: cfg.acceptedFileTypes,
+            fileValidateTypeDetectType: cfg.detectMime,
+            labelFileTypeNotAllowed: T["pond.type_not_allowed"],
+            fileValidateTypeLabelExpectedTypes: cfg.expectedLabel,
+            maxFileSize: maxMB + "MB",
+            labelMaxFileSizeExceeded: T["pond.too_large"],
+            labelMaxFileSize: T["pond.max_size"],
+
+            labelIdle: `
+                <div class="pond-idle pond-idle--photos">
+                    <i class="ri-image-add-line" aria-hidden="true"></i>
+                    <div class="pond-title">${T["pond.img_title"]}</div>
+                    <div class="pond-sub"><span class="filepond--label-action">${T["pond.img_browse"]}</span></div>
+                    <div class="pond-hint">${String(T["pond.img_hint"]).replace("{mb}", maxMB)}</div>
+                </div>
+            `,
+            labelFileLoading: T["pond.loading"],
+            labelFileProcessing: T["pond.processing"],
+            labelFileProcessingComplete: T["pond.complete"],
+            labelFileProcessingAborted: T["pond.aborted"],
+            labelFileProcessingError: (err) => (err && err.body) || T["pond.error"],
+            labelTapToCancel: T["pond.tap_cancel"],
+            labelTapToRetry: T["pond.tap_retry"],
+            labelTapToUndo: T["pond.tap_undo"],
+            labelButtonRemoveItem: T["pond.btn_remove"],
+            labelButtonAbortItemProcessing: T["pond.btn_abort"],
+            labelButtonUndoItemProcessing: T["pond.btn_undo"],
+            labelButtonRetryItemProcessing: T["pond.btn_retry"],
+            credits: false
+        });
+        // Kur ka foto, zona e lëshimit zvogëlohet dhe lista shfaqet si rrjetë (CSS: .has-files).
+        pond.on("updatefiles", (items) => host.classList.toggle("has-files", items.length > 0));
+        serverPonds.set(hostId, pond);
+        return true;
+    }
+
+    function initServerPondWithRetry(hostId, tries) {
+        if (initServerPond(hostId) || tries <= 0) return;
+        setTimeout(() => initServerPondWithRetry(hostId, tries - 1), 120);
+    }
+
+    $(document).on("shown.bs.modal", "#bg-modal_fs", function () {
+        initServerPondWithRetry("bg-media_pond_host", 25);
     });
+    $(document).on("shown.bs.tab", "#bg-modal_fs a[data-toggle='tab']", function () {
+        initServerPondWithRetry("bg-media_pond_host", 10);
+    });
+
+    // "Ruaj fotot" / "Anulo": serveri e ka zbrazur pritjen, ndaj lista hiqet pa revert.
+    if (window.Shiny) {
+        Shiny.addCustomMessageHandler("pond_server_clear", function (msg) {
+            const pond = msg && serverPonds.get(msg.hostId);
+            if (pond) { try { pond.removeFiles({ revert: false }); } catch (e) { } }
+        });
+    }
 
     $(document).on("shiny:bound", function () {
         initWithRetry("datasets-csv_file_modal", 10);
