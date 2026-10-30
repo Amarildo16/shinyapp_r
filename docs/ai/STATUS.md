@@ -487,6 +487,23 @@ Commit: `57ec96b` (përdoruesi).
 | Ndalimi | "Ndalo" te image1 dhe X te image2: të dyja hiqen nga lista; image5 mbaron, "Ndalo" zhduket; "Ruaj fotot": Galeria 15 → 16, te `storage/images/` vetëm image5.jpeg |
 | Console, log-u i R-së | Console 0; log-u: 2 warning "closing unused connection" nga 2 ndalimet (B-30, nga httpuv, të padëmshme) |
 
+Commit: `5802636` (përdoruesi).
+
+### Unaza e ngarkimit (V-32, 2026-10-30)
+
+`filepond-bridge.js`: `.pond-overlay` me unazë (`--p`, `processfileprogress`), X në qendër dhe etiketë; shfaqet që kur shtohet fotoja dhe pas riprovimit, ikën te `processfile`; `styleButtonRemoveItemPosition: "right"`. `background.css`: treguesit e FilePond-it, butoni i tij i ndalimit dhe teksti lart fshihen gjatë ngarkimit; riprovimi 60 px në mes; mesazhi i gabimit poshtë tij. U hoq butoni "Ndalo" dhe rrethi i V-31.
+
+| Kontrolli | Rezultati (ekzekutuar nga Claude, 2026-10-30) |
+|---|---|
+| Q29 | 24 skedarë, 149 teste, 1 162 pritje, 0 dështime, 0 warning |
+| Q30 | 24/24, 0 warning |
+| Gjatë ngarkimit (rrjet 30 KB/s, 1900 px) | Një unazë për foto, "Duke u ngarkuar… 73%"; 0 butona në qoshe, 0 tregues të FilePond-it |
+| X-i në unazë | Ndal foton që ngarkohet dhe heq atë në radhë; të dyja dalin nga lista |
+| Mbarimi | Unaza ikën, X-i del në qoshe (`revert`, djathtas) |
+| Dështimi | Shigjeta 60 px në mes, X në qoshe; riprovimi rikthen unazën; X-i e heq nga lista; "Ruaj fotot": Galeria 15 → 17 |
+| 375 px | Një kolonë, gjerësia e dokumentit 375 px; mesazhi i gjatë brenda kartelës |
+| Console, log-u i R-së | Console 0; log-u: një warning nga ndalimi (B-30) |
+
 Commit: pa commit.
 
 ## Kufizime dhe shënime
@@ -498,7 +515,7 @@ Commit: pa commit.
 
 ## Pika e vazhdimit
 
-**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është e përfunduar** (`c4c8141`, V-24, T-28; V-25 `651e510`, `9064473`). **Faza 9 (modalet) është e përfunduar** (`31611de`, V-26; `ecdfc99`, V-27). **Faza 10 është e përfunduar** (`b87a9cd`, V-28). **Faza 11 (ngarkimi i fotove) u bë commit** (`6b01bd8`, V-29); preview `57ec96b` (V-30); pamja pa ngjyra dhe rrethi në mes (V-31) gati, pa commit. Hapi i radhës (V-29 d): Faza 12, ngarkimi i CSV-së me të njëjtën rrugë dhe pamja e shkurtër (vetëm ikona "zgjero"); pastaj performanca (P-13) dhe U-11. Radha e mëtejshme e diskutuar: FilePond dhe CSV-të e mëdha, pastaj pamja e shkurtër e CSV-së (secila me vendim më vete). Mbeten: provimi në RStudio dhe Q28 nga përdoruesi. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
+**Fazat 0–3 janë të përfunduara** (`531bc0c`, `517a1ae`, `069c8fc`, `7ef2eed`, `c1c7048`, `5daa8fc`). **Faza 4 është e përfunduar** (`6dacb23`, `bbe7a69`). **Faza 5 është e përfunduar** (2026-10-29): bazat `7ba9afb` (B-17 me V-18), `mod_overview` `0724fcb`, `mod_eda_ts` `ffd8e99`, `mod_eda_rel` `e47e4e2`, `mod_stationarity` `33d175a`, V-20 `3dded11`, `mod_modeling` `ac84f0a`; `mod_forecast` + fshirja e `legacy_server_plots.R` `3bfdedc` (V-21, T-25). **Faza 6 është e përfunduar** (`9d6dceb`, V-22, T-26). **Faza 7 është e përfunduar** (`16c0acb`, V-23, T-27). **Faza 8 është e përfunduar** (`c4c8141`, V-24, T-28; V-25 `651e510`, `9064473`). **Faza 9 (modalet) është e përfunduar** (`31611de`, V-26; `ecdfc99`, V-27). **Faza 10 është e përfunduar** (`b87a9cd`, V-28). **Faza 11 (ngarkimi i fotove) u bë commit** (`6b01bd8`, V-29); preview `57ec96b` (V-30); pamja pa ngjyra `5802636` (V-31); unaza e ngarkimit (V-32) gati, pa commit. Hapi i radhës (V-29 d): Faza 12, ngarkimi i CSV-së me të njëjtën rrugë dhe pamja e shkurtër (vetëm ikona "zgjero"); pastaj performanca (P-13) dhe U-11. Radha e mëtejshme e diskutuar: FilePond dhe CSV-të e mëdha, pastaj pamja e shkurtër e CSV-së (secila me vendim më vete). Mbeten: provimi në RStudio dhe Q28 nga përdoruesi. B-14, B-18, B-20, B-22 të shtyra (V-24 c).
 
 ## Regjistri i dorëzesave
 

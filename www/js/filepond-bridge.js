@@ -313,6 +313,7 @@
             maxParallelUploads: 3,
             instantUpload: true,
             allowRevert: true,
+            styleButtonRemoveItemPosition: "right",   // V-32: kur dështon, X-i në qoshe
             allowImagePreview: true,      // V-30: fotoja shihet para "Ruaj fotot"
             imagePreviewHeight: 170,
             server: { process: serverProcess(url), revert: serverRevert(url), load: null, fetch: null, restore: null },
@@ -350,25 +351,48 @@
         // Kur ka foto, zona e lëshimit zvogëlohet dhe lista shfaqet si rrjetë (CSS: .has-files).
         pond.on("updatefiles", (items) => host.classList.toggle("has-files", items.length > 0));
 
-        // V-31: butoni "Ndalo" në mes të fotos gjatë ngarkimit. Një ngarkim i ndalur hiqet nga
-        // lista, si me "Ndalo" ashtu edhe me X-in djathtas.
+        // V-32: gjatë ngarkimit, një unazë me X në mes të fotos dhe përqindja poshtë saj. X-i
+        // ndal ngarkimin dhe e heq foton nga lista; unaza ikën kur ngarkimi mbaron ose dështon.
         const itemEl = (item) => host.querySelector(`.filepond--item[id$="-${item.id}"]`);
-        const dropCancel = (item) => {
-            const btn = item && itemEl(item) && itemEl(item).querySelector(".pond-cancel");
-            if (btn) btn.remove();
+        const progressText = (pct) => `${T["pond.processing"]}… ${pct}%`;
+        const setProgress = (el, value) => {
+            const pct = Math.round((value || 0) * 100);
+            el.style.setProperty("--p", pct);
+            el.querySelector(".pond-progress-label").textContent = progressText(pct);
         };
-        pond.on("processfilestart", (item) => {
+        const addOverlay = (item) => {
             const el = itemEl(item);
-            if (!el || el.querySelector(".pond-cancel")) return;
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "pond-cancel";
-            btn.textContent = T["pond.btn_abort"];
-            btn.addEventListener("click", (e) => { e.stopPropagation(); item.abortProcessing(); });
-            el.appendChild(btn);
+            if (!el || el.querySelector(".pond-overlay")) return;
+            const overlay = document.createElement("div");
+            overlay.className = "pond-overlay";
+            const ring = document.createElement("button");
+            ring.type = "button";
+            ring.className = "pond-ring";
+            ring.setAttribute("aria-label", T["pond.btn_abort"]);
+            ring.innerHTML = '<svg class="pond-ring-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+            ring.addEventListener("click", (e) => {
+                e.stopPropagation();
+                if (item.status === FilePond.FileStatus.PROCESSING) item.abortProcessing();
+                else pond.removeFile(item.id);
+            });
+            const label = document.createElement("div");
+            label.className = "pond-progress-label";
+            overlay.append(ring, label);
+            el.appendChild(overlay);
+            setProgress(overlay, 0);
+        };
+        const dropOverlay = (item) => {
+            const overlay = item && itemEl(item) && itemEl(item).querySelector(".pond-overlay");
+            if (overlay) overlay.remove();
+        };
+        pond.on("addfile", (err, item) => { if (!err) addOverlay(item); });
+        pond.on("processfilestart", addOverlay);    // edhe pas riprovimit
+        pond.on("processfileprogress", (item, value) => {
+            const overlay = itemEl(item) && itemEl(item).querySelector(".pond-overlay");
+            if (overlay) setProgress(overlay, value);
         });
-        pond.on("processfile", (err, item) => dropCancel(item));
-        pond.on("processfileabort", (item) => { dropCancel(item); pond.removeFile(item.id); });
+        pond.on("processfile", (err, item) => dropOverlay(item));
+        pond.on("processfileabort", (item) => { dropOverlay(item); pond.removeFile(item.id); });
         serverPonds.set(hostId, pond);
         return true;
     }

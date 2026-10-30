@@ -260,35 +260,14 @@ html.bg-none #bg-overlay {
     font-size: 12px;
 }
 
-/* Teksti mbi foto; X-i dhe "Ndalo" e tregojnë vetë veprimin, ndaj fshihen "kliko për ta
-   hequr" dhe "kliko për ta ndaluar". */
+/* Teksti mbi foto; X-i e tregon vetë heqjen, ndaj fshihet "kliko për ta hequr". */
 .bg-pond-host .filepond--file-info,
 .bg-pond-host .filepond--file-status {
     text-shadow: 0 1px 3px rgba(0, 0, 0, .75);
 }
 
-.bg-pond-host [data-filepond-item-state~="processing"] .filepond--file-status-sub,
 .bg-pond-host [data-filepond-item-state="processing-complete"] .filepond--file-status-sub {
     display: none;
-}
-
-/* FilePond-i nuk i jep ikonë butonit të ndalimit (rri brenda rrethit të progresit); këtu ai
-   rri djathtas, ndaj merr të njëjtin X si pas ngarkimit. */
-.bg-pond-host .filepond--action-abort-item-processing {
-    color: #fff;
-    background-color: rgba(0, 0, 0, .5);
-}
-
-.bg-pond-host .filepond--action-abort-item-processing::before {
-    content: "\00d7";
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1;
 }
 
 /* V-31: pa ngjyrë suksesi/dështimi; hija e errët mbi foto mbetet e njëjtë në çdo gjendje. */
@@ -297,38 +276,110 @@ html.bg-none #bg-overlay {
     color: rgba(40, 40, 40, .85);
 }
 
-/* V-31: gjatë ngarkimit, rrethi në mes të fotos dhe "Ndalo" poshtë tij; X-i mbetet djathtas. */
-.bg-pond-host .filepond--file .filepond--progress-indicator[data-align] {
-    left: calc(50% - 26px);
-    right: auto;
-    top: 44px;
-    width: 52px;
-    height: 52px;
-    margin: 0;
-    padding: 9px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, .5);
+/* V-32: gjatë ngarkimit vetëm unaza jonë (.pond-overlay, nga filepond-bridge.js). Treguesit e
+   FilePond-it, butoni i tij i ndalimit dhe teksti lart djathtas fshihen. */
+.bg-pond-host .filepond--progress-indicator,
+.bg-pond-host .filepond--action-abort-item-processing,
+.bg-pond-host [data-filepond-item-state~="processing"] .filepond--file-status {
+    display: none;
 }
 
-.bg-pond-host .pond-cancel {
+.pond-overlay {
+    --p: 0;
     position: absolute;
-    left: 50%;
-    top: 104px;
-    z-index: 110;
-    transform: translateX(-50%);
-    padding: 4px 14px;
+    inset: 0;
+    z-index: 105;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding-top: 22px;
+    border-radius: inherit;
+    /* Errëson foton, por jo emrin e skedarit lart. */
+    background: linear-gradient(to bottom, transparent 30px, rgba(0, 0, 0, .45) 60px);
+    pointer-events: none;
+}
+
+.pond-ring {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    padding: 0;
     border: 0;
-    border-radius: 8px;
-    font-size: 13px;
+    border-radius: 50%;
+    background: transparent;
     color: #fff;
-    background: rgba(0, 0, 0, .55);
     cursor: pointer;
     pointer-events: auto;
 }
 
-.bg-pond-host .pond-cancel:hover,
-.bg-pond-host .pond-cancel:focus {
-    background: rgba(0, 0, 0, .75);
+/* Unaza: mbushet sipas --p (0-100), me bishtin që zbehet si te shembulli. */
+.pond-ring::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(rgba(255, 255, 255, .35) 0, #fff calc(var(--p) * 1%), rgba(255, 255, 255, .16) 0);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+}
+
+.pond-ring-x {
+    position: absolute;
+    inset: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: transform .15s ease;
+}
+
+.pond-ring:hover .pond-ring-x,
+.pond-ring:focus .pond-ring-x {
+    transform: scale(1.2);
+}
+
+.pond-ring:focus {
+    outline: 0;
+}
+
+.pond-progress-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .75);
+}
+
+/* V-32: mesazhi i gabimit në mes, poshtë shigjetës: i gjatë, nuk nxë pranë emrit të skedarit.
+   Skedarët e refuzuar para ngarkimit (load-invalid) janë kartela të ulëta dhe e mbajnë te vendi. */
+.bg-pond-host [data-filepond-item-state*="error"] .filepond--file-status {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 128px;
+    align-items: center;
+    text-align: center;
+    transform: none !important;
+}
+
+.bg-pond-host [data-filepond-item-state*="error"] .filepond--file-status-main {
+    white-space: normal;
+}
+
+.bg-pond-host [data-filepond-item-state*="error"] .filepond--file-status-sub {
+    display: none;
+}
+
+/* V-32: kur dështon, shigjeta e riprovimit në mes dhe X-i në qoshe. */
+.bg-pond-host .filepond--file .filepond--action-retry-item-processing[data-align] {
+    left: calc(50% - 30px);
+    right: auto;
+    top: 62px;
+    width: 60px;
+    height: 60px;
+    color: #fff;
+    background-color: rgba(0, 0, 0, .55);
 }
 
 .bg-pond-host .filepond--panel-root {
