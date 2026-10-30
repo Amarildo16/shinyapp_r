@@ -108,6 +108,17 @@ test_that("V-30: preview-ja e fotove nga shtojca lokale dhe shkronjat e FilePond
   expect_match(css, "\\.bg-pond-host \\.filepond--root \\{[^}]*font-size: 16px;")
 })
 
+test_that("V-31: pa ngjyra suksesi/dështimi; rrethi në mes dhe \"Ndalo\" gjatë ngarkimit", {
+  css <- paste(readLines(file.path(APP_ROOT, "www", "css", "background.css"), warn = FALSE), collapse = "\n")
+  expect_match(css, "overlay-success,\\s*\\.bg-pond-host \\.filepond--image-preview-overlay-failure \\{\\s*color: rgba\\(40, 40, 40, \\.85\\);")
+  expect_false(grepl("rgba(52, 199, 89", css, fixed = TRUE))
+  expect_false(grepl("rgba(255, 69, 58", css, fixed = TRUE))
+  expect_match(css, "filepond--progress-indicator\\[data-align\\] \\{[^}]*left: calc\\(50% - 26px\\);")
+  js <- paste(readLines(file.path(APP_ROOT, "www", "js", "filepond-bridge.js"), warn = FALSE), collapse = "\n")
+  expect_match(js, 'btn.className = "pond-cancel"', fixed = TRUE)
+  expect_match(js, 'pond.on("processfileabort", (item) => { dropCancel(item); pond.removeFile(item.id); });', fixed = TRUE)
+})
+
 test_that("V-28: kufiri i ngarkimit dhe tekstet e FilePond-it për madhësinë", {
   expect_equal(UPLOAD_MAX_MB, 150)
   sq <- as.character(js_i18n())

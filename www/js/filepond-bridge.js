@@ -349,6 +349,26 @@
         });
         // Kur ka foto, zona e lëshimit zvogëlohet dhe lista shfaqet si rrjetë (CSS: .has-files).
         pond.on("updatefiles", (items) => host.classList.toggle("has-files", items.length > 0));
+
+        // V-31: butoni "Ndalo" në mes të fotos gjatë ngarkimit. Një ngarkim i ndalur hiqet nga
+        // lista, si me "Ndalo" ashtu edhe me X-in djathtas.
+        const itemEl = (item) => host.querySelector(`.filepond--item[id$="-${item.id}"]`);
+        const dropCancel = (item) => {
+            const btn = item && itemEl(item) && itemEl(item).querySelector(".pond-cancel");
+            if (btn) btn.remove();
+        };
+        pond.on("processfilestart", (item) => {
+            const el = itemEl(item);
+            if (!el || el.querySelector(".pond-cancel")) return;
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "pond-cancel";
+            btn.textContent = T["pond.btn_abort"];
+            btn.addEventListener("click", (e) => { e.stopPropagation(); item.abortProcessing(); });
+            el.appendChild(btn);
+        });
+        pond.on("processfile", (err, item) => dropCancel(item));
+        pond.on("processfileabort", (item) => { dropCancel(item); pond.removeFile(item.id); });
         serverPonds.set(hostId, pond);
         return true;
     }

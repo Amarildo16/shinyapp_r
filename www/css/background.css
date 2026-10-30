@@ -260,14 +260,75 @@ html.bg-none #bg-overlay {
     font-size: 12px;
 }
 
-/* Teksti mbi foto; X-i e tregon vetë heqjen, ndaj fshihet "kliko për ta hequr". */
+/* Teksti mbi foto; X-i dhe "Ndalo" e tregojnë vetë veprimin, ndaj fshihen "kliko për ta
+   hequr" dhe "kliko për ta ndaluar". */
 .bg-pond-host .filepond--file-info,
 .bg-pond-host .filepond--file-status {
     text-shadow: 0 1px 3px rgba(0, 0, 0, .75);
 }
 
+.bg-pond-host [data-filepond-item-state~="processing"] .filepond--file-status-sub,
 .bg-pond-host [data-filepond-item-state="processing-complete"] .filepond--file-status-sub {
     display: none;
+}
+
+/* FilePond-i nuk i jep ikonë butonit të ndalimit (rri brenda rrethit të progresit); këtu ai
+   rri djathtas, ndaj merr të njëjtin X si pas ngarkimit. */
+.bg-pond-host .filepond--action-abort-item-processing {
+    color: #fff;
+    background-color: rgba(0, 0, 0, .5);
+}
+
+.bg-pond-host .filepond--action-abort-item-processing::before {
+    content: "\00d7";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* V-31: pa ngjyrë suksesi/dështimi; hija e errët mbi foto mbetet e njëjtë në çdo gjendje. */
+.bg-pond-host .filepond--image-preview-overlay-success,
+.bg-pond-host .filepond--image-preview-overlay-failure {
+    color: rgba(40, 40, 40, .85);
+}
+
+/* V-31: gjatë ngarkimit, rrethi në mes të fotos dhe "Ndalo" poshtë tij; X-i mbetet djathtas. */
+.bg-pond-host .filepond--file .filepond--progress-indicator[data-align] {
+    left: calc(50% - 26px);
+    right: auto;
+    top: 44px;
+    width: 52px;
+    height: 52px;
+    margin: 0;
+    padding: 9px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .5);
+}
+
+.bg-pond-host .pond-cancel {
+    position: absolute;
+    left: 50%;
+    top: 104px;
+    z-index: 110;
+    transform: translateX(-50%);
+    padding: 4px 14px;
+    border: 0;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #fff;
+    background: rgba(0, 0, 0, .55);
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.bg-pond-host .pond-cancel:hover,
+.bg-pond-host .pond-cancel:focus {
+    background: rgba(0, 0, 0, .75);
 }
 
 .bg-pond-host .filepond--panel-root {
@@ -354,15 +415,6 @@ html.bg-none #bg-overlay {
 
 .bg-pond-host .filepond--item-panel {
     background-color: rgba(255, 255, 255, .14);
-}
-
-.bg-pond-host [data-filepond-item-state="processing-complete"] .filepond--item-panel {
-    background-color: rgba(52, 199, 89, .55);
-}
-
-.bg-pond-host [data-filepond-item-state*="error"] .filepond--item-panel,
-.bg-pond-host [data-filepond-item-state*="invalid"] .filepond--item-panel {
-    background-color: rgba(255, 69, 58, .6);
 }
 
 @media (max-width: 767.98px) {
