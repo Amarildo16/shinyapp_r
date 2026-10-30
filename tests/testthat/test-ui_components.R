@@ -95,6 +95,19 @@ test_that("V-26: modals.css sipas klasës, pa madhësi sipas ID-së dhe pa vijat
   expect_match(s, "\\.glass-modal \\.modal-footer \\{[^}]*border-top: 0;")
 })
 
+test_that("V-30: preview-ja e fotove nga shtojca lokale dhe shkronjat e FilePond-it", {
+  html <- htmltools::renderTags(app_head())$head
+  for (f in c("filepond-plugin-image-preview.min.css", "filepond-plugin-image-preview.min.js")) {
+    expect_match(html, paste0("vendor/filepond/", f), fixed = TRUE, info = f)
+    expect_true(file.exists(file.path(APP_ROOT, "www", "vendor", "filepond", f)), info = f)
+  }
+  js <- paste(readLines(file.path(APP_ROOT, "www", "js", "filepond-bridge.js"), warn = FALSE), collapse = "\n")
+  expect_match(js, "allowImagePreview: true", fixed = TRUE)
+  css <- paste(readLines(file.path(APP_ROOT, "www", "css", "background.css"), warn = FALSE), collapse = "\n")
+  # Bootstrap 3 e ka html në 10 px: pa këtë rregull, emri i skedarit del rreth 7,5 px.
+  expect_match(css, "\\.bg-pond-host \\.filepond--root \\{[^}]*font-size: 16px;")
+})
+
 test_that("V-28: kufiri i ngarkimit dhe tekstet e FilePond-it për madhësinë", {
   expect_equal(UPLOAD_MAX_MB, 150)
   sq <- as.character(js_i18n())

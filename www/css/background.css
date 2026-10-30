@@ -240,10 +240,34 @@ html.bg-none #bg-overlay {
     min-height: 320px;
 }
 
+/* FilePond-i i mat tekstet me rem, ndërsa Bootstrap 3 e ka html në 10 px: pa këtë, emri i
+   skedarit del rreth 7,5 px (V-30). */
 .bg-pond-host .filepond--root {
     height: 100%;
     min-height: 320px;
     margin: 0;
+    font-size: 16px;
+}
+
+.bg-pond-host .filepond--file-info .filepond--file-info-main,
+.bg-pond-host .filepond--file-status .filepond--file-status-main {
+    font-size: 14px;
+    line-height: 1.3;
+}
+
+.bg-pond-host .filepond--file-info .filepond--file-info-sub,
+.bg-pond-host .filepond--file-status .filepond--file-status-sub {
+    font-size: 12px;
+}
+
+/* Teksti mbi foto; X-i e tregon vetë heqjen, ndaj fshihet "kliko për ta hequr". */
+.bg-pond-host .filepond--file-info,
+.bg-pond-host .filepond--file-status {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .75);
+}
+
+.bg-pond-host [data-filepond-item-state="processing-complete"] .filepond--file-status-sub {
+    display: none;
 }
 
 .bg-pond-host .filepond--panel-root {
@@ -305,7 +329,7 @@ html.bg-none #bg-overlay {
     opacity: .6;
 }
 
-/* Me foto: zona zvogëlohet dhe fotot dalin në rrjetë (3 / 2 / 1 kolona). */
+/* Me foto: zona zvogëlohet dhe fotot dalin në rrjetë (4 / 3 / 2 / 1 kolona). */
 /* FilePond-i e vendos listën poshtë zonës së lëshimit: kur ka foto, zona merr lartësinë e
    vet (jo 100%), ndryshe lista del jashtë kutisë. */
 .bg-pond-host.has-files .filepond--drop-label,
@@ -319,7 +343,13 @@ html.bg-none #bg-overlay {
 }
 
 .bg-pond-host .filepond--item {
-    width: calc(33.333% - .5em);
+    width: calc(25% - 1em);
+}
+
+@media (max-width: 1199.98px) {
+    .bg-pond-host .filepond--item {
+        width: calc(33.333% - 1em);
+    }
 }
 
 .bg-pond-host .filepond--item-panel {
@@ -337,13 +367,13 @@ html.bg-none #bg-overlay {
 
 @media (max-width: 767.98px) {
     .bg-pond-host .filepond--item {
-        width: calc(50% - .5em);
+        width: calc(50% - 1em);
     }
 }
 
 @media (max-width: 575.98px) {
     .bg-pond-host .filepond--item {
-        width: calc(100% - .5em);
+        width: calc(100% - 1em);
     }
 }
 

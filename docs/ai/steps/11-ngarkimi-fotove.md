@@ -1,6 +1,6 @@
 # Faza 11 — Ngarkimi i fotove (si media library)
 
-Statusi: **gati, pa commit** (2026-10-29, V-29; provat te STATUS "Faza 11 — rezultati"). Problemet: B-28, B-29, U-12, U-13. Vendimet: V-29. Varet nga: 10.
+Statusi: **commit `6b01bd8`** (2026-10-29, V-29); preview e fotove (V-30, U-14) gati, pa commit (provat te STATUS "Faza 11 — rezultati"). Problemet: B-28, B-29, U-12, U-13, U-14. Vendimet: V-29, V-30. Varet nga: 10.
 
 Kërkesa e përdoruesit (2026-10-29): ngarkimi i fotove si media library e WordPress-it. Te skeda Ngarko, butonat "Ruaj fotot" dhe "Anulo"; një ose shumë foto ngarkohen menjëherë me progresin e FilePond-it dhe secila hiqet veç e veç; "Ruaj fotot" i mban, "Anulo" i hedh, të dyja të çojnë te Galeria. Pa vijën nën skeda dhe me tekst të lexueshëm në zonën e ngarkimit. CSV-ja dhe pamja e saj e shkurtër janë Faza 12.
 

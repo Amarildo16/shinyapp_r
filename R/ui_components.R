@@ -31,11 +31,13 @@ app_head <- function() {
   tags$head(
     tags$meta(name="viewport", content="width=device-width, initial-scale=1"),
     tags$link(rel="stylesheet", href="vendor/filepond/filepond.min.css"),
+    tags$link(rel="stylesheet", href="vendor/filepond/filepond-plugin-image-preview.min.css"),
     lapply(APP_CSS, function(f) tags$link(rel = "stylesheet", type = "text/css", href = paste0("css/", f, ".css"))),
     tags$link(rel="icon", type="image/png", href="favicon/favicon.png"),
     tags$script(src="vendor/filepond/filepond.min.js"),
     tags$script(src="vendor/filepond/filepond-plugin-file-validate-type.min.js"),
     tags$script(src="vendor/filepond/filepond-plugin-file-validate-size.min.js"),
+    tags$script(src="vendor/filepond/filepond-plugin-image-preview.min.js"),
     tags$script(src="js/bg.js"),
     tags$script(src="js/sidebar.js"),
     tags$script(src="js/plotly-animate.js"),

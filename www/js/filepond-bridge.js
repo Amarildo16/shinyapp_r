@@ -304,6 +304,7 @@
 
         if (window.FilePondPluginFileValidateType) FilePond.registerPlugin(FilePondPluginFileValidateType);
         if (window.FilePondPluginFileValidateSize) FilePond.registerPlugin(FilePondPluginFileValidateSize);
+        if (window.FilePondPluginImagePreview) FilePond.registerPlugin(FilePondPluginImagePreview);
 
         const cfg = detectConfig({ getAttribute: () => "image" }, "bg-images");
         const pond = FilePond.create(input, {
@@ -312,6 +313,8 @@
             maxParallelUploads: 3,
             instantUpload: true,
             allowRevert: true,
+            allowImagePreview: true,      // V-30: fotoja shihet para "Ruaj fotot"
+            imagePreviewHeight: 170,
             server: { process: serverProcess(url), revert: serverRevert(url), load: null, fetch: null, restore: null },
 
             acceptedFileTypes: cfg.acceptedFileTypes,
